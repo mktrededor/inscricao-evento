@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Inscrição – Evento Médico Científico</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+/* Estilos visuais preservados e otimizados */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --blue:#005ca9;--blue-dark:#085da9;--blue-light:#e8f0fb;
+  --white:#fff;--gray:#f4f6f9;--gray2:#dde3ec;
+  --text:#1a2640;--text-light:#5a6a82;
+  --radius:12px;--shadow:0 4px 24px rgba(0,92,169,.10);
+  --font:'Montserrat', sans-serif;
+}
+html,body{font-family:var(--font);background:#fff;color:var(--text);min-height:100vh;}
+.screen{display:none;width:100%;min-height:100vh;flex-direction:column;opacity:0;transition:opacity .4s ease;}
+.screen.active{display:flex;}
+.screen.visible{opacity:1;}
+#screen-landing{align-items:center;justify-content:center;padding:20px;}
+#btn-inscrever{background:var(--blue);color:#fff;border:none;border-radius:50px;padding:18px 60px;font-size:17px;font-weight:800;cursor:pointer;box-shadow:0 6px 20px rgba(0,92,169,0.3);}
+.form-card{max-width:600px;margin:40px auto;background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;}
+.card-header{background:var(--blue);padding:30px;color:#fff;}
+.card-body{padding:30px;}
+.field-group{margin-bottom:20px;}
+.field-group label{display:block;font-size:12px;font-weight:700;margin-bottom:8px;color:var(--text-light);}
+.field-group input, .field-group select{width:100%;padding:12px;border:1px solid var(--gray2);border-radius:8px;}
+.submit-btn{width:100%;padding:16px;background:var(--blue);color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;}
+#admin-toggle{position:fixed;top:10px;right:10px;background:var(--blue);color:#fff;border:none;border-radius:20px;padding:8px 15px;font-size:11px;cursor:pointer;z-index:100;}
+#admin-panel{display:none;position:fixed;top:0;right:0;width:350px;height:100vh;background:#fff;box-shadow:-5px 0 15px rgba(0,0,0,0.1);z-index:101;padding:20px;}
+#admin-panel.open{display:block;}
+.loading{opacity:0.6;pointer-events:none;}
+</style>
+</head>
+<body>
+
+<button id="admin-toggle" onclick="toggleAdmin()">Painel Admin</button>
+
+<div id="screen-landing" class="screen active visible">
+    <img src="https://via.placeholder.com/500x250?text=Banner+Evento" style="max-width:100%; margin-bottom:30px;">
+    <button id="btn-inscrever" onclick="showScreen('screen-form')">Quero me Inscrever</button>
+</div>
+
+<div id="screen-form" class="screen">
+    <div class="form-card">
+        <div class="card-header">
+            <h2>Inscrição do Evento</h2>
+            <p>Preencha os dados reais para validar sua vaga.</p>
+        </div>
+        <div class="card-body">
+            <form id="reg-form" name="evento-real" data-netlify="true">
+                <div class="field-group">
+                    <label>NOME COMPLETO</label>
+                    <input type="text" name="nome" required>
+                </div>
+                <div class="field-group">
+                    <label>E-MAIL</label>
+                    <input type="email" name="email" required>
+                </div>
+                <div class="field-group">
+                    <label>WHATSAPP</label>
+                    <input type="tel" name="telefone" required>
+                </div>
+                <div class="field-group">
+                    <label>PERFIL</label>
+                    <select name="perfil" required>
+                        <option value="Medico">Médico</option>
+                        <option value="Enfermeiro">Enfermeiro</option>
+                        <option value="Outros">Outros</option>
+                    </select>
+                </div>
+                <button type="submit" class="submit-btn" id="btn-submit">Confirmar Inscrição</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div id="screen-success" class="screen">
+    <div style="text-align:center; padding:50px;">
+        <h1>🎉 Sucesso!</h1>
+        <p>Sua inscrição foi registrada com segurança na nuvem.</p>
+        <button onclick="location.reload()" style="margin-top:20px;">Voltar ao início</button>
+    </div>
+</div>
+
+<div id="admin-panel">
+    <h3>Admin Dashboard</h3>
+    <hr style="margin:15px 0;">
+    <div id="admin-stats">Carregando dados...</div>
+    <button onclick="exportarExcel()" style="width:100%; margin-top:20px; background:green; color:#fff; border:none; padding:10px; border-radius:5px; cursor:pointer;">Baixar Planilha (Excel)</button>
+    <button onclick="toggleAdmin()" style="width:100%; margin-top:10px;">Fechar</button>
+</div>
+
+<script>
+// --- CONFIGURAÇÃO SUPABASE ---
+// Substitua pelos seus dados reais do painel do Supabase
+const SB_URL = sb_publishable_XbZ73efm6sN9EXwc0-Qsxw_SE5XJ7W4;
+const SB_KEY = sb_secret_14FguwKtLlLnTj5f9huFjw_AqoR7TQ5;
+const supabase = (typeof supabase !== 'undefined') ? supabase.createClient(SB_URL, SB_KEY) : null;
+
+// Navegação
+function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active', 'visible'));
+    const el = document.getElementById(id);
+    el.classList.add('active');
+    setTimeout(() => el.classList.add('visible'), 50);
+}
+
+// Submissão
+document.getElementById('reg-form').onsubmit = async function(e) {
+    e.preventDefault();
+    const btn = document.getElementById('btn-submit');
+    btn.innerText = "Processando...";
+    btn.classList.add('loading');
+
+    const formData = new FormData(e.target);
+    const payload = Object.fromEntries(formData.entries());
+    payload.data_hora = new Date().toISOString();
+
+    try {
+        // 1. Salva no Supabase
+        if(supabase) {
+            const { error } = await supabase.from('inscricoes').insert([payload]);
+            if(error) throw error;
+        }
+        
+        // 2. Avisa o Netlify (Opcional, mas bom para backup)
+        fetch("/", {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: new URLSearchParams(formData).toString(),
+        });
+
+        showScreen('screen-success');
+    } catch (err) {
+        alert("Erro ao salvar. Verifique sua conexão ou as chaves do Supabase.");
+        console.error(err);
+    } finally {
+        btn.innerText = "Confirmar Inscrição";
+        btn.classList.remove('loading');
+    }
+};
+
+// Admin
+function toggleAdmin() {
+    const p = document.getElementById('admin-panel');
+    if(!p.classList.contains('open')) {
+        const pass = prompt("Senha Admin:");
+        if(pass === "1234") { // Mude sua senha aqui
+            p.classList.add('open');
+            loadData();
+        }
+    } else {
+        p.classList.remove('open');
+    }
+}
+
+async function loadData() {
+    if(!supabase) return;
+    const { data } = await supabase.from('inscricoes').select('*');
+    if(data) {
+        document.getElementById('admin-stats').innerHTML = `Total de Inscritos: <strong>${data.length}</strong>`;
+        window.db_data = data;
+    }
+}
+
+function exportarExcel() {
+    if(!window.db_data) return alert("Nenhum dado carregado.");
+    const ws = XLSX.utils.json_to_sheet(window.db_data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Inscritos");
+    XLSX.writeFile(wb, "inscritos_evento.xlsx");
+}
+</script>
+</body>
+</html>
