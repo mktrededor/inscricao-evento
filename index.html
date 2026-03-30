@@ -503,9 +503,6 @@ html,body{font-family:var(--font);background:#fff;color:var(--text);min-height:1
 <!-- SAVE INDICATOR -->
 <div class="save-indicator" id="save-indicator">✔ Configurações salvas para todos!</div>
 
-<!-- ADMIN TOGGLE -->
-<button id="admin-toggle" onclick="toggleAdmin()">⚙ Admin</button>
-
 <!-- ══ ADMIN PANEL ══ -->
 <div id="admin-panel">
   <div class="admin-header">
@@ -1001,6 +998,11 @@ function handleFile(input, key, type) {
 // PAGE INIT
 // ═══════════════════════════════════════
 window.onload = async function() {
+ window.onload = async function() {
+  if (window.location.hash === '#admin') {
+    adminUnlocked = false;
+    setTimeout(() => toggleAdmin(), 1500);
+  }
   renderProfiles();
   renderSelectOptions();
   buildColorTargets();
