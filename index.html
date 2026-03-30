@@ -797,11 +797,16 @@ async function saveSettings(settingsObj) {
 
 async function loadSettings() {
   try {
-    const { data, error } = await sb.from('settings').select('value').eq('key','global').single();
-    if (error || !data) throw new Error('not found');
+    const { data, error } = await sb
+      .from('settings')
+      .select('value')
+      .eq('key', 'global')
+      .maybeSingle(); // ← não lança erro se não encontrar nada
+    if (error) throw new Error(error.message);
+    if (!data) return null; // ← primeiro acesso: sem configurações salvas ainda
     return JSON.parse(data.value);
   } catch(err) {
-    // Fallback to localStorage
+    console.warn('loadSettings error:', err.message);
     const local = localStorage.getItem('redor_settings');
     return local ? JSON.parse(local) : null;
   }
