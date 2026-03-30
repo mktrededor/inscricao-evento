@@ -1007,21 +1007,23 @@ window.onload = async function() {
   renderCustomQList();
   renderCustomQuestionsForm();
 
-  // Load saved settings and apply
-  const saved = await loadSettings();
+  // Timeout de segurança: se o Supabase demorar mais de 5s, ignora e carrega normal
+  const settingsPromise = loadSettings();
+  const timeoutPromise = new Promise(resolve => setTimeout(() => resolve(null), 5000));
+
+  const saved = await Promise.race([settingsPromise, timeoutPromise]);
   if (saved) {
     await applySettingsToPage(saved);
-    // Rebuild color editor UI if colorStates were restored
     if (saved.colorStates) {
       Object.assign(colorStates, saved.colorStates);
       buildColorTargets();
     }
   }
 
-  // Hide loading overlay and show landing
+  // Esconde o loading e mostra a tela
   const loadingEl = document.getElementById('page-loading');
   loadingEl.classList.add('hidden');
-  setTimeout(() => { loadingEl.style.display='none'; }, 600);
+  setTimeout(() => { loadingEl.style.display = 'none'; }, 600);
   setTimeout(() => document.getElementById('screen-landing').classList.add('visible'), 100);
 };
 
