@@ -503,6 +503,9 @@ html,body{font-family:var(--font);background:#fff;color:var(--text);min-height:1
 <!-- SAVE INDICATOR -->
 <div class="save-indicator" id="save-indicator">✔ Configurações salvas para todos!</div>
 
+<!-- ADMIN TOGGLE -->
+<button id="admin-toggle" onclick="toggleAdmin()">⚙ Admin</button>
+
 <!-- ══ ADMIN PANEL ══ -->
 <div id="admin-panel">
   <div class="admin-header">
@@ -732,7 +735,7 @@ html,body{font-family:var(--font);background:#fff;color:var(--text);min-height:1
 // ═══════════════════════════════════════
 // SUPABASE INIT
 // ═══════════════════════════════════════
-const SUPABASE_URL = 'https://ophzpykccksputlxznle.supabase.co';
+const SUPABASE_URL = 'https://xbz73efm6sn9exwc0-qsxw.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_XbZ73efm6sN9EXwc0-Qsxw_SE5XJ7W4';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
@@ -794,16 +797,11 @@ async function saveSettings(settingsObj) {
 
 async function loadSettings() {
   try {
-    const { data, error } = await sb
-      .from('settings')
-      .select('value')
-      .eq('key', 'global')
-      .maybeSingle(); // ← não lança erro se não encontrar nada
-    if (error) throw new Error(error.message);
-    if (!data) return null; // ← primeiro acesso: sem configurações salvas ainda
+    const { data, error } = await sb.from('settings').select('value').eq('key','global').single();
+    if (error || !data) throw new Error('not found');
     return JSON.parse(data.value);
   } catch(err) {
-    console.warn('loadSettings error:', err.message);
+    // Fallback to localStorage
     const local = localStorage.getItem('redor_settings');
     return local ? JSON.parse(local) : null;
   }
@@ -998,33 +996,27 @@ function handleFile(input, key, type) {
 // PAGE INIT
 // ═══════════════════════════════════════
 window.onload = async function() {
-  if (window.location.hash === '#admin') {
-    adminUnlocked = false;
-    setTimeout(() => toggleAdmin(), 1500);
-  }
   renderProfiles();
   renderSelectOptions();
   buildColorTargets();
   renderCustomQList();
   renderCustomQuestionsForm();
 
-  // Timeout de segurança: se o Supabase demorar mais de 5s, ignora e carrega normal
-  const settingsPromise = loadSettings();
-  const timeoutPromise = new Promise(resolve => setTimeout(() => resolve(null), 5000));
-
-  const saved = await Promise.race([settingsPromise, timeoutPromise]);
+  // Load saved settings and apply
+  const saved = await loadSettings();
   if (saved) {
     await applySettingsToPage(saved);
+    // Rebuild color editor UI if colorStates were restored
     if (saved.colorStates) {
       Object.assign(colorStates, saved.colorStates);
       buildColorTargets();
     }
   }
 
-  // Esconde o loading e mostra a tela
+  // Hide loading overlay and show landing
   const loadingEl = document.getElementById('page-loading');
   loadingEl.classList.add('hidden');
-  setTimeout(() => { loadingEl.style.display = 'none'; }, 600);
+  setTimeout(() => { loadingEl.style.display='none'; }, 600);
   setTimeout(() => document.getElementById('screen-landing').classList.add('visible'), 100);
 };
 
