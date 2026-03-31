@@ -881,10 +881,10 @@ html,body{font-family:var(--font);background:#fff;color:var(--text);min-height:1
 // SUPABASE
 // ═══════════════════════════════════════
 const SUPABASE_URL = 'https://ophzpykccksputlxznle.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9waHpweWtjY2tzcHV0bHh6bmxlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2MTQyNzAsImV4cCI6MjA5MDE5MDI3MH0.DY9foKclQ5-qnHR1lcrx7UZ8l6IuhVAGrlwaa-f-tlM';
+const SUPABASE_KEY = 'sb_publishable_XbZ73efm6sN9EXwc0-Qsxw_SE5XJ7W4';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-const ADMIN_PASSWORD = 'Rededor@2026';
+const ADMIN_PASSWORD = 'RedeDor@2025';
 let adminUnlocked = false;
 
 // ═══════════════════════════════════════
@@ -914,6 +914,7 @@ const colorTargets = [
   { id:'ct-blue',        label:'Cor de destaque (azul)',   cssProp:'--blue',             defaultType:'solid', defaultColor:'#005ca9', defaultColor2:'#005ca9', defaultDir:'to right' },
 ];
 let colorStates = {};
+let currentSettings = {}; // cache — always up to date, prevents partial overwrites
 
 // ═══════════════════════════════════════
 // SETTINGS PERSISTENCE
@@ -939,7 +940,8 @@ async function loadSettings() {
 }
 
 function gatherSettings() {
-  return {
+  // Build only what we can reliably read from DOM right now
+  const fresh = {
     btnLabel: document.getElementById('ed-btn-label').value,
     landingExtra: document.getElementById('ed-landing-extra').value,
     extraColor: document.getElementById('ed-extra-color').value,
@@ -965,9 +967,9 @@ function gatherSettings() {
     programacaoActive,
     programacaoUrl: document.getElementById('ed-programacao-url').value,
     palestrantesActive,
-    auxProgBg:     document.getElementById('ed-prog-bg').value,
-    auxProgBorder: document.getElementById('ed-prog-border').value,
-    auxProgColor:  document.getElementById('ed-prog-color').value,
+    auxProgBg:      document.getElementById('ed-prog-bg').value,
+    auxProgBorder:  document.getElementById('ed-prog-border').value,
+    auxProgColor:   document.getElementById('ed-prog-color').value,
     auxPalesBg:     document.getElementById('ed-pales-btn-bg').value,
     auxPalesBorder: document.getElementById('ed-pales-btn-border').value,
     auxPalesColor:  document.getElementById('ed-pales-btn-color').value,
@@ -978,6 +980,9 @@ function gatherSettings() {
     speakerBorderGradC2: document.getElementById('ed-border-grad-c2').value,
     speakerBorderGradDir: borderGradDir,
   };
+  // Merge: currentSettings is the base, fresh values override — prevents empty fields from wiping saved data
+  currentSettings = Object.assign({}, currentSettings, fresh);
+  return currentSettings;
 }
 
 async function applySettingsToPage(s) {
@@ -1602,6 +1607,7 @@ window.onload = async function(){
   const timeoutPromise=new Promise(resolve=>setTimeout(()=>resolve(null),5000));
   const saved=await Promise.race([settingsPromise,timeoutPromise]);
   if(saved){
+    currentSettings = saved; // seed the cache so partial saves never lose existing data
     await applySettingsToPage(saved);
     if(saved.colorStates){ Object.assign(colorStates,saved.colorStates); buildColorTargets(); }
   }
