@@ -839,6 +839,15 @@ html,body{font-family:var(--font);background:#fff;color:var(--text);min-height:1
       </div>
     </div>
     <button class="apply-btn" onclick="applySpeakersAndSave()">✔ Aplicar e Salvar Palestrantes</button>
+
+    <!-- BANCO GLOBAL -->
+    <div class="admin-section" style="margin-top:24px;">
+      <h3>🗄 Banco Global de Palestrantes</h3>
+      <p style="font-size:11px;color:var(--text-light);margin-bottom:10px;line-height:1.5;">Todos os palestrantes já cadastrados em qualquer evento. Edite, exclua permanentemente ou adicione ao evento atual.</p>
+      <input type="text" id="db-bank-search" placeholder="🔍 Filtrar por nome…" oninput="renderDBBankList(this.value)"
+        style="width:100%;padding:8px 10px;border:1.5px solid var(--gray2);border-radius:8px;font-family:var(--font);font-size:12px;margin-bottom:10px;">
+      <div id="db-bank-list"><div class="empty-state">Carregando…</div></div>
+    </div>
   </div>
 
   <!-- TAB: DASHBOARD -->
@@ -1520,28 +1529,41 @@ function saveSpeaker(){
   const bio=document.getElementById('sp-bio').value.trim();
   if(!name){alert('Insira o nome.');return;}
   const photoAdjust = {...spPhotoAdjust};
-  // photoUrl = public Storage URL; photoDataUrl = local preview fallback
   const photoUrl = spPhotoUrl || null;
   const photoDataUrl = spPhotoTemp || null;
-  if(editId){
+
+  if(editId && editId.startsWith('db_')){
+    // Editing an entry from the global DB bank (not yet in event list)
+    const dbId = editId.replace('db_','');
+    upsertSpeakerDB({name,role,bio,photoDataUrl:photoUrl||photoDataUrl,photoAdjust});
+    // Also update in event list if present
+    const idx = speakers.findIndex(s=>s.name.toLowerCase()===name.toLowerCase());
+    if(idx>-1){ speakers[idx]={...speakers[idx],name,role,bio,photoAdjust}; if(photoUrl) speakers[idx].photoUrl=photoUrl; if(photoDataUrl) speakers[idx].photoDataUrl=photoDataUrl; }
+    document.getElementById('sp-edit-id').value='';
+    document.getElementById('add-speaker-form-title').textContent='Adicionar Pessoa';
+    document.getElementById('sp-cancel-btn').style.display='none';
+  } else if(editId){
+    // Editing existing event speaker
     const idx=speakers.findIndex(s=>s.id===editId);
     if(idx>-1){
       speakers[idx]={...speakers[idx],name,type,role,bio,photoAdjust};
-      if(photoUrl) speakers[idx].photoUrl = photoUrl;
-      if(photoDataUrl) speakers[idx].photoDataUrl = photoDataUrl;
+      if(photoUrl) speakers[idx].photoUrl=photoUrl;
+      if(photoDataUrl) speakers[idx].photoDataUrl=photoDataUrl;
     }
+    upsertSpeakerDB({name,role,bio,photoDataUrl:photoUrl||photoDataUrl,photoAdjust});
     document.getElementById('sp-edit-id').value='';
     document.getElementById('add-speaker-form-title').textContent='Adicionar Pessoa';
     document.getElementById('sp-cancel-btn').style.display='none';
   } else {
+    // New speaker
     speakers.push({id:'sp_'+Date.now(),type,name,role,bio,photoUrl,photoDataUrl,photoAdjust});
+    upsertSpeakerDB({name,role,bio,photoDataUrl:photoUrl||photoDataUrl,photoAdjust});
   }
-  // Upsert to global DB — use public URL for storage
-  upsertSpeakerDB({name,role,bio,photoDataUrl: photoUrl||photoDataUrl, photoAdjust});
 
   resetSpeakerForm();
   renderSpeakersAdminList();
   renderPalestrantesPage();
+  renderDBBankList(document.getElementById('db-bank-search').value);
 }
 
 function resetSpeakerForm(){
@@ -1560,6 +1582,7 @@ function cancelEditSpeaker(){
   document.getElementById('add-speaker-form-title').textContent='Adicionar Pessoa';
   document.getElementById('sp-cancel-btn').style.display='none';
   resetSpeakerForm();
+  renderDBBankList();
 }
 
 function editSpeaker(id){
@@ -1596,15 +1619,134 @@ function deleteSpeaker(id){
 
 function renderSpeakersAdminList(){
   const container=document.getElementById('speakers-admin-list');
-  if(!speakers.length){container.innerHTML='<div class="empty-state" style="font-size:12px;padding:10px 0;">Nenhum palestrante adicionado.</div>';return;}
+  if(!speakers.length){
+    container.innerHTML='<div class="empty-state" style="font-size:12px;padding:10px 0;">Nenhum palestrante neste evento. Use o formulário abaixo ou busque no banco.</div>';
+    return;
+  }
   const typeLabel={coordenador:'Coordenador(a)',palestrante:'Palestrante'};
-  container.innerHTML=speakers.map(sp=>{
-    const src=speakerPhotoSrc(sp);
-    const thumb=src
-      ? `<img class="speaker-admin-thumb" src="${src}" style="transform:scale(${adj.zoom/100}) translate(${adj.x}px,${adj.y}px);" alt="">`
+  // Group: coordenadores first, then palestrantes
+  const sorted = [
+    ...speakers.filter(s=>s.type==='coordenador'),
+    ...speakers.filter(s=>s.type==='palestrante')
+  ];
+  container.innerHTML = sorted.map(sp=>{
+    const src = speakerPhotoSrc(sp);
+    const adj = sp.photoAdjust||{zoom:100,x:0,y:0};
+    const thumb = src
+      ? `<img class="speaker-admin-thumb" src="${src}" style="object-fit:cover;transform:scale(${adj.zoom/100}) translate(${adj.x}px,${adj.y}px);" alt="">`
       : `<div class="speaker-admin-thumb-placeholder">${sp.name.charAt(0)}</div>`;
-    return `<div class="speaker-admin-item"><div class="speaker-admin-header">${thumb}<div class="speaker-admin-info"><div class="sp-name">${sp.name}</div><div class="sp-type">${typeLabel[sp.type]}${sp.role?' · '+sp.role:''}</div></div><div class="speaker-admin-actions"><button class="sp-btn edit" onclick="editSpeaker('${sp.id}')">✏</button><button class="sp-btn del" onclick="deleteSpeaker('${sp.id}')">✕</button></div></div></div>`;
+    const badge = sp.type==='coordenador'
+      ? `<span style="font-size:9px;background:#fff3cd;color:#856404;padding:2px 6px;border-radius:10px;font-weight:700;">Coord.</span>`
+      : `<span style="font-size:9px;background:var(--blue-light);color:var(--blue);padding:2px 6px;border-radius:10px;font-weight:700;">Palest.</span>`;
+    return `<div class="speaker-admin-item">
+      <div class="speaker-admin-header">
+        ${thumb}
+        <div class="speaker-admin-info">
+          <div class="sp-name">${sp.name} ${badge}</div>
+          <div class="sp-type">${sp.role||'Sem cargo definido'}</div>
+        </div>
+        <div class="speaker-admin-actions">
+          <button class="sp-btn edit" onclick="editSpeaker('${sp.id}')" title="Editar">✏</button>
+          <button class="sp-btn del" onclick="removeSpeakerFromEvent('${sp.id}')" title="Remover do evento">✕</button>
+        </div>
+      </div>
+      ${sp.bio ? `<div style="font-size:10px;color:var(--text-light);margin-top:4px;line-height:1.4;padding-left:46px;">${sp.bio.slice(0,80)}${sp.bio.length>80?'…':''}</div>` : ''}
+    </div>`;
   }).join('');
+}
+
+// Remove from current event only (does NOT delete from speakers_db)
+function removeSpeakerFromEvent(id){
+  if(!confirm('Remover este palestrante do evento atual?\n(Ele continuará no banco de dados global.)')) return;
+  speakers = speakers.filter(s=>s.id!==id);
+  renderSpeakersAdminList();
+  renderPalestrantesPage();
+}
+
+// Hard delete from speakers_db global bank
+async function deleteSpeakerFromDB(dbId){
+  if(!confirm('EXCLUIR permanentemente do banco de dados?\nEsta ação não pode ser desfeita.')) return;
+  try {
+    const { error } = await sb.from('speakers_db').delete().eq('id', dbId);
+    if(error){ alert('Erro ao excluir: '+error.message); return; }
+    speakersDB = speakersDB.filter(s=>String(s.id)!==String(dbId));
+    renderDBBankList();
+    showSaveIndicator(true, '🗑 Excluído do banco de dados');
+  } catch(e){ alert('Erro: '+e.message); }
+}
+
+function renderDBBankList(filter){
+  const wrap = document.getElementById('db-bank-list');
+  if(!wrap) return;
+  if(!speakersDB.length){ wrap.innerHTML='<div class="empty-state">Nenhum palestrante no banco ainda.</div>'; return; }
+  const q = (filter||'').toLowerCase();
+  const list = q ? speakersDB.filter(s=>s.name.toLowerCase().includes(q)) : speakersDB;
+  if(!list.length){ wrap.innerHTML='<div class="empty-state">Nenhum resultado.</div>'; return; }
+  wrap.innerHTML = list.map(s=>{
+    const src = s.photo_data_url || null;
+    const thumb = src
+      ? `<img class="speaker-admin-thumb" src="${src}" style="object-fit:cover;" alt="">`
+      : `<div class="speaker-admin-thumb-placeholder">${s.name.charAt(0)}</div>`;
+    const inEvent = speakers.some(sp=>sp.name.toLowerCase()===s.name.toLowerCase());
+    return `<div class="speaker-admin-item">
+      <div class="speaker-admin-header">
+        ${thumb}
+        <div class="speaker-admin-info">
+          <div class="sp-name">${s.name}</div>
+          <div class="sp-type">${s.role||''}</div>
+        </div>
+        <div class="speaker-admin-actions" style="flex-direction:column;gap:4px;">
+          <button class="sp-btn edit" onclick="editSpeakerFromDB('${s.id}')" title="Editar no banco">✏</button>
+          ${inEvent
+            ? `<button class="sp-btn" style="background:#e8f8ef;color:#1e7e3e;font-size:9px;" disabled title="Já no evento">✔ Evento</button>`
+            : `<button class="sp-btn" style="background:#e8f0fb;color:var(--blue);font-size:9px;" onclick="addFromDBToEvent('${s.id}')" title="Adicionar ao evento">+ Evento</button>`
+          }
+          <button class="sp-btn del" onclick="deleteSpeakerFromDB('${s.id}')" title="Excluir do banco">🗑</button>
+        </div>
+      </div>
+      ${s.bio ? `<div style="font-size:10px;color:var(--text-light);margin-top:4px;line-height:1.4;padding-left:46px;">${s.bio.slice(0,100)}${s.bio.length>100?'…':''}</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function editSpeakerFromDB(dbId){
+  const s = speakersDB.find(x=>String(x.id)===String(dbId));
+  if(!s) return;
+  // Load into the form for editing
+  document.getElementById('sp-edit-id').value = 'db_'+dbId; // flag prefix
+  document.getElementById('sp-name').value = s.name;
+  document.getElementById('sp-role').value = s.role||'';
+  document.getElementById('sp-bio').value = s.bio||'';
+  if(s.photo_data_url){
+    spPhotoTemp = s.photo_data_url;
+    spPhotoUrl = s.photo_data_url.startsWith('http') ? s.photo_data_url : null;
+    const adj = s.photo_adjust ? JSON.parse(s.photo_adjust) : {zoom:100,x:0,y:0};
+    spPhotoAdjust = adj;
+    showPhotoAdjuster(s.photo_data_url, adj);
+  } else {
+    spPhotoTemp=null; spPhotoUrl=null;
+    document.getElementById('sp-photo-preview').innerHTML='';
+    document.getElementById('photo-adjuster').style.display='none';
+  }
+  document.getElementById('add-speaker-form-title').textContent='Editar no Banco de Dados';
+  document.getElementById('sp-cancel-btn').style.display='block';
+  document.getElementById('add-speaker-form').scrollIntoView({behavior:'smooth'});
+}
+
+function addFromDBToEvent(dbId){
+  const s = speakersDB.find(x=>String(x.id)===String(dbId));
+  if(!s) return;
+  const adj = s.photo_adjust ? JSON.parse(s.photo_adjust) : {zoom:100,x:0,y:0};
+  speakers.push({
+    id:'sp_'+Date.now(), type:'palestrante',
+    name:s.name, role:s.role||'', bio:s.bio||'',
+    photoUrl: s.photo_data_url && s.photo_data_url.startsWith('http') ? s.photo_data_url : null,
+    photoDataUrl: s.photo_data_url||null,
+    photoAdjust: adj
+  });
+  renderSpeakersAdminList();
+  renderPalestrantesPage();
+  renderDBBankList(document.getElementById('db-bank-search').value);
 }
 
 function renderPalestrantesPage(){
@@ -1740,7 +1882,7 @@ window.onload = async function(){
   updateAuxBtnColors();
 
   // Load global speakers DB for search
-  loadSpeakersDB().then(data => { speakersDB = data; });
+  loadSpeakersDB().then(data => { speakersDB = data; renderDBBankList(); });
 
   const settingsPromise=loadSettings();
   const timeoutPromise=new Promise(resolve=>setTimeout(()=>resolve(null),5000));
@@ -1865,6 +2007,7 @@ function showAdminTab(tab){
   document.getElementById('tab-'+tab).classList.add('active');
   if(tab==='dash') updateDashboard();
   if(tab==='data') renderInscricoesList();
+  if(tab==='speakers') renderDBBankList();
 }
 
 // ═══════════════════════════════════════
