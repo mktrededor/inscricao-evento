@@ -896,8 +896,9 @@ let customQuestions = [];
 let chartPerfis = null, chartRedor = null;
 let fileStore = {};
 let mediaTypes = { landing:'image', privacy:'image', form:'image', confirm:'image' };
-let speakers = []; // {id, type:'coordenador'|'palestrante', name, role, bio, photoDataUrl}
-let spPhotoTemp = null;
+let speakers = [];
+let spPhotoTemp = null; // dataUrl for local preview
+let spPhotoUrl = null;  // public Storage URL after upload
 let cpfEnabled = true;
 let programacaoActive = false;
 let programacaoUrl = '';
@@ -917,25 +918,78 @@ let colorStates = {};
 let currentSettings = {}; // cache — always up to date, prevents partial overwrites
 
 // ═══════════════════════════════════════
-// SETTINGS PERSISTENCE
+// SETTINGS PERSISTENCE — texto/config no DB, mídias no Storage
 // ═══════════════════════════════════════
+const STORAGE_BUCKET = 'event-media';
+
+// Upload um arquivo para o Supabase Storage e retorna a URL pública
+async function uploadToStorage(file, key) {
+  try {
+    const ext = file.name.split('.').pop().toLowerCase();
+    const path = key + '.' + ext;
+    const { error } = await sb.storage.from(STORAGE_BUCKET).upload(path, file, { upsert: true, cacheControl: '3600' });
+    if (error) { console.warn('Storage upload error:', error.message); return null; }
+    const { data } = sb.storage.from(STORAGE_BUCKET).getPublicUrl(path);
+    return data.publicUrl || null;
+  } catch(e) { console.warn('Storage upload failed:', e.message); return null; }
+}
+
+// Upload a partir de dataUrl (para fotos de palestrantes etc)
+async function uploadDataUrlToStorage(dataUrl, key) {
+  try {
+    const res = await fetch(dataUrl);
+    const blob = await res.blob();
+    const ext = blob.type.split('/')[1] || 'jpg';
+    const path = key + '.' + ext;
+    const { error } = await sb.storage.from(STORAGE_BUCKET).upload(path, blob, { upsert: true, cacheControl: '3600', contentType: blob.type });
+    if (error) { console.warn('Storage upload error:', error.message); return null; }
+    const { data } = sb.storage.from(STORAGE_BUCKET).getPublicUrl(path);
+    return data.publicUrl || null;
+  } catch(e) { console.warn('Storage dataUrl upload failed:', e.message); return null; }
+}
+
 async function saveSettings(obj) {
   try {
-    const { error } = await sb.from('settings').upsert([{ key:'global', value:JSON.stringify(obj), updated_at:new Date().toISOString() }],{onConflict:'key'});
-    if(error){ localStorage.setItem('redor_settings',JSON.stringify(obj)); return false; }
+    // Construir versão limpa: sem dataUrls — só URLs públicas do Storage
+    const slim = JSON.parse(JSON.stringify(obj));
+    // fileStore agora guarda {type, url} em vez de {type, dataUrl}
+    // speakers.photoDataUrl pode ser dataUrl (recém-uploadado) ou URL pública
+    // Garantir que nenhuma dataUrl grande vaze pro banco
+    if (slim.files) {
+      Object.keys(slim.files).forEach(k => {
+        const f = slim.files[k];
+        if (f && f.dataUrl && f.dataUrl.startsWith('data:')) {
+          // Ainda não foi feito upload — remover do payload do banco
+          slim.files[k] = { type: f.type, url: f.url || null };
+        }
+      });
+    }
+    if (slim.speakers) {
+      slim.speakers = slim.speakers.map(sp => {
+        const s = Object.assign({}, sp);
+        if (s.photoDataUrl && s.photoDataUrl.startsWith('data:')) {
+          s.photoDataUrl = s.photoUrl || null; // usa URL pública se existir
+        }
+        return s;
+      });
+    }
+    const { error } = await sb.from('settings').upsert(
+      [{ key: 'global', value: JSON.stringify(slim), updated_at: new Date().toISOString() }],
+      { onConflict: 'key' }
+    );
+    if (error) { console.warn('Settings save error:', error.message); return false; }
     return true;
-  } catch(e){ localStorage.setItem('redor_settings',JSON.stringify(obj)); return false; }
+  } catch(e) { console.warn('Settings save failed:', e.message); return false; }
 }
 
 async function loadSettings() {
   try {
     const { data, error } = await sb.from('settings').select('value').eq('key','global').maybeSingle();
-    if(error) throw new Error(error.message);
-    if(!data) return null;
+    if (error) throw new Error(error.message);
+    if (!data) return null;
     return JSON.parse(data.value);
-  } catch(e){
-    const local = localStorage.getItem('redor_settings');
-    return local ? JSON.parse(local) : null;
+  } catch(e) {
+    return null;
   }
 }
 
@@ -956,7 +1010,15 @@ function gatherSettings() {
     confirmUrl: document.getElementById('ed-confirm-url').value,
     palesTitle: document.getElementById('ed-pales-title').value,
     palesSubtitle: document.getElementById('ed-pales-subtitle').value,
-    files: fileStore,
+    files: (()=>{
+      // Strip dataUrls — only keep public Storage URLs
+      const clean = {};
+      Object.keys(fileStore).forEach(k => {
+        const f = fileStore[k];
+        clean[k] = { type: f.type, url: f.url || null };
+      });
+      return clean;
+    })(),
     mediaTypes,
     syncBgAll: document.getElementById('sync-bg-all').checked,
     profiles,
@@ -1000,7 +1062,7 @@ async function applySettingsToPage(s) {
       if(vw) vw.style.display=type==='video'?'':'none';
     });
   }
-  if(s.files) Object.assign(fileStore,s.files);
+  if(s.files) Object.assign(fileStore, s.files);
 
   if(s.syncBgAll && s.files) {
     document.getElementById('sync-bg-all').checked=true;
@@ -1018,9 +1080,13 @@ async function applySettingsToPage(s) {
     if(s.files&&s.files['form-video']) applyMediaToScreen('form','video',s.files['form-video']);
   }
 
-  if(s.files&&s.files['evento-img']) document.getElementById('evento-img').src=s.files['evento-img'].dataUrl||s.files['evento-img'];
-  if(s.files&&s.files['confirm-img']) document.getElementById('confirm-evento-img').src=s.files['confirm-img'].dataUrl||s.files['confirm-img'];
-  else if(s.files&&s.files['evento-img']) document.getElementById('confirm-evento-img').src=s.files['evento-img'].dataUrl||s.files['evento-img'];
+  // Central images — prefer public URL, fallback to dataUrl
+  function getSrc(f){ return f ? (f.url||f.dataUrl||null) : null; }
+  const eventoSrc = getSrc(s.files&&s.files['evento-img']);
+  const confirmSrc = getSrc(s.files&&s.files['confirm-img']);
+  if(eventoSrc) document.getElementById('evento-img').src = eventoSrc;
+  if(confirmSrc) document.getElementById('confirm-evento-img').src = confirmSrc;
+  else if(eventoSrc) document.getElementById('confirm-evento-img').src = eventoSrc;
 
   if(s.btnLabel){ document.getElementById('btn-inscrever').textContent=s.btnLabel+' →'; document.getElementById('ed-btn-label').value=s.btnLabel; }
   if(s.landingExtra!==undefined){ const el=document.getElementById('landing-extra-text'); el.textContent=s.landingExtra; el.style.display=s.landingExtra?'block':'none'; if(s.extraColor)el.style.color=s.extraColor; document.getElementById('ed-landing-extra').value=s.landingExtra; }
@@ -1095,26 +1161,62 @@ function setMediaType(screen,type,tab){
   if(vw) vw.style.display=type==='video'?'':'none';
 }
 
-function applyMediaToScreen(screen,type,fileData){
-  const dataUrl=(fileData&&typeof fileData==='object')?fileData.dataUrl:fileData;
-  if(!dataUrl) return;
-  const bgEl=document.getElementById(screen+'-bg');
-  const videoEl=document.getElementById(screen+'-video');
-  if(type==='video'){
-    if(bgEl){bgEl.style.backgroundImage='none';bgEl.style.display='none';}
-    if(videoEl){videoEl.src=dataUrl;videoEl.style.display='block';videoEl.load();videoEl.play().catch(()=>{});}
+function applyMediaToScreen(screen, type, fileData) {
+  // fileData can be: a string URL/dataUrl, or {type, url, dataUrl}
+  let src = null;
+  if (typeof fileData === 'string') {
+    src = fileData;
+  } else if (fileData && typeof fileData === 'object') {
+    src = fileData.url || fileData.dataUrl || null;
+  }
+  if (!src) return;
+  const bgEl = document.getElementById(screen + '-bg');
+  const videoEl = document.getElementById(screen + '-video');
+  if (type === 'video') {
+    if (bgEl) { bgEl.style.backgroundImage = 'none'; bgEl.style.display = 'none'; }
+    if (videoEl) { videoEl.src = src; videoEl.style.display = 'block'; videoEl.load(); videoEl.play().catch(() => {}); }
   } else {
-    if(videoEl){videoEl.src='';videoEl.style.display='none';}
-    if(bgEl){bgEl.style.backgroundImage="url('"+dataUrl+"')";bgEl.style.display='';}
-    if(screen==='form'){const sf=document.getElementById('screen-form');sf.style.backgroundImage="url('"+dataUrl+"')";sf.style.backgroundSize='cover';sf.style.backgroundPosition='center';}
+    if (videoEl) { videoEl.src = ''; videoEl.style.display = 'none'; }
+    if (bgEl) { bgEl.style.backgroundImage = "url('" + src + "')"; bgEl.style.display = ''; }
+    if (screen === 'form') {
+      const sf = document.getElementById('screen-form');
+      sf.style.backgroundImage = "url('" + src + "')";
+      sf.style.backgroundSize = 'cover';
+      sf.style.backgroundPosition = 'center';
+    }
   }
 }
 
-function handleFile(input,key,type){
-  if(!input.files[0]) return;
-  const r=new FileReader();
-  r.onload=e=>{ fileStore[key]={type,dataUrl:e.target.result}; };
-  r.readAsDataURL(input.files[0]);
+function handleFile(input, key, type) {
+  if (!input.files[0]) return;
+  const file = input.files[0];
+  // Show uploading indicator near the input
+  const label = input.previousElementSibling;
+  const origText = label ? label.textContent : '';
+  if (label) label.textContent = '⏳ Enviando…';
+  uploadToStorage(file, key).then(url => {
+    if (label) label.textContent = url ? '✔ ' + file.name.slice(0,20) : origText;
+    if (url) {
+      fileStore[key] = { type, url };
+      // Also keep dataUrl in memory for immediate preview
+      const r = new FileReader();
+      r.onload = e => {
+        fileStore[key].dataUrl = e.target.result;
+        // Apply preview immediately
+        applyMediaToScreen(key.replace('-bg','').replace('-video',''), type, e.target.result);
+      };
+      r.readAsDataURL(file);
+    } else {
+      // Storage failed — fallback: store dataUrl locally for this session only
+      const r = new FileReader();
+      r.onload = e => {
+        fileStore[key] = { type, dataUrl: e.target.result, url: null };
+        applyMediaToScreen(key.replace('-bg','').replace('-video',''), type, e.target.result);
+        if (label) label.textContent = '⚠ Local (Storage indisponível)';
+      };
+      r.readAsDataURL(file);
+    }
+  });
 }
 
 // ═══════════════════════════════════════
@@ -1278,13 +1380,12 @@ async function loadSpeakersDB(){
 }
 
 async function upsertSpeakerDB(sp){
-  // sp has: name, role, bio, photoDataUrl, photo_adjust
-  // We match by name (case-insensitive) — update if exists, insert if not
+  // sp.photoDataUrl here should already be a public URL (uploaded before calling this)
   const payload = {
     name: sp.name,
     role: sp.role||'',
     bio: sp.bio||'',
-    photo_data_url: sp.photoDataUrl||null,
+    photo_data_url: sp.photoDataUrl||null, // stores public URL from Storage
     photo_adjust: JSON.stringify(sp.photoAdjust||{zoom:100,x:0,y:0}),
     updated_at: new Date().toISOString()
   };
@@ -1336,12 +1437,14 @@ function importFromDB(dbId){
   document.getElementById('sp-db-search').value = '';
   document.getElementById('sp-db-dropdown').classList.remove('open');
   if(s.photo_data_url){
-    spPhotoTemp = s.photo_data_url;
+    spPhotoTemp = s.photo_data_url; // may be URL or dataUrl
+    spPhotoUrl = s.photo_data_url.startsWith('http') ? s.photo_data_url : null;
     const adj = s.photo_adjust ? JSON.parse(s.photo_adjust) : {zoom:100,x:0,y:0};
     spPhotoAdjust = adj;
     showPhotoAdjuster(s.photo_data_url, adj);
   } else {
     spPhotoTemp = null;
+    spPhotoUrl = null;
     document.getElementById('photo-adjuster').style.display='none';
     document.getElementById('sp-photo-preview').innerHTML='';
   }
@@ -1357,13 +1460,27 @@ document.addEventListener('click', e => {
 // ═══════════════════════════════════════
 function handleSpeakerPhoto(input){
   if(!input.files[0]) return;
-  const r=new FileReader();
-  r.onload=e=>{
-    spPhotoTemp=e.target.result;
-    spPhotoAdjust={zoom:100,x:0,y:0};
+  const file = input.files[0];
+  const label = input.previousElementSibling;
+  if(label) label.textContent = '⏳ Enviando…';
+  // Read for immediate preview
+  const r = new FileReader();
+  r.onload = async e => {
+    spPhotoTemp = e.target.result; // dataUrl for preview
+    spPhotoAdjust = {zoom:100, x:0, y:0};
     showPhotoAdjuster(spPhotoTemp, spPhotoAdjust);
+    // Upload to Storage
+    const tempKey = 'speaker-photo-' + Date.now();
+    const url = await uploadDataUrlToStorage(spPhotoTemp, tempKey);
+    if(url) {
+      spPhotoUrl = url; // store public URL separately
+      if(label) label.textContent = '✔ Foto enviada';
+    } else {
+      spPhotoUrl = null;
+      if(label) label.textContent = '⚠ Usando local (Storage indisponível)';
+    }
   };
-  r.readAsDataURL(input.files[0]);
+  r.readAsDataURL(file);
 }
 
 function showPhotoAdjuster(src, adj){
@@ -1403,20 +1520,24 @@ function saveSpeaker(){
   const bio=document.getElementById('sp-bio').value.trim();
   if(!name){alert('Insira o nome.');return;}
   const photoAdjust = {...spPhotoAdjust};
+  // photoUrl = public Storage URL; photoDataUrl = local preview fallback
+  const photoUrl = spPhotoUrl || null;
+  const photoDataUrl = spPhotoTemp || null;
   if(editId){
     const idx=speakers.findIndex(s=>s.id===editId);
     if(idx>-1){
       speakers[idx]={...speakers[idx],name,type,role,bio,photoAdjust};
-      if(spPhotoTemp) speakers[idx].photoDataUrl=spPhotoTemp;
+      if(photoUrl) speakers[idx].photoUrl = photoUrl;
+      if(photoDataUrl) speakers[idx].photoDataUrl = photoDataUrl;
     }
     document.getElementById('sp-edit-id').value='';
     document.getElementById('add-speaker-form-title').textContent='Adicionar Pessoa';
     document.getElementById('sp-cancel-btn').style.display='none';
   } else {
-    speakers.push({id:'sp_'+Date.now(),type,name,role,bio,photoDataUrl:spPhotoTemp||null,photoAdjust});
+    speakers.push({id:'sp_'+Date.now(),type,name,role,bio,photoUrl,photoDataUrl,photoAdjust});
   }
-  // Upsert to global DB
-  upsertSpeakerDB({name,role,bio,photoDataUrl:spPhotoTemp||speakers.find(s=>s.name===name)?.photoDataUrl||null,photoAdjust});
+  // Upsert to global DB — use public URL for storage
+  upsertSpeakerDB({name,role,bio,photoDataUrl: photoUrl||photoDataUrl, photoAdjust});
 
   resetSpeakerForm();
   renderSpeakersAdminList();
@@ -1430,6 +1551,7 @@ function resetSpeakerForm(){
   document.getElementById('sp-photo-preview').innerHTML='';
   document.getElementById('photo-adjuster').style.display='none';
   spPhotoTemp=null;
+  spPhotoUrl=null;
   spPhotoAdjust={zoom:100,x:0,y:0};
 }
 
@@ -1447,13 +1569,16 @@ function editSpeaker(id){
   document.getElementById('sp-type').value=sp.type;
   document.getElementById('sp-role').value=sp.role||'';
   document.getElementById('sp-bio').value=sp.bio||'';
-  if(sp.photoDataUrl){
-    spPhotoTemp=sp.photoDataUrl;
+  const editSrc = speakerPhotoSrc(sp);
+  if(editSrc){
+    spPhotoTemp=editSrc;
+    spPhotoUrl=sp.photoUrl||null;
     const adj=sp.photoAdjust||{zoom:100,x:0,y:0};
     spPhotoAdjust={...adj};
-    showPhotoAdjuster(sp.photoDataUrl, adj);
+    showPhotoAdjuster(editSrc, adj);
   } else {
     spPhotoTemp=null;
+    spPhotoUrl=null;
     document.getElementById('sp-photo-preview').innerHTML='';
     document.getElementById('photo-adjuster').style.display='none';
   }
@@ -1474,9 +1599,9 @@ function renderSpeakersAdminList(){
   if(!speakers.length){container.innerHTML='<div class="empty-state" style="font-size:12px;padding:10px 0;">Nenhum palestrante adicionado.</div>';return;}
   const typeLabel={coordenador:'Coordenador(a)',palestrante:'Palestrante'};
   container.innerHTML=speakers.map(sp=>{
-    const adj=sp.photoAdjust||{zoom:100,x:0,y:0};
-    const thumb=sp.photoDataUrl
-      ? `<img class="speaker-admin-thumb" src="${sp.photoDataUrl}" style="transform:scale(${adj.zoom/100}) translate(${adj.x}px,${adj.y}px);" alt="">`
+    const src=speakerPhotoSrc(sp);
+    const thumb=src
+      ? `<img class="speaker-admin-thumb" src="${src}" style="transform:scale(${adj.zoom/100}) translate(${adj.x}px,${adj.y}px);" alt="">`
       : `<div class="speaker-admin-thumb-placeholder">${sp.name.charAt(0)}</div>`;
     return `<div class="speaker-admin-item"><div class="speaker-admin-header">${thumb}<div class="speaker-admin-info"><div class="sp-name">${sp.name}</div><div class="sp-type">${typeLabel[sp.type]}${sp.role?' · '+sp.role:''}</div></div><div class="speaker-admin-actions"><button class="sp-btn edit" onclick="editSpeaker('${sp.id}')">✏</button><button class="sp-btn del" onclick="deleteSpeaker('${sp.id}')">✕</button></div></div></div>`;
   }).join('');
@@ -1494,6 +1619,8 @@ function renderPalestrantesPage(){
     : '<div class="empty-state">Nenhum palestrante cadastrado ainda.</div>';
 }
 
+function speakerPhotoSrc(sp){ return sp.photoUrl || sp.photoDataUrl || null; }
+
 function speakerCardHTML(sp, borderData){
   if(!borderData) borderData=getSpeakerBorderCSS();
   const bw = borderData.width;
@@ -1503,8 +1630,9 @@ function speakerCardHTML(sp, borderData){
   const adj = sp.photoAdjust||{zoom:100,x:0,y:0};
   const innerStyle = `position:absolute;top:${inset}px;left:${inset}px;width:${innerSize}px;height:${innerSize}px;border-radius:50%;overflow:hidden;`;
   const imgStyle = `width:100%;height:100%;object-fit:cover;transform:scale(${adj.zoom/100}) translate(${adj.x}px,${adj.y}px);display:block;`;
-  const photoContent = sp.photoDataUrl
-    ? `<img style="${imgStyle}" src="${sp.photoDataUrl}" alt="${sp.name}">`
+  const src = speakerPhotoSrc(sp);
+  const photoContent = src
+    ? `<img style="${imgStyle}" src="${src}" alt="${sp.name}">`
     : `<div style="width:100%;height:100%;background:linear-gradient(135deg,var(--blue-light),#c8d8f0);display:flex;align-items:center;justify-content:center;font-size:42px;font-weight:900;color:var(--blue);">${sp.name.charAt(0)}</div>`;
   const borderSVG = buildSpeakerBorderSVG(size, borderData);
   return `<div class="speaker-card" onclick="openSpeakerModal('${sp.id}')">
@@ -1527,8 +1655,9 @@ function openSpeakerModal(id){
   const adj=sp.photoAdjust||{zoom:100,x:0,y:0};
   const innerStyle=`position:absolute;top:${inset}px;left:${inset}px;width:${innerSize}px;height:${innerSize}px;border-radius:50%;overflow:hidden;`;
   const imgStyle=`width:100%;height:100%;object-fit:cover;transform:scale(${adj.zoom/100}) translate(${adj.x}px,${adj.y}px);display:block;`;
-  const photoContent=sp.photoDataUrl
-    ?`<img style="${imgStyle}" src="${sp.photoDataUrl}" alt="${sp.name}">`
+  const src=speakerPhotoSrc(sp);
+  const photoContent=src
+    ?`<img style="${imgStyle}" src="${src}" alt="${sp.name}">`
     :`<div style="width:100%;height:100%;background:linear-gradient(135deg,var(--blue-light),#c8d8f0);display:flex;align-items:center;justify-content:center;font-size:32px;font-weight:900;color:var(--blue);">${sp.name.charAt(0)}</div>`;
   const borderSVG=buildSpeakerBorderSVG(size,borderData);
   const photoWrap=`<div style="width:${size}px;height:${size}px;position:relative;margin:0 auto 16px;"><div style="${innerStyle}">${photoContent}</div>${borderSVG}</div>`;
@@ -1577,6 +1706,16 @@ async function applySpeakersAndSave(){
   document.getElementById('palestrantes-page-title').textContent=title;
   document.getElementById('palestrantes-page-subtitle').textContent=subtitle;
   renderPalestrantesPage();
+  // Explicitly update currentSettings with latest speaker data before saving
+  currentSettings.speakers = speakers;
+  currentSettings.palesTitle = title;
+  currentSettings.palesSubtitle = subtitle;
+  currentSettings.speakerBorderStyle = borderStyle;
+  currentSettings.speakerBorderGradDir = borderGradDir;
+  currentSettings.speakerBorderColor = document.getElementById('ed-speaker-border-color').value;
+  currentSettings.speakerBorderWidth = document.getElementById('ed-speaker-border-width').value;
+  currentSettings.speakerBorderGradC1 = document.getElementById('ed-border-grad-c1').value;
+  currentSettings.speakerBorderGradC2 = document.getElementById('ed-border-grad-c2').value;
   const saved=await saveSettings(gatherSettings());
   showSaveIndicator(saved);
 }
@@ -1745,8 +1884,9 @@ async function applyAll(){
     const lk=lt==='image'?'landing-bg':'landing-video';
     if(fileStore[lk]){ ['privacy','form','confirm'].forEach(sc=>{applyMediaToScreen(sc,lt,fileStore[lk]);mediaTypes[sc]=lt;}); }
   }
-  if(fileStore['evento-img']){ const src=fileStore['evento-img'].dataUrl||fileStore['evento-img']; document.getElementById('evento-img').src=src; if(!fileStore['confirm-img']) document.getElementById('confirm-evento-img').src=src; }
-  if(fileStore['confirm-img']) document.getElementById('confirm-evento-img').src=fileStore['confirm-img'].dataUrl||fileStore['confirm-img'];
+  function fSrc(f){ return f ? (f.url||f.dataUrl||null) : null; }
+  if(fileStore['evento-img']){ const src=fSrc(fileStore['evento-img']); if(src){ document.getElementById('evento-img').src=src; if(!fileStore['confirm-img']) document.getElementById('confirm-evento-img').src=src; } }
+  if(fileStore['confirm-img']){ const src=fSrc(fileStore['confirm-img']); if(src) document.getElementById('confirm-evento-img').src=src; }
 
   const bl=document.getElementById('ed-btn-label').value.trim();
   if(bl) document.getElementById('btn-inscrever').textContent=bl+' →';
@@ -1853,6 +1993,7 @@ function buildCssValue(id){ const s=colorStates[id]; if(!s)return '#005ca9'; con
 function updateColorPreview(id){ const p=document.getElementById(id+'-preview'); if(p)p.style.background=buildCssValue(id); }
 async function applyAllColors(){
   colorTargets.forEach(ct=>document.documentElement.style.setProperty(ct.cssProp,buildCssValue(ct.id)));
+  currentSettings.colorStates = colorStates; // explicitly update cache
   const btn=document.getElementById('apply-colors-btn');
   btn.textContent='⏳ Salvando…'; btn.disabled=true;
   const saved=await saveSettings(gatherSettings());
