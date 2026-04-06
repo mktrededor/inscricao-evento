@@ -8,6 +8,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 :root{
@@ -322,8 +323,70 @@ html,body{font-family:var(--font);background:#fff;color:var(--text);min-height:1
 .apply-btn:hover{background:#084d8a;}
 .apply-btn.success{background:#1e7e3e;}
 
-.danger-btn{width:100%;padding:11px;background:#fde8e8;color:#c0392b;border:2px solid #f5c6c6;border-radius:10px;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer;margin-top:8px;transition:background .2s,border-color .2s;}
-.danger-btn:hover{background:#fbd0d0;border-color:#e74c3c;}
+/* ══════ VALIDATOR SCREEN ══════ */
+#screen-validar{position:fixed;inset:0;z-index:9500;display:none;flex-direction:column;background:#0a1628;align-items:center;justify-content:flex-start;overflow-y:auto;}
+#screen-validar.active{display:flex;}
+.val-header{width:100%;background:linear-gradient(135deg,#005ca9,#0a7bc4);padding:18px 20px;display:flex;align-items:center;gap:14px;flex-shrink:0;}
+.val-header-logo{width:36px;height:36px;background:rgba(255,255,255,.15);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;}
+.val-header-title{flex:1;}
+.val-header-title h2{font-size:16px;font-weight:800;color:#fff;line-height:1.2;}
+.val-header-title p{font-size:11px;color:rgba(255,255,255,.7);margin-top:2px;}
+.val-status-bar{display:flex;gap:8px;padding:12px 16px;background:rgba(255,255,255,.05);width:100%;flex-shrink:0;}
+.val-status-pill{flex:1;text-align:center;padding:8px 4px;border-radius:10px;background:rgba(255,255,255,.08);}
+.val-status-pill .vsp-num{font-size:22px;font-weight:900;color:#fff;line-height:1;}
+.val-status-pill .vsp-label{font-size:9px;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.5px;margin-top:2px;font-weight:600;}
+.val-status-pill.green .vsp-num{color:#2ecc71;}
+.val-status-pill.red .vsp-num{color:#e74c3c;}
+.val-status-pill.yellow .vsp-num{color:#f1c40f;}
+
+/* Camera area */
+.val-camera-wrap{position:relative;width:100%;max-width:400px;margin:16px auto;border-radius:16px;overflow:hidden;background:#000;aspect-ratio:1;}
+#val-video{width:100%;height:100%;object-fit:cover;display:block;}
+#val-canvas{display:none;}
+.val-scanner-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;}
+.val-scanner-frame{width:65%;height:65%;border:3px solid rgba(255,255,255,.8);border-radius:16px;box-shadow:0 0 0 9999px rgba(0,0,0,.45);}
+.val-scanner-line{position:absolute;width:60%;height:2px;background:linear-gradient(90deg,transparent,#2ecc71,transparent);animation:scanLine 2s ease-in-out infinite;}
+@keyframes scanLine{0%,100%{top:18%;}50%{top:82%;}}
+.val-offline-badge{background:#e6a817;color:#fff;font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;position:absolute;top:10px;right:10px;display:none;}
+
+/* Result flash */
+.val-result{
+  position:fixed;inset:0;z-index:9600;display:none;
+  flex-direction:column;align-items:center;justify-content:center;
+  padding:32px 24px;text-align:center;
+  animation:resultPop .3s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes resultPop{from{opacity:0;transform:scale(.8);}to{opacity:1;transform:scale(1);}}
+.val-result.sim{background:linear-gradient(135deg,#1a7a40,#2ecc71);}
+.val-result.nao{background:linear-gradient(135deg,#7a1a1a,#e74c3c);}
+.val-result.ja-usado{background:linear-gradient(135deg,#7a5e00,#e6a817);}
+.val-result-icon{font-size:80px;margin-bottom:16px;animation:iconBounce .4s ease .1s both;}
+@keyframes iconBounce{from{transform:scale(0);}to{transform:scale(1);}}
+.val-result-title{font-size:32px;font-weight:900;color:#fff;margin-bottom:8px;}
+.val-result-name{font-size:20px;font-weight:700;color:rgba(255,255,255,.9);margin-bottom:6px;}
+.val-result-perfil{font-size:13px;color:rgba(255,255,255,.75);margin-bottom:24px;}
+.val-result-time{font-size:11px;color:rgba(255,255,255,.6);}
+
+/* Login */
+.val-login{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;width:100%;padding:32px 24px;}
+.val-login-card{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:36px 28px;max-width:360px;width:100%;text-align:center;}
+.val-login-card h2{font-size:22px;font-weight:900;color:#fff;margin-bottom:6px;}
+.val-login-card p{font-size:13px;color:rgba(255,255,255,.6);margin-bottom:24px;}
+.val-login-input{width:100%;padding:14px 16px;background:rgba(255,255,255,.1);border:1.5px solid rgba(255,255,255,.2);border-radius:12px;font-family:var(--font);font-size:15px;color:#fff;text-align:center;letter-spacing:3px;margin-bottom:14px;}
+.val-login-input::placeholder{color:rgba(255,255,255,.35);letter-spacing:0;}
+.val-login-btn{width:100%;padding:14px;background:#005ca9;color:#fff;border:none;border-radius:12px;font-family:var(--font);font-size:15px;font-weight:800;cursor:pointer;}
+.val-login-btn:hover{background:#0a7bc4;}
+
+/* Sync button */
+.val-sync-btn{margin:0 16px 8px;padding:10px 16px;background:rgba(255,255,255,.08);border:1.5px solid rgba(255,255,255,.15);border-radius:10px;color:#fff;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer;width:calc(100% - 32px);display:flex;align-items:center;justify-content:center;gap:8px;transition:background .2s;}
+.val-sync-btn:hover{background:rgba(255,255,255,.14);}
+.val-export-btn{margin:0 16px 16px;padding:10px 16px;background:#1e7e3e;border:none;border-radius:10px;color:#fff;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer;width:calc(100% - 32px);display:flex;align-items:center;justify-content:center;gap:8px;}
+.val-presence-list{margin:0 16px 20px;max-height:220px;overflow-y:auto;border-radius:10px;border:1px solid rgba(255,255,255,.1);}
+.val-presence-row{display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.06);font-size:12px;}
+.val-presence-row:last-child{border-bottom:none;}
+.val-presence-name{flex:1;color:#fff;font-weight:600;}
+.val-presence-time{font-size:10px;color:rgba(255,255,255,.5);}
+.val-presence-badge{padding:2px 8px;border-radius:8px;font-size:9px;font-weight:700;background:#1a7a40;color:#fff;}
 
 /* ══════ RSVP ══════ */
 .rsvp-stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px;}
@@ -562,6 +625,76 @@ html,body{font-family:var(--font);background:#fff;color:var(--text);min-height:1
   </div>
 </div>
 
+<!-- ══ SCREEN: VALIDAR QR CODE ══ -->
+<div id="screen-validar">
+
+  <!-- LOGIN -->
+  <div class="val-login" id="val-login-wrap">
+    <div class="val-login-card">
+      <div style="font-size:48px;margin-bottom:16px;">🎟</div>
+      <h2>Validação de Entrada</h2>
+      <p>Digite a senha para acessar o leitor de QR Code</p>
+      <input type="password" class="val-login-input" id="val-senha" placeholder="Senha" onkeydown="if(event.key==='Enter')valLogin()">
+      <button class="val-login-btn" onclick="valLogin()">Entrar →</button>
+    </div>
+  </div>
+
+  <!-- SCANNER -->
+  <div id="val-scanner-wrap" style="display:none;width:100%;flex-direction:column;align-items:center;">
+    <div class="val-header">
+      <div class="val-header-logo">🎟</div>
+      <div class="val-header-title">
+        <h2>Validação de Entrada</h2>
+        <p id="val-event-name">Evento Médico Científico</p>
+      </div>
+      <button onclick="valLogout()" style="background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:8px;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;">Sair</button>
+    </div>
+
+    <div class="val-status-bar">
+      <div class="val-status-pill green"><div class="vsp-num" id="val-count-sim">0</div><div class="vsp-label">Entradas</div></div>
+      <div class="val-status-pill red"><div class="vsp-num" id="val-count-dup">0</div><div class="vsp-label">Duplicados</div></div>
+      <div class="val-status-pill yellow"><div class="vsp-num" id="val-count-inv">0</div><div class="vsp-label">Inválidos</div></div>
+      <div class="val-status-pill"><div class="vsp-num" id="val-count-lista">0</div><div class="vsp-label">Na lista</div></div>
+    </div>
+
+    <!-- Camera -->
+    <div class="val-camera-wrap" style="padding:0 16px;box-sizing:border-box;">
+      <video id="val-video" autoplay playsinline muted></video>
+      <canvas id="val-canvas"></canvas>
+      <div class="val-scanner-overlay">
+        <div class="val-scanner-frame"></div>
+        <div class="val-scanner-line"></div>
+      </div>
+      <div class="val-offline-badge" id="val-offline-badge">📵 OFFLINE</div>
+    </div>
+
+    <div style="text-align:center;color:rgba(255,255,255,.5);font-size:12px;margin-bottom:12px;">Aponte a câmera para o QR Code do participante</div>
+
+    <!-- Sync & export -->
+    <button class="val-sync-btn" onclick="valSyncOnline()">🔄 Sincronizar lista agora <span id="val-last-sync" style="opacity:.6;font-weight:500;"></span></button>
+    <button class="val-export-btn" onclick="valExportPresenca()">⬇ Exportar lista de presença (.xlsx)</button>
+
+    <!-- Presence list -->
+    <div style="width:100%;padding:0 16px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;">
+      <span style="font-size:11px;font-weight:700;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.5px;">Entradas registradas</span>
+    </div>
+    <div class="val-presence-list" id="val-presence-list">
+      <div style="padding:16px;text-align:center;color:rgba(255,255,255,.4);font-size:12px;">Nenhuma entrada ainda.</div>
+    </div>
+  </div>
+
+  <!-- RESULT FLASH -->
+  <div class="val-result" id="val-result" onclick="valDismissResult()">
+    <div class="val-result-icon" id="val-result-icon">✅</div>
+    <div class="val-result-title" id="val-result-title">Entrada Confirmada!</div>
+    <div class="val-result-name" id="val-result-name"></div>
+    <div class="val-result-perfil" id="val-result-perfil"></div>
+    <div class="val-result-time" id="val-result-time"></div>
+    <div style="margin-top:24px;font-size:12px;color:rgba(255,255,255,.5);">Toque para continuar</div>
+  </div>
+
+</div>
+
 <!-- ══ RSVP RESPONSE SCREEN ══ -->
 <div id="rsvp-response-screen" style="display:none;position:fixed;inset:0;z-index:8000;background:var(--form-bg);align-items:center;justify-content:center;opacity:0;transition:opacity .45s ease;">
   <div id="rsvp-response-content" style="max-width:480px;width:100%;padding:24px;">
@@ -782,6 +915,16 @@ html,body{font-family:var(--font);background:#fff;color:var(--text);min-height:1
     </div>
 
     <button class="apply-btn" id="apply-btn" onclick="applyAll()">✔ Aplicar e Salvar para Todos</button>
+
+    <div class="admin-section" style="margin-top:16px;">
+      <h3>🔐 Senha da Tela de Validação</h3>
+      <div class="admin-field">
+        <label>Senha para as promotoras</label>
+        <input type="text" id="ed-val-senha" placeholder="Ex: Evento2025" value="Evento2025">
+        <div style="font-size:10px;color:var(--text-light);margin-top:4px;">Salva localmente. Acesso via <strong>seusite.com/#validar</strong></div>
+      </div>
+      <button class="apply-btn" style="margin-top:8px;font-size:12px;padding:10px;" onclick="saveValSenha()">💾 Salvar senha</button>
+    </div>
   </div>
 
   <!-- TAB: CORES -->
@@ -2900,7 +3043,316 @@ window.addEventListener('load', ()=>{
   const params = new URLSearchParams(window.location.search);
   if(params.get('rsvp') && params.get('t')) handleRsvpResponse();
   restoreTwilioFields();
+  // Check for validator hash
+  if(window.location.hash === '#validar') openValidatorScreen();
 });
+
+// Also handle hash changes
+window.addEventListener('hashchange', ()=>{
+  if(window.location.hash === '#validar') openValidatorScreen();
+  else if(window.location.hash === '#admin') { /* handled elsewhere */ }
+  else closeValidatorScreen();
+});
+
+// ═══════════════════════════════════════
+// QR CODE VALIDATOR
+// ═══════════════════════════════════════
+const VAL_SENHA_KEY  = 'val_senha';
+const VAL_LISTA_KEY  = 'val_lista_rsvp';   // offline cache: tokens válidos
+const VAL_ENTRADA_KEY = 'val_entradas';     // entradas registradas offline
+const VAL_SYNC_KEY   = 'val_last_sync';
+
+let valScanning    = false;
+let valVideoStream = null;
+let valScanLoop    = null;
+let valEntradas    = [];  // {token, nome, perfil, hora, synced}
+let valLista       = [];  // [{token, nome, perfil, inscricao_id}] — lista válida
+let valCountDup    = 0;
+let valCountInv    = 0;
+let valResultVisible = false;
+
+function saveValSenha(){
+  const s = document.getElementById('ed-val-senha').value.trim();
+  if(!s){ alert('Insira uma senha.'); return; }
+  localStorage.setItem(VAL_SENHA_KEY, s);
+  showSaveIndicator(true, '🔐 Senha salva!');
+}
+
+function openValidatorScreen(){
+  document.getElementById('screen-validar').classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeValidatorScreen(){
+  stopCamera();
+  document.getElementById('screen-validar').classList.remove('active');
+  document.body.style.overflow = '';
+}
+
+function valLogin(){
+  const senha   = document.getElementById('val-senha').value;
+  const correta = localStorage.getItem(VAL_SENHA_KEY) || 'Evento2025';
+  if(senha !== correta){ 
+    document.getElementById('val-senha').style.borderColor='#e74c3c';
+    setTimeout(()=>document.getElementById('val-senha').style.borderColor='',1500);
+    return; 
+  }
+  document.getElementById('val-login-wrap').style.display = 'none';
+  const wrap = document.getElementById('val-scanner-wrap');
+  wrap.style.display = 'flex';
+  // Update event name
+  const evName = document.getElementById('event-title').textContent;
+  document.getElementById('val-event-name').textContent = evName;
+  // Load cached data
+  valLoadCache();
+  // Try sync
+  valSyncOnline();
+  // Start camera
+  startCamera();
+}
+
+function valLogout(){
+  stopCamera();
+  document.getElementById('val-scanner-wrap').style.display = 'none';
+  document.getElementById('val-login-wrap').style.display   = 'flex';
+  document.getElementById('val-senha').value = '';
+  window.location.hash = '';
+}
+
+// ── Camera ──
+async function startCamera(){
+  try {
+    valVideoStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment', width:{ideal:1280}, height:{ideal:720} }
+    });
+    const video = document.getElementById('val-video');
+    video.srcObject = valVideoStream;
+    video.play();
+    valScanning = true;
+    requestAnimationFrame(valScanFrame);
+  } catch(e){
+    alert('Não foi possível acessar a câmera: '+e.message);
+  }
+}
+
+function stopCamera(){
+  valScanning = false;
+  if(valScanLoop) cancelAnimationFrame(valScanLoop);
+  if(valVideoStream) valVideoStream.getTracks().forEach(t=>t.stop());
+  valVideoStream = null;
+}
+
+function valScanFrame(){
+  if(!valScanning) return;
+  const video  = document.getElementById('val-video');
+  const canvas = document.getElementById('val-canvas');
+  if(video.readyState === video.HAVE_ENOUGH_DATA && !valResultVisible){
+    canvas.width  = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts:'dontInvert' });
+    if(code && code.data){
+      valProcessQR(code.data);
+    }
+  }
+  valScanLoop = requestAnimationFrame(valScanFrame);
+}
+
+// ── Process QR ──
+async function valProcessQR(raw){
+  if(valResultVisible) return;
+  valResultVisible = true;
+
+  let token, inscricaoId;
+  try {
+    const parsed = JSON.parse(raw);
+    token = parsed.token;
+    inscricaoId = parsed.id;
+  } catch(e){ 
+    showValResult('inv', '❌', 'QR Code Inválido', '', '', '');
+    return; 
+  }
+
+  // Check if already validated today
+  const jaEntrou = valEntradas.find(e=>e.token===token);
+  if(jaEntrou){
+    valCountDup++;
+    document.getElementById('val-count-dup').textContent = valCountDup;
+    showValResult('ja-usado', '⚠️', 'QR Code já utilizado', jaEntrou.nome, jaEntrou.perfil, 'Entrada registrada às '+jaEntrou.hora);
+    return;
+  }
+
+  // Check if token is in valid list (works offline)
+  const valid = valLista.find(l=>l.token===token);
+  if(!valid){
+    // Try online lookup
+    const onlineValid = await valCheckOnline(token);
+    if(!onlineValid){
+      valCountInv++;
+      document.getElementById('val-count-inv').textContent = valCountInv;
+      showValResult('nao', '❌', 'Não Autorizado', '', 'QR Code não encontrado na lista de confirmados', '');
+      return;
+    }
+    // Add to local list
+    valLista.push(onlineValid);
+    valSaveCache();
+  }
+
+  const pessoa = valid || valLista.find(l=>l.token===token);
+  const hora   = new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  const entrada = { token, nome: pessoa.nome, perfil: pessoa.perfil, inscricaoId: pessoa.inscricao_id, hora, synced: false };
+  valEntradas.push(entrada);
+  valSaveCache();
+
+  // Update counters
+  document.getElementById('val-count-sim').textContent = valEntradas.length;
+  document.getElementById('val-count-lista').textContent = valLista.length;
+  showValResult('sim', '✅', 'Entrada Confirmada!', pessoa.nome, pessoa.perfil, 'Entrada às '+hora);
+
+  // Register in Supabase (async, offline-tolerant)
+  valRegisterEntrada(entrada);
+  valRenderPresenceList();
+}
+
+async function valCheckOnline(token){
+  try {
+    const { data, error } = await sb.from('rsvp')
+      .select('token, status, inscricao_id, inscricoes(nome_completo, perfil)')
+      .eq('token', token)
+      .eq('status', 'sim')
+      .maybeSingle();
+    if(error||!data) return null;
+    return { token: data.token, nome: data.inscricoes?.nome_completo||'', perfil: data.inscricoes?.perfil||'', inscricao_id: data.inscricao_id };
+  } catch(e){ return null; }
+}
+
+async function valRegisterEntrada(entrada){
+  try {
+    const { error } = await sb.from('presencas').insert([{
+      token:        entrada.token,
+      inscricao_id: entrada.inscricaoId,
+      nome:         entrada.nome,
+      perfil:       entrada.perfil,
+      hora_entrada: new Date().toISOString()
+    }]);
+    if(!error){
+      entrada.synced = true;
+      valSaveCache();
+    }
+  } catch(e){ /* offline — will sync later */ }
+}
+
+// ── Result display ──
+function showValResult(type, icon, title, nome, perfil, time){
+  const el = document.getElementById('val-result');
+  el.className = 'val-result '+type;
+  el.style.display = 'flex';
+  document.getElementById('val-result-icon').textContent  = icon;
+  document.getElementById('val-result-title').textContent = title;
+  document.getElementById('val-result-name').textContent  = nome;
+  document.getElementById('val-result-perfil').textContent = perfil;
+  document.getElementById('val-result-time').textContent  = time;
+  // Vibrate if supported
+  if(navigator.vibrate){
+    if(type==='sim') navigator.vibrate([100,50,100]);
+    else navigator.vibrate(500);
+  }
+  // Auto dismiss after 3s
+  setTimeout(()=>valDismissResult(), 3000);
+}
+
+function valDismissResult(){
+  document.getElementById('val-result').style.display = 'none';
+  valResultVisible = false;
+}
+
+// ── Sync ──
+async function valSyncOnline(){
+  const btn = document.querySelector('.val-sync-btn');
+  if(btn) btn.textContent = '⏳ Sincronizando…';
+  const isOffline = document.getElementById('val-offline-badge');
+  try {
+    // Download all confirmed RSVPs
+    const { data, error } = await sb.from('rsvp')
+      .select('token, inscricao_id, inscricoes(nome_completo, perfil)')
+      .eq('status', 'sim');
+    if(error) throw error;
+    valLista = (data||[]).map(r=>({
+      token: r.token,
+      nome:  r.inscricoes?.nome_completo||'',
+      perfil:r.inscricoes?.perfil||'',
+      inscricao_id: r.inscricao_id
+    }));
+    valSaveCache();
+    if(isOffline) isOffline.style.display='none';
+    const now = new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+    localStorage.setItem(VAL_SYNC_KEY, now);
+    const syncEl = document.getElementById('val-last-sync');
+    if(syncEl) syncEl.textContent = '· '+now;
+    document.getElementById('val-count-lista').textContent = valLista.length;
+
+    // Sync unsynced entradas
+    const unsynced = valEntradas.filter(e=>!e.synced);
+    for(const e of unsynced) await valRegisterEntrada(e);
+
+    if(btn) btn.innerHTML = '🔄 Sincronizar lista agora <span id="val-last-sync" style="opacity:.6;font-weight:500;">· '+now+'</span>';
+  } catch(err){
+    if(isOffline) isOffline.style.display='block';
+    if(btn) btn.innerHTML = '🔄 Sincronizar lista agora <span style="opacity:.6;font-weight:500;">· offline</span>';
+  }
+}
+
+// ── Cache ──
+function valLoadCache(){
+  try {
+    const lista   = localStorage.getItem(VAL_LISTA_KEY);
+    const entradas = localStorage.getItem(VAL_ENTRADA_KEY);
+    if(lista)    valLista    = JSON.parse(lista);
+    if(entradas) valEntradas = JSON.parse(entradas);
+  } catch(e){}
+  document.getElementById('val-count-sim').textContent   = valEntradas.length;
+  document.getElementById('val-count-lista').textContent = valLista.length;
+  const lastSync = localStorage.getItem(VAL_SYNC_KEY);
+  if(lastSync){ const el=document.getElementById('val-last-sync'); if(el) el.textContent='· '+lastSync; }
+  valRenderPresenceList();
+}
+
+function valSaveCache(){
+  try {
+    localStorage.setItem(VAL_LISTA_KEY,   JSON.stringify(valLista));
+    localStorage.setItem(VAL_ENTRADA_KEY, JSON.stringify(valEntradas));
+  } catch(e){}
+}
+
+// ── Presence list render ──
+function valRenderPresenceList(){
+  const wrap = document.getElementById('val-presence-list');
+  if(!wrap) return;
+  if(!valEntradas.length){ wrap.innerHTML='<div style="padding:16px;text-align:center;color:rgba(255,255,255,.4);font-size:12px;">Nenhuma entrada ainda.</div>'; return; }
+  const sorted = [...valEntradas].reverse();
+  wrap.innerHTML = sorted.map(e=>
+    `<div class="val-presence-row">
+      <div class="val-presence-name">${e.nome}<br><span style="font-size:10px;color:rgba(255,255,255,.45);font-weight:400;">${e.perfil}</span></div>
+      <span class="val-presence-badge">✅</span>
+      <div class="val-presence-time">${e.hora}</div>
+    </div>`
+  ).join('');
+}
+
+// ── Export presence ──
+function valExportPresenca(){
+  if(!valEntradas.length){ alert('Nenhuma entrada registrada ainda.'); return; }
+  const headers = ['Nome','Perfil','Hora de Entrada','Sincronizado'];
+  const rows = valEntradas.map(e=>[e.nome, e.perfil, e.hora, e.synced?'Sim':'Pendente']);
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet([headers,...rows]);
+  ws['!cols'] = [{wch:35},{wch:40},{wch:15},{wch:12}];
+  XLSX.utils.book_append_sheet(wb, ws, 'Presença');
+  const title = document.getElementById('event-title').textContent||'Evento';
+  XLSX.writeFile(wb, 'Presenca_'+title.replace(/[^a-zA-Z0-9]/g,'_')+'.xlsx');
+}
 
 </script>
 </body>
