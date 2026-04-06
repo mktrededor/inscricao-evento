@@ -194,11 +194,11 @@ html,body{font-family:var(--font);background:#fff;color:var(--text);min-height:1
 .speaker-modal-divider{border:none;border-top:1px solid var(--gray2);margin:14px 0;}
 
 /* ══════ ADMIN PANEL ══════ */
-#admin-panel{display:none;position:fixed;top:0;right:0;width:440px;max-width:100vw;height:100vh;background:#fff;box-shadow:-4px 0 32px rgba(0,0,0,.18);z-index:999;overflow-y:auto;flex-direction:column;}
+#admin-panel{display:none;position:fixed;top:0;right:0;width:620px;max-width:100vw;height:100vh;background:#fff;box-shadow:-4px 0 32px rgba(0,0,0,.18);z-index:999;overflow-y:auto;flex-direction:column;}
 #admin-panel.open{display:flex;}
 .admin-header{background:var(--blue);color:#fff;position:sticky;top:0;z-index:2;flex-shrink:0;}
 .admin-tabs-row{display:flex;}
-.admin-tab{flex:1;padding:12px 1px;text-align:center;font-size:8.5px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;cursor:pointer;border-bottom:3px solid transparent;color:rgba(255,255,255,.55);transition:all .2s;}
+.admin-tab{flex:1;padding:13px 2px;text-align:center;font-size:9.5px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;cursor:pointer;border-bottom:3px solid transparent;color:rgba(255,255,255,.55);transition:all .2s;}
 .admin-tab.active{color:#fff;border-bottom-color:#fff;}
 .admin-close{position:absolute;top:10px;right:12px;background:none;border:none;color:#fff;font-size:22px;cursor:pointer;z-index:3;line-height:1;}
 .admin-tab-panel{display:none;padding:18px 20px 32px;}
@@ -325,6 +325,62 @@ html,body{font-family:var(--font);background:#fff;color:var(--text);min-height:1
 .danger-btn{width:100%;padding:11px;background:#fde8e8;color:#c0392b;border:2px solid #f5c6c6;border-radius:10px;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer;margin-top:8px;transition:background .2s,border-color .2s;}
 .danger-btn:hover{background:#fbd0d0;border-color:#e74c3c;}
 
+/* ══════ RSVP ══════ */
+.rsvp-stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px;}
+.rsvp-stat{border-radius:12px;padding:14px 10px;text-align:center;border:1.5px solid rgba(0,0,0,.07);}
+.rsvp-stat .rs-num{font-size:28px;font-weight:900;line-height:1;}
+.rsvp-stat .rs-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-top:4px;opacity:.8;}
+.rsvp-stat.sim{background:#e8f8ef;border-color:#2ecc71;color:#1a7a40;}
+.rsvp-stat.nao{background:#fde8e8;border-color:#e74c3c;color:#c0392b;}
+.rsvp-stat.pend{background:#fff8e1;border-color:#f0c040;color:#7a5e00;}
+.rsvp-stat.total{background:var(--blue-light);border-color:var(--blue);color:var(--blue);}
+.rsvp-progress-bar{height:10px;border-radius:6px;background:var(--gray2);overflow:hidden;margin-bottom:6px;}
+.rsvp-progress-fill{height:100%;border-radius:6px;background:linear-gradient(90deg,var(--blue),#2ecc71);transition:width .5s ease;}
+.rsvp-section-title{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:var(--blue);margin:18px 0 10px;padding-bottom:5px;border-bottom:2px solid var(--blue-light);}
+.rsvp-perfil-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--gray2);}
+.rsvp-perfil-row:last-child{border-bottom:none;}
+.rsvp-perfil-name{flex:1;font-size:12px;font-weight:600;color:var(--text);}
+.rsvp-perfil-counts{display:flex;gap:6px;font-size:11px;}
+.rpc-sim{color:#1a7a40;font-weight:700;}
+.rpc-nao{color:#c0392b;font-weight:700;}
+.rpc-pend{color:#7a5e00;font-weight:700;}
+.rpc-disp{color:var(--blue);font-weight:700;}
+.rsvp-msg-preview{background:#e7fcd9;border-radius:16px 16px 16px 4px;padding:14px 16px;max-width:280px;margin:0 auto 16px;position:relative;box-shadow:0 2px 8px rgba(0,0,0,.1);}
+.rsvp-msg-preview::before{content:'';position:absolute;left:-8px;bottom:0;width:0;height:0;border-right:10px solid #e7fcd9;border-top:10px solid transparent;}
+.rsvp-msg-img{width:100%;border-radius:10px;margin-bottom:10px;object-fit:cover;max-height:140px;}
+.rsvp-msg-text{font-size:13px;color:#111;line-height:1.55;white-space:pre-wrap;word-break:break-word;}
+.rsvp-msg-links{display:flex;gap:8px;margin-top:12px;}
+.rsvp-msg-link-sim{flex:1;background:#25d366;color:#fff;border:none;border-radius:8px;padding:8px;font-size:12px;font-weight:700;text-align:center;cursor:default;}
+.rsvp-msg-link-nao{flex:1;background:#e74c3c;color:#fff;border:none;border-radius:8px;padding:8px;font-size:12px;font-weight:700;text-align:center;cursor:default;}
+.rsvp-phone-mock{background:#f0ece8;border-radius:20px;padding:16px;max-width:320px;margin:0 auto;border:3px solid #222;}
+.rsvp-phone-bar{display:flex;align-items:center;gap:8px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid rgba(0,0,0,.1);}
+.rsvp-phone-avatar{width:36px;height:36px;border-radius:50%;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;flex-shrink:0;}
+.rsvp-phone-contact{font-size:12px;font-weight:700;color:#111;}
+.rsvp-phone-status{font-size:10px;color:#666;}
+.rsvp-lembrete-note{background:#fff8e1;border:1.5px solid #f0c040;border-radius:10px;padding:12px 14px;font-size:12px;color:#7a5e00;line-height:1.5;margin-bottom:14px;}
+.rsvp-dispatch-btn{width:100%;padding:15px;border:none;border-radius:12px;font-family:var(--font);font-size:15px;font-weight:800;cursor:pointer;margin-top:8px;transition:filter .2s,transform .1s;letter-spacing:.5px;}
+.rsvp-dispatch-btn.green{background:#1e7e3e;color:#fff;box-shadow:0 4px 16px rgba(30,126,62,.3);}
+.rsvp-dispatch-btn.yellow{background:#e6a817;color:#fff;box-shadow:0 4px 16px rgba(230,168,23,.3);}
+.rsvp-dispatch-btn:hover{filter:brightness(1.08);transform:translateY(-1px);}
+.rsvp-dispatch-btn:disabled{opacity:.5;cursor:not-allowed;transform:none;}
+.rsvp-list{max-height:280px;overflow-y:auto;border:1px solid var(--gray2);border-radius:8px;}
+.rsvp-list-row{display:flex;align-items:center;gap:8px;padding:9px 12px;border-bottom:1px solid var(--gray2);font-size:11px;}
+.rsvp-list-row:last-child{border-bottom:none;}
+.rsvp-badge{padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700;text-transform:uppercase;flex-shrink:0;}
+.rsvp-badge.sim{background:#e8f8ef;color:#1a7a40;}
+.rsvp-badge.nao{background:#fde8e8;color:#c0392b;}
+.rsvp-badge.pendente{background:#fff8e1;color:#7a5e00;}
+.rsvp-badge.nao-enviado{background:var(--gray2);color:var(--text-light);}
+.perfil-checkbox-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px;}
+.perfil-cb-item{display:flex;align-items:center;gap:6px;padding:7px 10px;background:#fff;border:1.5px solid var(--gray2);border-radius:8px;cursor:pointer;font-size:11px;font-weight:600;transition:border-color .2s,background .2s;}
+.perfil-cb-item:hover{border-color:var(--blue);background:var(--blue-light);}
+.perfil-cb-item input{accent-color:var(--blue);width:14px;height:14px;flex-shrink:0;}
+.twilio-config-box{background:#f8faff;border:1.5px dashed rgba(0,92,169,.3);border-radius:10px;padding:14px;margin-bottom:16px;}
+.twilio-config-box h4{font-size:11px;font-weight:800;color:var(--blue);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;}
+.twilio-field{margin-bottom:8px;}
+.twilio-field label{display:block;font-size:10px;font-weight:600;color:var(--text-light);margin-bottom:3px;text-transform:uppercase;}
+.twilio-field input{width:100%;padding:7px 10px;border:1.5px solid var(--gray2);border-radius:7px;font-family:var(--font);font-size:12px;font-family:monospace;}
+
 .save-indicator{display:none;position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1e7e3e;color:#fff;padding:10px 22px;border-radius:50px;font-family:var(--font);font-size:13px;font-weight:700;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,.2);animation:slideUp .3s ease;}
 @keyframes slideUp{from{opacity:0;transform:translateX(-50%) translateY(10px);}to{opacity:1;transform:translateX(-50%) translateY(0);}}
 
@@ -399,7 +455,7 @@ html,body{font-family:var(--font);background:#fff;color:var(--text);min-height:1
       <div><h2>Aviso de Privacidade</h2><p>Leia com atenção antes de continuar</p></div>
     </div>
     <div class="privacy-body">
-      <div class="privacy-text"><p id="privacy-text-el">Para a participação neste evento gratuito, a Rede D'Or coleta os dados abaixo para a finalidade de cadastramento do participante no evento, contatos para divulgação de outros eventos similares e pesquisas estatísticas anonimizadas.</p></div>
+      <div class="privacy-text"><p id="privacy-text-el">Para a participação neste evento gratuito, a Rede D'Or coleta os dados abaixo para a finalidade de cadastramento do participante no evento, contatos para divulgação de outros eventos similares e pesquisas estatísticas anonimizadas. O número de telefone informado poderá ser utilizado para o envio de mensagens via WhatsApp com informações sobre confirmação de presença e lembretes relacionados ao evento. Para saber mais, consulte nosso Aviso de Privacidade em www.rededor.com.br</p></div>
       <label class="privacy-check-label">
         <input type="checkbox" id="privacy-check" onchange="togglePrivacyBtn()">
         <span>Li e concordo com o <a href="#" onclick="return false;">Aviso de Privacidade</a> e autorizo o uso dos meus dados conforme descrito acima.</span>
@@ -506,6 +562,16 @@ html,body{font-family:var(--font);background:#fff;color:var(--text);min-height:1
   </div>
 </div>
 
+<!-- ══ RSVP RESPONSE SCREEN ══ -->
+<div id="rsvp-response-screen" style="display:none;position:fixed;inset:0;z-index:8000;background:var(--form-bg);align-items:center;justify-content:center;opacity:0;transition:opacity .45s ease;">
+  <div id="rsvp-response-content" style="max-width:480px;width:100%;padding:24px;">
+    <div style="text-align:center;padding:40px 24px;">
+      <div style="font-size:48px;">⏳</div>
+      <p style="margin-top:16px;color:var(--text-light);">Registrando sua resposta…</p>
+    </div>
+  </div>
+</div>
+
 <!-- SAVE INDICATOR -->
 <div class="save-indicator" id="save-indicator">✔ Configurações salvas para todos!</div>
 
@@ -516,6 +582,7 @@ html,body{font-family:var(--font);background:#fff;color:var(--text);min-height:1
       <div class="admin-tab active" onclick="showAdminTab('edit')">✏️ Edição</div>
       <div class="admin-tab" onclick="showAdminTab('colors')">🎨 Cores</div>
       <div class="admin-tab" onclick="showAdminTab('speakers')">🎤 Palestr.</div>
+      <div class="admin-tab" onclick="showAdminTab('rsvp')">📲 RSVP</div>
       <div class="admin-tab" onclick="showAdminTab('dash')">📊 Dash</div>
       <div class="admin-tab" onclick="showAdminTab('data')">📋 Dados</div>
     </div>
@@ -848,6 +915,132 @@ html,body{font-family:var(--font);background:#fff;color:var(--text);min-height:1
         style="width:100%;padding:8px 10px;border:1.5px solid var(--gray2);border-radius:8px;font-family:var(--font);font-size:12px;margin-bottom:10px;">
       <div id="db-bank-list"><div class="empty-state">Carregando…</div></div>
     </div>
+  </div>
+
+  <!-- TAB: RSVP -->
+  <div id="tab-rsvp" class="admin-tab-panel">
+
+    <!-- CONFIGURAÇÃO TWILIO -->
+    <div class="twilio-config-box">
+      <h4>⚙ Configuração Twilio</h4>
+      <div class="twilio-field"><label>Account SID</label><input type="password" id="twilio-sid" placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" autocomplete="off"></div>
+      <div class="twilio-field"><label>Auth Token</label><input type="password" id="twilio-token" placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" autocomplete="off"></div>
+      <div class="twilio-field"><label>Número WhatsApp (from)</label><input type="text" id="twilio-from" placeholder="whatsapp:+14155238886"></div>
+      <div class="twilio-field"><label>URL base do sistema (para os links de RSVP)</label><input type="url" id="rsvp-base-url" placeholder="https://seusite.com/evento.html"></div>
+      <div style="font-size:10px;color:var(--text-light);margin-top:6px;line-height:1.5;">⚠ Essas credenciais ficam salvas apenas neste navegador e nunca são enviadas ao banco de dados.</div>
+    </div>
+
+    <!-- PAINEL EM TEMPO REAL -->
+    <div class="rsvp-section-title">📊 Acompanhamento em Tempo Real</div>
+    <div class="rsvp-stats-grid">
+      <div class="rsvp-stat sim"><div class="rs-num" id="rsvp-count-sim">0</div><div class="rs-label">✅ Confirmados</div></div>
+      <div class="rsvp-stat nao"><div class="rs-num" id="rsvp-count-nao">0</div><div class="rs-label">❌ Recusados</div></div>
+      <div class="rsvp-stat pend"><div class="rs-num" id="rsvp-count-pend">0</div><div class="rs-label">⏳ Pendentes</div></div>
+      <div class="rsvp-stat total"><div class="rs-num" id="rsvp-count-total">0</div><div class="rs-label">📤 Enviados</div></div>
+    </div>
+    <div class="rsvp-progress-bar"><div class="rsvp-progress-fill" id="rsvp-progress" style="width:0%"></div></div>
+    <div style="font-size:10px;color:var(--text-light);margin-bottom:16px;text-align:center;" id="rsvp-progress-label">0 confirmados de 0 enviados</div>
+    <button class="apply-btn" style="margin-top:0;margin-bottom:16px;font-size:12px;padding:10px;" onclick="loadRsvpStats()">🔄 Atualizar agora</button>
+
+    <!-- DISPONÍVEIS POR PERFIL -->
+    <div class="rsvp-section-title">👥 Disponíveis para novo disparo</div>
+    <div id="rsvp-perfil-disponivel"><div class="empty-state" style="font-size:12px;">Carregue as estatísticas primeiro.</div></div>
+
+    <!-- LISTA RECENTE -->
+    <div class="rsvp-section-title">📋 Respostas recentes</div>
+    <div id="rsvp-list-wrap"><div class="empty-state" style="font-size:12px;">Nenhuma resposta ainda.</div></div>
+
+    <hr style="border:none;border-top:2px solid var(--gray2);margin:22px 0;">
+
+    <!-- DISPARO 1: RSVP -->
+    <div class="rsvp-section-title">🚀 Disparo 1 — RSVP Inicial</div>
+
+    <div class="admin-field"><label style="font-size:10px;font-weight:700;color:var(--text-light);text-transform:uppercase;display:block;margin-bottom:6px;">Perfis que receberão a mensagem</label>
+      <div class="perfil-checkbox-grid" id="rsvp-perfil-grid"></div>
+    </div>
+
+    <div class="admin-field"><label style="font-size:10px;font-weight:700;color:var(--text-light);text-transform:uppercase;display:block;margin-bottom:6px;">Quantidade máxima de envios</label>
+      <input type="number" id="rsvp-qtd" min="1" value="500" style="width:100%;padding:8px 10px;border:1.5px solid var(--gray2);border-radius:8px;font-family:var(--font);font-size:13px;">
+      <div style="font-size:10px;color:var(--text-light);margin-top:4px;">Inscritos que já receberam RSVP serão ignorados automaticamente.</div>
+    </div>
+
+    <!-- IMAGEM DA MENSAGEM -->
+    <div class="admin-field"><label style="font-size:10px;font-weight:700;color:var(--text-light);text-transform:uppercase;display:block;margin-bottom:6px;">Imagem da mensagem (opcional)</label>
+      <label class="admin-file-btn" for="rsvp-img-upload">📁 Escolher imagem</label>
+      <input type="file" id="rsvp-img-upload" class="admin-file-input" accept="image/*" onchange="handleRsvpImage(this)">
+      <div style="font-size:10px;color:var(--text-light);margin-top:3px;">JPG ou PNG. Aparecerá acima do texto no WhatsApp.</div>
+    </div>
+
+    <!-- TEXTO DA MENSAGEM -->
+    <div class="admin-field">
+      <label style="font-size:10px;font-weight:700;color:var(--text-light);text-transform:uppercase;display:block;margin-bottom:6px;">Texto da mensagem</label>
+      <textarea id="rsvp-msg-text" rows="6" oninput="updateRsvpPreview()" style="width:100%;padding:10px;border:1.5px solid var(--gray2);border-radius:8px;font-family:var(--font);font-size:13px;resize:vertical;">Olá, {{nome}}! 👋
+
+Você está inscrito(a) no *{{evento}}*.
+
+Você irá participar?
+
+👇 Clique para confirmar sua presença:</textarea>
+      <div style="font-size:10px;color:var(--text-light);margin-top:4px;">Use <strong>{{nome}}</strong> e <strong>{{evento}}</strong> como variáveis.</div>
+    </div>
+
+    <!-- PRÉVIA -->
+    <div class="rsvp-section-title">📱 Prévia no celular</div>
+    <div class="rsvp-phone-mock">
+      <div class="rsvp-phone-bar">
+        <div class="rsvp-phone-avatar">RD</div>
+        <div><div class="rsvp-phone-contact">Rede D'Or Eventos</div><div class="rsvp-phone-status">online</div></div>
+      </div>
+      <div class="rsvp-msg-preview">
+        <img id="rsvp-preview-img" class="rsvp-msg-img" src="" alt="" style="display:none;">
+        <div class="rsvp-msg-text" id="rsvp-preview-text">Olá, Dr(a). João! 👋
+
+Você está inscrito(a) no *Simpósio Médico*.
+
+Você irá participar?
+
+👇 Clique para confirmar sua presença:</div>
+        <div class="rsvp-msg-links">
+          <div class="rsvp-msg-link-sim">✅ SIM, vou!</div>
+          <div class="rsvp-msg-link-nao">❌ Não poderei ir</div>
+        </div>
+      </div>
+    </div>
+
+    <button class="rsvp-dispatch-btn green" id="btn-disparar-rsvp" onclick="dispararRSVP()" style="margin-top:16px;">🚀 Disparar RSVP para selecionados</button>
+
+    <hr style="border:none;border-top:2px solid var(--gray2);margin:22px 0;">
+
+    <!-- DISPARO 2: LEMBRETE -->
+    <div class="rsvp-section-title">🔔 Disparo 2 — Lembrete "É Amanhã"</div>
+    <div class="rsvp-lembrete-note">Este disparo será enviado <strong>apenas para quem confirmou (SIM) e para quem ainda não respondeu</strong>. Quem disse NÃO é ignorado automaticamente.</div>
+
+    <div class="admin-field">
+      <label style="font-size:10px;font-weight:700;color:var(--text-light);text-transform:uppercase;display:block;margin-bottom:6px;">Texto do lembrete</label>
+      <textarea id="rsvp-lembrete-text" rows="5" oninput="updateLembretePreview()" style="width:100%;padding:10px;border:1.5px solid var(--gray2);border-radius:8px;font-family:var(--font);font-size:13px;resize:vertical;">Olá, {{nome}}! 🔔
+
+*É amanhã!* Você está confirmado(a) no *{{evento}}*.
+
+Nos vemos lá! Não esqueça de trazer seu QR Code. 🎟</textarea>
+    </div>
+
+    <!-- PRÉVIA LEMBRETE -->
+    <div class="rsvp-phone-mock" style="margin-top:12px;">
+      <div class="rsvp-phone-bar">
+        <div class="rsvp-phone-avatar">RD</div>
+        <div><div class="rsvp-phone-contact">Rede D'Or Eventos</div><div class="rsvp-phone-status">online</div></div>
+      </div>
+      <div class="rsvp-msg-preview">
+        <div class="rsvp-msg-text" id="rsvp-lembrete-preview">Olá, Dr(a). João! 🔔
+
+*É amanhã!* Você está confirmado(a) no *Simpósio Médico*.
+
+Nos vemos lá! Não esqueça de trazer seu QR Code. 🎟</div>
+      </div>
+    </div>
+
+    <button class="rsvp-dispatch-btn yellow" id="btn-disparar-lembrete" onclick="dispararLembrete()" style="margin-top:16px;">🔔 Disparar lembrete para SIM + Pendentes</button>
+
   </div>
 
   <!-- TAB: DASHBOARD -->
@@ -2002,12 +2195,13 @@ function openAdminPanel(){
 
 function showAdminTab(tab){
   document.querySelectorAll('.admin-tab').forEach((t,i)=>
-    t.classList.toggle('active',['edit','colors','speakers','dash','data'][i]===tab));
+    t.classList.toggle('active',['edit','colors','speakers','rsvp','dash','data'][i]===tab));
   document.querySelectorAll('.admin-tab-panel').forEach(p=>p.classList.remove('active'));
   document.getElementById('tab-'+tab).classList.add('active');
   if(tab==='dash') updateDashboard();
   if(tab==='data') renderInscricoesList();
   if(tab==='speakers') renderDBBankList();
+  if(tab==='rsvp'){ loadRsvpStats(); renderRsvpPerfilGrid(); }
 }
 
 // ═══════════════════════════════════════
@@ -2340,6 +2534,374 @@ async function downloadCSV(){
   const csv='\uFEFF'+[h.join(','),...rows].join('\n');
   const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'})); a.download='Inscricoes.csv'; a.click();
 }
+
+// ═══════════════════════════════════════
+// RSVP SYSTEM
+// ═══════════════════════════════════════
+
+// Twilio credentials — stored only in localStorage, never in DB
+function saveTwilioConfig(){
+  const cfg = {
+    sid:   document.getElementById('twilio-sid').value.trim(),
+    token: document.getElementById('twilio-token').value.trim(),
+    from:  document.getElementById('twilio-from').value.trim(),
+    baseUrl: document.getElementById('rsvp-base-url').value.trim()
+  };
+  localStorage.setItem('twilio_cfg', JSON.stringify(cfg));
+  return cfg;
+}
+function loadTwilioConfig(){
+  try { return JSON.parse(localStorage.getItem('twilio_cfg')||'{}'); } catch(e){ return {}; }
+}
+
+// On RSVP tab open — restore Twilio fields
+function restoreTwilioFields(){
+  const cfg = loadTwilioConfig();
+  if(cfg.sid)     document.getElementById('twilio-sid').value   = cfg.sid;
+  if(cfg.token)   document.getElementById('twilio-token').value = cfg.token;
+  if(cfg.from)    document.getElementById('twilio-from').value  = cfg.from;
+  if(cfg.baseUrl) document.getElementById('rsvp-base-url').value = cfg.baseUrl;
+}
+
+// Auto-save Twilio fields on change
+['twilio-sid','twilio-token','twilio-from','rsvp-base-url'].forEach(id=>{
+  const el = document.getElementById(id);
+  if(el) el.addEventListener('change', saveTwilioConfig);
+});
+
+// ── Preview ──
+let rsvpImgDataUrl = null;
+
+function handleRsvpImage(input){
+  if(!input.files[0]) return;
+  const r = new FileReader();
+  r.onload = e => {
+    rsvpImgDataUrl = e.target.result;
+    const img = document.getElementById('rsvp-preview-img');
+    img.src = rsvpImgDataUrl;
+    img.style.display = 'block';
+  };
+  r.readAsDataURL(input.files[0]);
+}
+
+function updateRsvpPreview(){
+  const txt = document.getElementById('rsvp-msg-text').value;
+  const preview = document.getElementById('rsvp-preview-text');
+  preview.textContent = txt.replace('{{nome}}','Dr(a). João').replace('{{evento}}', document.getElementById('event-title').textContent||'Simpósio Médico');
+}
+
+function updateLembretePreview(){
+  const txt = document.getElementById('rsvp-lembrete-text').value;
+  const preview = document.getElementById('rsvp-lembrete-preview');
+  preview.textContent = txt.replace('{{nome}}','Dr(a). João').replace('{{evento}}', document.getElementById('event-title').textContent||'Simpósio Médico');
+}
+
+// ── Perfil grid ──
+function renderRsvpPerfilGrid(){
+  const grid = document.getElementById('rsvp-perfil-grid');
+  if(!grid) return;
+  grid.innerHTML = profiles.map((p,i) =>
+    `<label class="perfil-cb-item">
+      <input type="checkbox" class="rsvp-perfil-cb" value="${p}" checked>
+      <span>${p}</span>
+    </label>`
+  ).join('');
+}
+
+function getSelectedPerfis(){
+  return Array.from(document.querySelectorAll('.rsvp-perfil-cb:checked')).map(el=>el.value);
+}
+
+// ── Stats ──
+async function loadRsvpStats(){
+  try {
+    const { data: rsvpData, error } = await sb.from('rsvp').select('status, inscricao_id');
+    if(error) throw error;
+
+    const sim   = rsvpData.filter(r=>r.status==='sim').length;
+    const nao   = rsvpData.filter(r=>r.status==='nao').length;
+    const pend  = rsvpData.filter(r=>r.status==='pendente').length;
+    const total = rsvpData.length;
+
+    document.getElementById('rsvp-count-sim').textContent   = sim;
+    document.getElementById('rsvp-count-nao').textContent   = nao;
+    document.getElementById('rsvp-count-pend').textContent  = pend;
+    document.getElementById('rsvp-count-total').textContent = total;
+
+    const pct = total > 0 ? Math.round((sim/total)*100) : 0;
+    document.getElementById('rsvp-progress').style.width = pct+'%';
+    document.getElementById('rsvp-progress-label').textContent = `${sim} confirmados de ${total} enviados (${pct}%)`;
+
+    // IDs que já receberam RSVP
+    const rsvpIds = new Set(rsvpData.map(r=>r.inscricao_id));
+
+    // Inscrições disponíveis por perfil (não receberam RSVP ainda, e status != nao)
+    const { data: allInsc } = await sb.from('inscricoes').select('id, nome_completo, perfil');
+    const disponiveis = (allInsc||[]).filter(i => !rsvpIds.has(i.id));
+
+    // Group by perfil
+    const byPerfil = {};
+    disponiveis.forEach(i => { byPerfil[i.perfil] = (byPerfil[i.perfil]||0)+1; });
+
+    const dispWrap = document.getElementById('rsvp-perfil-disponivel');
+    if(!Object.keys(byPerfil).length){
+      dispWrap.innerHTML = '<div class="empty-state" style="font-size:12px;">Todos os inscritos já receberam RSVP.</div>';
+    } else {
+      dispWrap.innerHTML = Object.entries(byPerfil).sort((a,b)=>b[1]-a[1]).map(([perfil,qtd])=>
+        `<div class="rsvp-perfil-row">
+          <div class="rsvp-perfil-name">${perfil}</div>
+          <div class="rsvp-perfil-counts"><span class="rpc-disp">${qtd} disponíveis</span></div>
+        </div>`
+      ).join('');
+    }
+
+    // Recent responses list
+    const { data: recent } = await sb.from('rsvp')
+      .select('status, respondido_em, inscricao_id, inscricoes(nome_completo, perfil)')
+      .order('respondido_em', {ascending:false})
+      .limit(30);
+
+    const listWrap = document.getElementById('rsvp-list-wrap');
+    if(!recent||!recent.length){
+      listWrap.innerHTML = '<div class="empty-state" style="font-size:12px;">Nenhuma resposta ainda.</div>';
+    } else {
+      listWrap.innerHTML = '<div class="rsvp-list">'+recent.map(r => {
+        const nome = r.inscricoes?.nome_completo || 'Desconhecido';
+        const perfil = r.inscricoes?.perfil || '';
+        const dt = r.respondido_em ? new Date(r.respondido_em).toLocaleString('pt-BR') : '—';
+        return `<div class="rsvp-list-row">
+          <span class="rsvp-badge ${r.status}">${r.status==='sim'?'✅ SIM':r.status==='nao'?'❌ NÃO':'⏳ Pendente'}</span>
+          <div style="flex:1;"><div style="font-weight:700;font-size:11px;">${nome}</div><div style="font-size:10px;color:var(--text-light);">${perfil}</div></div>
+          <div style="font-size:10px;color:var(--text-light);">${dt}</div>
+        </div>`;
+      }).join('')+'</div>';
+    }
+  } catch(e){
+    console.warn('loadRsvpStats error:', e.message);
+  }
+}
+
+// Auto-refresh every 30 seconds when RSVP tab is visible
+setInterval(()=>{
+  const tab = document.getElementById('tab-rsvp');
+  if(tab && tab.classList.contains('active')) loadRsvpStats();
+}, 30000);
+
+// ── Generate unique token ──
+function genToken(){ return Math.random().toString(36).slice(2)+Date.now().toString(36); }
+
+// ── Send via Supabase Edge Function ──
+async function sendWhatsAppViaEdge(to, body, mediaUrl){
+  const cfg = saveTwilioConfig();
+  if(!cfg.sid||!cfg.token||!cfg.from){
+    alert('Configure as credenciais da Twilio antes de disparar.');
+    return false;
+  }
+  try {
+    const { data, error } = await sb.functions.invoke('send-whatsapp', {
+      body: { to, body, mediaUrl: mediaUrl||null, from: cfg.from, accountSid: cfg.sid, authToken: cfg.token }
+    });
+    if(error) throw error;
+    return true;
+  } catch(e){
+    console.warn('Edge function error:', e.message);
+    return false;
+  }
+}
+
+// ── Disparo RSVP ──
+async function dispararRSVP(){
+  const cfg = saveTwilioConfig();
+  if(!cfg.sid||!cfg.token||!cfg.from){ alert('Configure as credenciais da Twilio primeiro.'); return; }
+  if(!cfg.baseUrl){ alert('Configure a URL base do sistema.'); return; }
+
+  const perfis  = getSelectedPerfis();
+  if(!perfis.length){ alert('Selecione pelo menos um perfil.'); return; }
+  const qtdMax  = parseInt(document.getElementById('rsvp-qtd').value)||500;
+  const msgText = document.getElementById('rsvp-msg-text').value;
+  const eventoNome = document.getElementById('event-title').textContent||'Evento';
+
+  if(!confirm(`Confirmar disparo de RSVP para até ${qtdMax} inscritos dos perfis selecionados?`)) return;
+
+  const btn = document.getElementById('btn-disparar-rsvp');
+  btn.disabled=true; btn.textContent='⏳ Carregando inscritos…';
+
+  try {
+    // Buscar inscrições que ainda não receberam RSVP
+    const { data: jaEnviados } = await sb.from('rsvp').select('inscricao_id');
+    const jaIds = new Set((jaEnviados||[]).map(r=>r.inscricao_id));
+
+    const { data: inscritos } = await sb.from('inscricoes')
+      .select('id, nome_completo, telefone')
+      .in('perfil', perfis);
+
+    const fila = (inscritos||[]).filter(i=>!jaIds.has(i.id)).slice(0, qtdMax);
+
+    if(!fila.length){ alert('Nenhum inscrito disponível para os perfis e critérios selecionados.'); btn.disabled=false; btn.textContent='🚀 Disparar RSVP para selecionados'; return; }
+
+    // Criar disparo no DB
+    const { data: disparo } = await sb.from('disparos').insert([{tipo:'rsvp',total:fila.length,status:'em_andamento',criado_em:new Date().toISOString()}]).select().single();
+
+    let enviados=0;
+    for(const inscrito of fila){
+      const token = genToken();
+      const simUrl  = cfg.baseUrl+'?rsvp=sim&t='+token;
+      const naoUrl  = cfg.baseUrl+'?rsvp=nao&t='+token;
+      const nome = inscrito.nome_completo.split(' ')[0];
+      const body = msgText
+        .replace('{{nome}}', nome)
+        .replace('{{evento}}', eventoNome)
+        +'\n\n✅ SIM: '+simUrl+'\n❌ NÃO: '+naoUrl;
+
+      // Inserir RSVP no DB
+      await sb.from('rsvp').insert([{
+        inscricao_id: inscrito.id,
+        token,
+        status: 'pendente',
+        disparo: 1,
+        enviado_em: new Date().toISOString()
+      }]);
+
+      // Enviar via Edge Function
+      const tel = inscrito.telefone.replace(/\D/g,'');
+      const to = 'whatsapp:+55'+tel;
+      await sendWhatsAppViaEdge(to, body, rsvpImgDataUrl||null);
+
+      enviados++;
+      btn.textContent=`⏳ Enviando… ${enviados}/${fila.length}`;
+    }
+
+    // Atualizar status do disparo
+    if(disparo) await sb.from('disparos').update({enviados,status:'concluido'}).eq('id',disparo.id);
+
+    btn.textContent='✅ Disparo concluído!';
+    setTimeout(()=>{ btn.disabled=false; btn.textContent='🚀 Disparar RSVP para selecionados'; },3000);
+    loadRsvpStats();
+  } catch(e){
+    alert('Erro durante o disparo: '+e.message);
+    btn.disabled=false; btn.textContent='🚀 Disparar RSVP para selecionados';
+  }
+}
+
+// ── Disparo Lembrete ──
+async function dispararLembrete(){
+  const cfg = saveTwilioConfig();
+  if(!cfg.sid||!cfg.token||!cfg.from){ alert('Configure as credenciais da Twilio primeiro.'); return; }
+
+  const msgText = document.getElementById('rsvp-lembrete-text').value;
+  const eventoNome = document.getElementById('event-title').textContent||'Evento';
+
+  if(!confirm('Disparar lembrete para todos que confirmaram (SIM) e para os que ainda não responderam?')) return;
+
+  const btn = document.getElementById('btn-disparar-lembrete');
+  btn.disabled=true; btn.textContent='⏳ Carregando…';
+
+  try {
+    // Buscar RSVPs sim ou pendente
+    const { data: alvos } = await sb.from('rsvp')
+      .select('inscricao_id, token, status, inscricoes(nome_completo, telefone)')
+      .in('status',['sim','pendente']);
+
+    if(!alvos||!alvos.length){ alert('Nenhum destinatário encontrado.'); btn.disabled=false; btn.textContent='🔔 Disparar lembrete'; return; }
+
+    const { data: disparo } = await sb.from('disparos').insert([{tipo:'lembrete',total:alvos.length,status:'em_andamento',criado_em:new Date().toISOString()}]).select().single();
+
+    let enviados=0;
+    for(const alvo of alvos){
+      const nome = alvo.inscricoes?.nome_completo?.split(' ')[0]||'';
+      const body = msgText.replace('{{nome}}',nome).replace('{{evento}}',eventoNome);
+      const tel  = (alvo.inscricoes?.telefone||'').replace(/\D/g,'');
+      if(!tel) continue;
+      await sendWhatsAppViaEdge('whatsapp:+55'+tel, body, null);
+      enviados++;
+      btn.textContent=`⏳ Enviando… ${enviados}/${alvos.length}`;
+    }
+
+    if(disparo) await sb.from('disparos').update({enviados,status:'concluido'}).eq('id',disparo.id);
+    btn.textContent='✅ Lembrete enviado!';
+    setTimeout(()=>{ btn.disabled=false; btn.textContent='🔔 Disparar lembrete para SIM + Pendentes'; },3000);
+    loadRsvpStats();
+  } catch(e){
+    alert('Erro: '+e.message);
+    btn.disabled=false; btn.textContent='🔔 Disparar lembrete para SIM + Pendentes';
+  }
+}
+
+// ── RSVP Response Handler (chamado quando o inscrito clica no link) ──
+async function handleRsvpResponse(){
+  const params = new URLSearchParams(window.location.search);
+  const resposta = params.get('rsvp');
+  const token    = params.get('t');
+  if(!resposta||!token) return;
+
+  // Hide all screens, show a response screen
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active','visible'));
+  const responseDiv = document.getElementById('rsvp-response-screen');
+  if(responseDiv){ responseDiv.style.display='flex'; setTimeout(()=>responseDiv.classList.add('visible'),30); }
+
+  try {
+    const { data: rsvpRow, error } = await sb.from('rsvp').select('*,inscricoes(nome_completo,email,perfil)').eq('token',token).maybeSingle();
+    if(error||!rsvpRow){ showRsvpMsg('❌','Link inválido ou expirado.',''); return; }
+    if(rsvpRow.status!=='pendente'){ showRsvpMsg('✅','Você já respondeu!','Sua resposta já foi registrada. Obrigado!'); return; }
+
+    // Register response
+    await sb.from('rsvp').update({ status: resposta==='sim'?'sim':'nao', respondido_em: new Date().toISOString() }).eq('token',token);
+
+    if(resposta==='sim'){
+      const nome = rsvpRow.inscricoes?.nome_completo||'';
+      showRsvpMsg('✅','Presença confirmada!',`Olá, ${nome.split(' ')[0]}! Sua presença está confirmada. Apresente o QR Code abaixo na entrada do evento.`);
+      // Generate and show QR Code
+      setTimeout(()=>generateQRCode(token, rsvpRow.inscricao_id), 300);
+      // Also send QR Code via WhatsApp
+      sendQRCodeWhatsApp(rsvpRow, token);
+    } else {
+      showRsvpMsg('😔','Resposta registrada','Obrigado por nos avisar. Esperamos contar com sua presença em eventos futuros!');
+    }
+  } catch(e){
+    showRsvpMsg('⚠','Erro','Não foi possível registrar sua resposta. Tente novamente.'+e.message);
+  }
+}
+
+function showRsvpMsg(icon, title, text){
+  const el = document.getElementById('rsvp-response-content');
+  if(el) el.innerHTML = `<div style="text-align:center;padding:40px 24px;"><div style="font-size:60px;margin-bottom:16px;">${icon}</div><h2 style="font-size:24px;font-weight:900;color:var(--blue);margin-bottom:12px;">${title}</h2><p style="font-size:14px;color:var(--text);line-height:1.6;">${text}</p><div id="qr-container" style="margin-top:24px;"></div></div>`;
+}
+
+function generateQRCode(token, inscricaoId){
+  const qrContainer = document.getElementById('qr-container');
+  if(!qrContainer) return;
+  // Use QR Code API
+  const data = encodeURIComponent(JSON.stringify({token, id: inscricaoId}));
+  const url = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${data}`;
+  qrContainer.innerHTML = `
+    <div style="background:#fff;border-radius:16px;padding:20px;display:inline-block;box-shadow:0 4px 20px rgba(0,92,169,.15);">
+      <img src="${url}" alt="QR Code" style="width:200px;height:200px;display:block;">
+      <p style="font-size:11px;color:var(--text-light);margin-top:10px;text-align:center;">Apresente este código na entrada</p>
+    </div>
+    <div style="margin-top:12px;">
+      <a href="${url}" download="qrcode-evento.png" style="display:inline-block;padding:10px 24px;background:var(--blue);color:#fff;border-radius:50px;font-size:13px;font-weight:700;text-decoration:none;">⬇ Salvar QR Code</a>
+    </div>`;
+}
+
+async function sendQRCodeWhatsApp(rsvpRow, token){
+  const cfg = loadTwilioConfig();
+  if(!cfg.sid||!cfg.token||!cfg.from) return;
+  const tel = (rsvpRow.inscricoes?.telefone||'').replace(/\D/g,'');
+  if(!tel) return;
+  const nome = rsvpRow.inscricoes?.nome_completo?.split(' ')[0]||'';
+  const qrData = encodeURIComponent(JSON.stringify({token, id:rsvpRow.inscricao_id}));
+  const qrUrl  = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${qrData}`;
+  const body   = `✅ ${nome}, sua presença está confirmada!\n\nAqui está seu QR Code pessoal e intransferível para o evento. Apresente-o na entrada. 🎟\n\nNos vemos lá!`;
+  await sendWhatsAppViaEdge('whatsapp:+55'+tel, body, qrUrl);
+}
+
+// ── Check RSVP response on page load ──
+window.addEventListener('load', ()=>{
+  const params = new URLSearchParams(window.location.search);
+  if(params.get('rsvp') && params.get('t')) handleRsvpResponse();
+  restoreTwilioFields();
+});
+
 </script>
 </body>
 </html>
