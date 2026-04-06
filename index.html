@@ -8,7 +8,6 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 :root{
@@ -3101,21 +3100,47 @@ function showIngresso(token, inscricaoId, nome, perfil){
   const qrUrl       = `https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=${qrData}&margin=10`;
   const primeiroNome = nome.split(' ')[0];
 
+  // Pegar identidade visual da página principal
+  const rootStyle   = getComputedStyle(document.documentElement);
+  const headerBg    = rootStyle.getPropertyValue('--header-bg').trim() || '#005ca9';
+  const btnBg       = rootStyle.getPropertyValue('--btn-bg').trim() || '#005ca9';
+  const btnColor    = rootStyle.getPropertyValue('--btn-color').trim() || '#ffffff';
+
+  // Imagem central do evento
+  const eventoImgEl = document.getElementById('evento-img');
+  const eventoImgSrc = (eventoImgEl && eventoImgEl.src && !eventoImgEl.src.endsWith('/')) ? eventoImgEl.src : null;
+
+  // Imagem de fundo (landing)
+  const landingBgEl = document.getElementById('landing-bg');
+  const landingBgStyle = landingBgEl ? landingBgEl.style.backgroundImage : '';
+  const landingBgUrl = landingBgStyle ? landingBgStyle.replace(/^url\(['"]?/, '').replace(/['"]?\)$/, '') : null;
+
+  // Vídeo de fundo
+  const landingVideoEl = document.getElementById('landing-video');
+  const hasVideo = landingVideoEl && landingVideoEl.src && landingVideoEl.style.display !== 'none';
+
+  // Header do ingresso com identidade visual
+  const headerHtml = `
+    <div style="background:${headerBg};padding:22px 24px;position:relative;overflow:hidden;min-height:${eventoImgSrc ? '140px' : 'auto'};">
+      ${landingBgUrl && !hasVideo ? `<div style="position:absolute;inset:0;background-image:url('${landingBgUrl}');background-size:cover;background-position:center;opacity:.18;"></div>` : ''}
+      <div style="position:relative;z-index:1;">
+        ${eventoImgSrc ? `<img src="${eventoImgSrc}" alt="${eventoNome}" style="max-width:200px;max-height:80px;object-fit:contain;display:block;margin:0 auto 12px;">` : ''}
+        <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,.65);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:4px;text-align:center;">${eventoTag}</div>
+        <div style="font-size:17px;font-weight:900;color:#fff;line-height:1.3;text-align:center;">${eventoNome}</div>
+      </div>
+    </div>`;
+
   document.getElementById('rsvp-response-content').innerHTML = `
-    <div style="text-align:center;margin-bottom:24px;">
-      <div style="font-size:48px;margin-bottom:10px;">🎉</div>
-      <h2 style="font-size:22px;font-weight:900;color:#fff;line-height:1.3;">Olá, ${primeiroNome}!<br>Você está confirmado(a)!</h2>
-      <p style="font-size:13px;color:rgba(255,255,255,.65);margin-top:8px;">Apresente o ingresso abaixo na entrada do evento</p>
+    <div style="text-align:center;margin-bottom:20px;">
+      <div style="font-size:40px;margin-bottom:8px;">🎉</div>
+      <h2 style="font-size:20px;font-weight:900;color:#fff;line-height:1.3;">Olá, ${primeiroNome}!<br>Você está confirmado(a)!</h2>
+      <p style="font-size:12px;color:rgba(255,255,255,.65);margin-top:6px;">Apresente o ingresso abaixo na entrada do evento</p>
     </div>
 
     <!-- INGRESSO -->
     <div id="ingresso-card" style="background:#fff;border-radius:20px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.4);margin-bottom:20px;">
 
-      <!-- Header do ingresso -->
-      <div style="background:linear-gradient(135deg,#005ca9,#0a7bc4);padding:22px 24px;">
-        <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,.65);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:4px;">${eventoTag}</div>
-        <div style="font-size:18px;font-weight:900;color:#fff;line-height:1.3;">${eventoNome}</div>
-      </div>
+      ${headerHtml}
 
       <!-- Linha tracejada com meias-luas -->
       <div style="position:relative;height:24px;background:#fff;">
@@ -3126,48 +3151,57 @@ function showIngresso(token, inscricaoId, nome, perfil){
 
       <!-- Corpo do ingresso -->
       <div style="padding:20px 24px;background:#fff;">
-        <div style="margin-bottom:16px;">
-          <div style="font-size:10px;font-weight:700;color:#5a6a82;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;">Participante</div>
-          <div style="font-size:16px;font-weight:800;color:#1a2640;">${nome}</div>
-        </div>
-        <div style="margin-bottom:20px;">
-          <div style="font-size:10px;font-weight:700;color:#5a6a82;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;">Perfil</div>
-          <div style="font-size:13px;font-weight:600;color:#1a2640;">${perfil}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
+          <div>
+            <div style="font-size:9px;font-weight:700;color:#5a6a82;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;">Participante</div>
+            <div style="font-size:13px;font-weight:800;color:#1a2640;line-height:1.3;">${nome}</div>
+          </div>
+          <div>
+            <div style="font-size:9px;font-weight:700;color:#5a6a82;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;">Perfil</div>
+            <div style="font-size:12px;font-weight:600;color:#1a2640;line-height:1.3;">${perfil}</div>
+          </div>
         </div>
 
         <!-- QR Code -->
-        <div style="text-align:center;padding:16px 0 8px;">
-          <img id="ingresso-qr-img" src="${qrUrl}" alt="QR Code" style="width:200px;height:200px;border-radius:12px;border:3px solid #e8f0fb;" onerror="this.style.display='none';document.getElementById('qr-error').style.display='block';">
-          <div id="qr-error" style="display:none;padding:16px;color:#e74c3c;font-size:12px;">Erro ao carregar QR Code. Verifique sua conexão.</div>
+        <div style="text-align:center;padding:12px 0 8px;">
+          <img id="ingresso-qr-img" src="${qrUrl}" alt="QR Code"
+            style="width:190px;height:190px;border-radius:12px;border:3px solid ${btnBg};"
+            onerror="this.parentNode.innerHTML='<div style=\'color:#e74c3c;font-size:12px;padding:16px;\'>Erro ao carregar QR Code. Verifique sua conexão.</div>'">
           <div style="font-size:10px;color:#5a6a82;margin-top:10px;font-weight:600;">QR Code pessoal e intransferível</div>
-          <div style="font-size:10px;color:#aab4c2;margin-top:2px;font-family:monospace;">${token.slice(0,16).toUpperCase()}</div>
+          <div style="font-size:9px;color:#aab4c2;margin-top:2px;font-family:monospace;">${token.slice(0,16).toUpperCase()}</div>
         </div>
       </div>
 
       <!-- Footer do ingresso -->
-      <div style="background:#f4f6f9;padding:12px 24px;text-align:center;">
-        <div style="font-size:10px;color:#5a6a82;font-weight:600;">🎟 Ingresso válido · Apresente na entrada</div>
+      <div style="background:${btnBg};padding:12px 24px;text-align:center;">
+        <div style="font-size:10px;color:${btnColor};font-weight:700;opacity:.9;">🎟 Ingresso válido · Apresente na entrada</div>
       </div>
     </div>
 
     <!-- Botões de ação -->
-    <button onclick="downloadIngresso()" style="width:100%;padding:15px;background:#fff;color:#005ca9;border:none;border-radius:14px;font-family:'Montserrat',sans-serif;font-size:14px;font-weight:800;cursor:pointer;margin-bottom:10px;box-shadow:0 4px 20px rgba(0,0,0,.2);">
+    <button onclick="downloadIngresso('${eventoNome}','${headerBg}','${btnBg}','${btnColor}','${eventoImgSrc||''}','${eventoTag}')"
+      style="width:100%;padding:15px;background:#fff;color:${btnBg};border:none;border-radius:14px;font-family:'Montserrat',sans-serif;font-size:14px;font-weight:800;cursor:pointer;margin-bottom:10px;box-shadow:0 4px 20px rgba(0,0,0,.2);">
       📥 Baixar ingresso em PDF
     </button>
-    <button onclick="compartilharIngresso('${token}','${inscricaoId}')" style="width:100%;padding:13px;background:rgba(255,255,255,.12);color:#fff;border:1.5px solid rgba(255,255,255,.25);border-radius:14px;font-family:'Montserrat',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">
+    <button onclick="compartilharIngresso('${token}','${inscricaoId}')"
+      style="width:100%;padding:13px;background:rgba(255,255,255,.12);color:#fff;border:1.5px solid rgba(255,255,255,.25);border-radius:14px;font-family:'Montserrat',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">
       📤 Compartilhar ingresso
     </button>
     <p style="text-align:center;font-size:11px;color:rgba(255,255,255,.45);margin-top:16px;">O QR Code também foi enviado para o seu WhatsApp</p>`;
 }
 
-function downloadIngresso(){
+function downloadIngresso(eventoNome, headerBg, btnBg, btnColor, eventoImgSrc, eventoTag){
   const card = document.getElementById('ingresso-card');
   if(!card){ alert('Ingresso não encontrado.'); return; }
-
-  // Use browser print for PDF — works on all devices without extra libs
   const qrImg = document.getElementById('ingresso-qr-img');
   const qrSrc = qrImg ? qrImg.src : '';
-  const eventoNome = document.getElementById('event-title').textContent || 'Evento';
+
+  // Fallbacks
+  eventoNome  = eventoNome  || document.getElementById('event-title').textContent || 'Evento';
+  eventoTag   = eventoTag   || document.getElementById('event-tag').textContent || '';
+  headerBg    = headerBg    || '#005ca9';
+  btnBg       = btnBg       || '#005ca9';
+  btnColor    = btnColor    || '#ffffff';
 
   const printWin = window.open('', '_blank');
   printWin.document.write(`<!DOCTYPE html><html><head>
@@ -3177,31 +3211,55 @@ function downloadIngresso(){
     <style>
       *{box-sizing:border-box;margin:0;padding:0;}
       body{font-family:'Montserrat',sans-serif;background:#f0f4f8;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px;}
-      .ticket{background:#fff;border-radius:20px;overflow:hidden;max-width:420px;width:100%;box-shadow:0 8px 40px rgba(0,0,0,.15);}
-      .ticket-header{background:linear-gradient(135deg,#005ca9,#0a7bc4);padding:28px 32px;color:#fff;}
-      .ticket-tag{font-size:10px;font-weight:700;color:rgba(255,255,255,.65);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:6px;}
-      .ticket-title{font-size:20px;font-weight:900;line-height:1.3;}
-      .ticket-sep{position:relative;height:28px;background:#fff;}
-      .ticket-sep::before{content:'';position:absolute;left:-14px;top:0;width:28px;height:28px;background:#f0f4f8;border-radius:50%;}
-      .ticket-sep::after{content:'';position:absolute;right:-14px;top:0;width:28px;height:28px;background:#f0f4f8;border-radius:50%;}
-      .ticket-sep-line{position:absolute;top:13px;left:14px;right:14px;border-top:2px dashed #dde3ec;}
-      .ticket-body{padding:24px 32px;}
-      .ticket-field{margin-bottom:16px;}
-      .ticket-label{font-size:9px;font-weight:700;color:#5a6a82;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;}
-      .ticket-value{font-size:15px;font-weight:800;color:#1a2640;}
-      .ticket-value.small{font-size:13px;font-weight:600;}
-      .qr-section{text-align:center;padding:20px 0 16px;}
-      .qr-section img{width:180px;height:180px;border-radius:10px;border:3px solid #e8f0fb;}
-      .qr-label{font-size:10px;color:#5a6a82;margin-top:10px;font-weight:600;}
-      .qr-token{font-size:9px;color:#aab4c2;margin-top:3px;font-family:monospace;}
-      .ticket-footer{background:#f4f6f9;padding:14px 32px;text-align:center;font-size:10px;color:#5a6a82;font-weight:600;}
-      @media print{body{background:#fff;}@page{margin:0;size:A5;}}
+      .ticket{background:#fff;border-radius:20px;overflow:hidden;max-width:400px;width:100%;box-shadow:0 8px 40px rgba(0,0,0,.15);}
+      .ticket-header{background:${headerBg};padding:24px 28px;position:relative;overflow:hidden;text-align:center;}
+      .ticket-header-img{max-width:180px;max-height:70px;object-fit:contain;display:block;margin:0 auto 10px;}
+      .ticket-tag{font-size:9px;font-weight:700;color:rgba(255,255,255,.65);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:4px;}
+      .ticket-title{font-size:17px;font-weight:900;color:#fff;line-height:1.3;}
+      .ticket-sep{position:relative;height:26px;background:#fff;}
+      .ticket-sep::before{content:'';position:absolute;left:-13px;top:0;width:26px;height:26px;background:#f0f4f8;border-radius:50%;}
+      .ticket-sep::after{content:'';position:absolute;right:-13px;top:0;width:26px;height:26px;background:#f0f4f8;border-radius:50%;}
+      .ticket-sep-line{position:absolute;top:12px;left:13px;right:13px;border-top:2px dashed #dde3ec;}
+      .ticket-body{padding:20px 28px;}
+      .ticket-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px;}
+      .ticket-label{font-size:8px;font-weight:700;color:#5a6a82;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;}
+      .ticket-value{font-size:13px;font-weight:800;color:#1a2640;line-height:1.3;}
+      .ticket-value.small{font-size:11px;font-weight:600;}
+      .qr-section{text-align:center;padding:14px 0 10px;}
+      .qr-section img{width:170px;height:170px;border-radius:10px;border:3px solid ${btnBg};}
+      .qr-label{font-size:9px;color:#5a6a82;margin-top:8px;font-weight:600;}
+      .qr-token{font-size:8px;color:#aab4c2;margin-top:2px;font-family:monospace;}
+      .ticket-footer{background:${btnBg};padding:12px 28px;text-align:center;font-size:9px;color:${btnColor};font-weight:700;opacity:.95;}
+      @media print{body{background:#fff;padding:0;}@page{margin:0;size:A5 portrait;}}
     </style>
   </head><body>
     <div class="ticket">
-      ${card.innerHTML.replace(/<button[^>]*>.*?<\/button>/gs,'').replace(/<div id="qr-error"[^>]*>.*?<\/div>/gs,'')}
+      <div class="ticket-header">
+        ${eventoImgSrc ? `<img class="ticket-header-img" src="${eventoImgSrc}" alt="${eventoNome}">` : ''}
+        <div class="ticket-tag">${eventoTag}</div>
+        <div class="ticket-title">${eventoNome}</div>
+      </div>
+      <div class="ticket-sep"><div class="ticket-sep-line"></div></div>
+      <div class="ticket-body">
+        <div class="ticket-grid">
+          <div>
+            <div class="ticket-label">Participante</div>
+            <div class="ticket-value">${card.querySelector('[style*="Participante"]')?.nextElementSibling?.textContent||''}</div>
+          </div>
+          <div>
+            <div class="ticket-label">Perfil</div>
+            <div class="ticket-value small">${card.querySelector('[style*="Perfil"]')?.nextElementSibling?.textContent||''}</div>
+          </div>
+        </div>
+        <div class="qr-section">
+          <img src="${qrSrc}" alt="QR Code">
+          <div class="qr-label">QR Code pessoal e intransferível</div>
+          <div class="qr-token">${card.querySelector('[style*="monospace"]')?.textContent||''}</div>
+        </div>
+      </div>
+      <div class="ticket-footer">🎟 Ingresso válido · Apresente na entrada</div>
     </div>
-    <script>window.onload=()=>{setTimeout(()=>{window.print();},500);}<\/script>
+    <script>window.onload=()=>{setTimeout(()=>{window.print();},800);}<\/script>
   </body></html>`);
   printWin.document.close();
 }
@@ -3327,16 +3385,27 @@ function valLogout(){
 }
 
 // ── Camera ──
+let barcodeDetector = null;
+
 async function startCamera(){
   try {
+    // Inicializar BarcodeDetector (API nativa — sem biblioteca externa)
+    if('BarcodeDetector' in window){
+      barcodeDetector = new BarcodeDetector({ formats: ['qr_code'] });
+    } else {
+      // Fallback: avisar usuário para usar Chrome ou Safari
+      alert('Seu navegador não suporta leitura nativa de QR Code.\nUse o Google Chrome ou Safari para validar.');
+      return;
+    }
+
     valVideoStream = await navigator.mediaDevices.getUserMedia({
       video: { facingMode: 'environment', width:{ideal:1280}, height:{ideal:720} }
     });
     const video = document.getElementById('val-video');
     video.srcObject = valVideoStream;
-    video.play();
+    await video.play();
     valScanning = true;
-    requestAnimationFrame(valScanFrame);
+    valScanLoop = setInterval(valScanFrame, 300); // scan a cada 300ms
   } catch(e){
     alert('Não foi possível acessar a câmera: '+e.message);
   }
@@ -3344,27 +3413,21 @@ async function startCamera(){
 
 function stopCamera(){
   valScanning = false;
-  if(valScanLoop) cancelAnimationFrame(valScanLoop);
+  if(valScanLoop){ clearInterval(valScanLoop); valScanLoop = null; }
   if(valVideoStream) valVideoStream.getTracks().forEach(t=>t.stop());
   valVideoStream = null;
 }
 
-function valScanFrame(){
-  if(!valScanning) return;
-  const video  = document.getElementById('val-video');
-  const canvas = document.getElementById('val-canvas');
-  if(video.readyState === video.HAVE_ENOUGH_DATA && !valResultVisible){
-    canvas.width  = video.videoWidth;
-    canvas.height = video.videoHeight;
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts:'dontInvert' });
-    if(code && code.data){
-      valProcessQR(code.data);
+async function valScanFrame(){
+  if(!valScanning || valResultVisible || !barcodeDetector) return;
+  const video = document.getElementById('val-video');
+  if(!video || video.readyState < 2) return;
+  try {
+    const codes = await barcodeDetector.detect(video);
+    if(codes && codes.length > 0){
+      valProcessQR(codes[0].rawValue);
     }
-  }
-  valScanLoop = requestAnimationFrame(valScanFrame);
+  } catch(e){ /* ignora erros de frame */ }
 }
 
 // ── Process QR ──
