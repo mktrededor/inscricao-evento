@@ -2224,7 +2224,7 @@ window.onload = async function(){
   const timeoutPromise=new Promise(resolve=>setTimeout(()=>resolve(null),5000));
   const saved=await Promise.race([settingsPromise,timeoutPromise]);
   if(saved){
-    currentSettings = saved; // seed the cache so partial saves never lose existing data
+    currentSettings = saved;
     await applySettingsToPage(saved);
     if(saved.colorStates){ Object.assign(colorStates,saved.colorStates); buildColorTargets(); }
   }
@@ -2232,7 +2232,15 @@ window.onload = async function(){
   const loadingEl=document.getElementById('page-loading');
   loadingEl.classList.add('hidden');
   setTimeout(()=>{ loadingEl.style.display='none'; },600);
-  setTimeout(()=>document.getElementById('screen-landing').classList.add('visible'),100);
+
+  // Verificar se é uma resposta de RSVP — só depois das configs carregarem
+  const urlParams = new URLSearchParams(window.location.search);
+  if(urlParams.get('rsvp') && urlParams.get('t')){
+    // Não mostrar landing — ir direto para o handler
+    handleRsvpResponse();
+  } else {
+    setTimeout(()=>document.getElementById('screen-landing').classList.add('visible'),100);
+  }
 };
 
 // ═══════════════════════════════════════
@@ -3305,8 +3313,6 @@ async function sendQRCodeWhatsApp(rsvpRow, token){
 
 // ── Check RSVP response on page load ──
 window.addEventListener('load', ()=>{
-  const params = new URLSearchParams(window.location.search);
-  if(params.get('rsvp') && params.get('t')) handleRsvpResponse();
   restoreTwilioFields();
   // Check for validator hash
   if(window.location.hash === '#validar') openValidatorScreen();
