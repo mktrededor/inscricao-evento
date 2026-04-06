@@ -1407,7 +1407,18 @@ async function applySettingsToPage(s) {
       if(vw) vw.style.display=type==='video'?'':'none';
     });
   }
-  if(s.files) Object.assign(fileStore, s.files);
+  // Mesclar fileStore: só adicionar entradas do banco que não existem localmente
+  // Nunca sobrescrever arquivos que o admin acabou de fazer upload nesta sessão
+  if(s.files){
+    Object.keys(s.files).forEach(k => {
+      const local = fileStore[k];
+      const remote = s.files[k];
+      // Só usar o remoto se não houver nada local com URL ou dataUrl válidos
+      if(!local || (!local.url && !local.dataUrl)) {
+        fileStore[k] = remote;
+      }
+    });
+  }
 
   if(s.syncBgAll && s.files) {
     document.getElementById('sync-bg-all').checked=true;
