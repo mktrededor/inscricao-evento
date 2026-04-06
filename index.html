@@ -2930,7 +2930,8 @@ async function dispararRSVP(){
 
       // Enviar via Edge Function
       const tel = inscrito.telefone.replace(/\D/g,'');
-      const to = 'whatsapp:+55'+tel;
+      const telFormatado = tel.length === 11 ? tel.slice(0,2) + tel.slice(3) : tel;
+      const to = 'whatsapp:+55'+telFormatado;
       await sendWhatsAppViaEdge(to, body, rsvpImgDataUrl||null);
 
       enviados++;
