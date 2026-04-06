@@ -1111,6 +1111,7 @@ html,body{font-family:var(--font);background:#fff;color:var(--text);min-height:1
     <div class="admin-field"><label style="font-size:10px;font-weight:700;color:var(--text-light);text-transform:uppercase;display:block;margin-bottom:6px;">Imagem da mensagem (opcional)</label>
       <label class="admin-file-btn" for="rsvp-img-upload">📁 Escolher imagem</label>
       <input type="file" id="rsvp-img-upload" class="admin-file-input" accept="image/*" onchange="handleRsvpImage(this)">
+      <button id="rsvp-img-remove-btn" onclick="removeRsvpImage()" style="display:none;padding:7px 12px;background:#fde8e8;color:#c0392b;border:1.5px solid #f5c6c6;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;margin-top:6px;">✕ Remover imagem</button>
       <div style="font-size:10px;color:var(--text-light);margin-top:3px;">JPG ou PNG. Aparecerá acima do texto no WhatsApp.</div>
     </div>
 
@@ -2720,18 +2721,51 @@ function restoreTwilioFields(){
 });
 
 // ── Preview ──
-let rsvpImgDataUrl = null;
+let rsvpImgDataUrl = null; // preview local
+let rsvpImgPublicUrl = null; // URL pública do Storage
 
 function handleRsvpImage(input){
   if(!input.files[0]) return;
+  const file = input.files[0];
+  const label = input.previousElementSibling;
+  if(label) label.textContent = '⏳ Enviando imagem…';
+
   const r = new FileReader();
-  r.onload = e => {
+  r.onload = async e => {
     rsvpImgDataUrl = e.target.result;
+    // Mostrar preview imediatamente
     const img = document.getElementById('rsvp-preview-img');
     img.src = rsvpImgDataUrl;
     img.style.display = 'block';
+    document.getElementById('rsvp-img-remove-btn').style.display = 'inline-block';
+
+    // Upload para o Supabase Storage
+    try {
+      const ext = file.name.split('.').pop().toLowerCase();
+      const path = 'rsvp-img-' + Date.now() + '.' + ext;
+      const { error } = await sb.storage.from('event-media').upload(path, file, { upsert: true, cacheControl: '3600' });
+      if(error) throw error;
+      const { data } = sb.storage.from('event-media').getPublicUrl(path);
+      rsvpImgPublicUrl = data.publicUrl;
+      if(label) label.textContent = '✔ ' + file.name.slice(0,20);
+    } catch(e){
+      console.warn('Upload da imagem RSVP falhou:', e.message);
+      rsvpImgPublicUrl = null;
+      if(label) label.textContent = '⚠ Falha no upload';
+    }
   };
-  r.readAsDataURL(input.files[0]);
+  r.readAsDataURL(file);
+}
+
+function removeRsvpImage(){
+  rsvpImgDataUrl = null;
+  rsvpImgPublicUrl = null;
+  const img = document.getElementById('rsvp-preview-img');
+  img.src = ''; img.style.display = 'none';
+  document.getElementById('rsvp-img-upload').value = '';
+  document.getElementById('rsvp-img-remove-btn').style.display = 'none';
+  const label = document.querySelector('label[for="rsvp-img-upload"]');
+  if(label) label.textContent = '📁 Escolher imagem';
 }
 
 function updateRsvpPreview(){
@@ -2864,9 +2898,9 @@ async function sendWhatsAppViaEdge(to, body, mediaUrl){
       }
     );
     const data = await response.json();
-    if(data.error_code || data.error){ 
-      console.warn('Twilio error:', data); 
-      return false; 
+    if(data.error_code || data.error){
+      console.warn('Twilio error:', data);
+      return false;
     }
     return true;
   } catch(e){
@@ -2932,7 +2966,7 @@ async function dispararRSVP(){
       const tel = inscrito.telefone.replace(/\D/g,'');
       const telFormatado = tel.length === 11 ? tel.slice(0,2) + tel.slice(3) : tel;
       const to = 'whatsapp:+55'+telFormatado;
-      await sendWhatsAppViaEdge(to, body, rsvpImgDataUrl||null);
+      await sendWhatsAppViaEdge(to, body, rsvpImgPublicUrl||null);
 
       enviados++;
       btn.textContent=`⏳ Enviando… ${enviados}/${fila.length}`;
@@ -2979,7 +3013,8 @@ async function dispararLembrete(){
       const body = msgText.replace('{{nome}}',nome).replace('{{evento}}',eventoNome);
       const tel  = (alvo.inscricoes?.telefone||'').replace(/\D/g,'');
       if(!tel) continue;
-      await sendWhatsAppViaEdge('whatsapp:+55'+tel, body, null);
+      const telF = tel.length === 11 ? tel.slice(0,2) + tel.slice(3) : tel;
+      await sendWhatsAppViaEdge('whatsapp:+55'+telF, body, null);
       enviados++;
       btn.textContent=`⏳ Enviando… ${enviados}/${alvos.length}`;
     }
@@ -3055,11 +3090,12 @@ async function sendQRCodeWhatsApp(rsvpRow, token){
   if(!cfg.sid||!cfg.token||!cfg.from) return;
   const tel = (rsvpRow.inscricoes?.telefone||'').replace(/\D/g,'');
   if(!tel) return;
+  const telF = tel.length === 11 ? tel.slice(0,2) + tel.slice(3) : tel;
   const nome = rsvpRow.inscricoes?.nome_completo?.split(' ')[0]||'';
   const qrData = encodeURIComponent(JSON.stringify({token, id:rsvpRow.inscricao_id}));
   const qrUrl  = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${qrData}`;
   const body   = `✅ ${nome}, sua presença está confirmada!\n\nAqui está seu QR Code pessoal e intransferível para o evento. Apresente-o na entrada. 🎟\n\nNos vemos lá!`;
-  await sendWhatsAppViaEdge('whatsapp:+55'+tel, body, qrUrl);
+  await sendWhatsAppViaEdge('whatsapp:+55'+telF, body, qrUrl);
 }
 
 // ── Check RSVP response on page load ──
