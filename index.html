@@ -2276,16 +2276,23 @@ async function checkCpfExists(cpf){
 }
 
 async function deleteAllInscricoes(){
-  if(!confirm('⚠️ Tem certeza? Isso vai deletar TODAS as inscrições permanentemente. Esta ação não pode ser desfeita.')) return;
-  if(!confirm('Confirme novamente: deletar todas as inscrições?')) return;
+  if(!confirm('⚠️ Tem certeza? Isso vai deletar TODAS as inscrições e RSVPs permanentemente. Esta ação não pode ser desfeita.')) return;
+  if(!confirm('Confirme novamente: deletar tudo?')) return;
   try {
-    const { error }=await sb.from('inscricoes').delete().neq('id',0);
+    // Deletar RSVPs primeiro (referência às inscrições)
+    await sb.from('presencas').delete().gt('hora_entrada','2000-01-01');
+    await sb.from('rsvp').delete().gt('created_at','2000-01-01');
+    await sb.from('disparos').delete().gt('criado_em','2000-01-01');
+    // Deletar inscrições
+    const { error } = await sb.from('inscricoes').delete().gt('created_at','2000-01-01');
     if(error){ alert('Erro ao deletar: '+error.message); return; }
     inscricoes=[];
     localStorage.removeItem('redor_inscricoes');
+    localStorage.removeItem('val_entradas');
+    localStorage.removeItem('val_lista_rsvp');
     renderInscricoesList();
     updateDashboard();
-    showSaveIndicator(true,'🗑 Todas as inscrições foram deletadas');
+    showSaveIndicator(true,'🗑 Todas as inscrições e RSVPs foram deletados');
   } catch(e){ alert('Erro: '+e.message); }
 }
 
