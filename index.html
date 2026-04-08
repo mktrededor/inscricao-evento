@@ -387,7 +387,29 @@ html,body{font-family:var(--font);background:#fff;color:var(--text);min-height:1
 .val-presence-time{font-size:10px;color:rgba(255,255,255,.5);}
 .val-presence-badge{padding:2px 8px;border-radius:8px;font-size:9px;font-weight:700;background:#1a7a40;color:#fff;}
 
-/* ══════ RSVP ══════ */
+/* ══════ BANNERS / PATROCÍNIO ══════ */
+.banner-strip{width:100%;position:relative;z-index:10;overflow:hidden;background:transparent;flex-shrink:0;}
+.banner-strip-inner{display:flex;transition:transform .6s ease;will-change:transform;}
+.banner-item{min-width:100%;cursor:pointer;}
+.banner-item img{width:100%;height:auto;display:block;object-fit:cover;max-height:120px;}
+.banner-dots{display:flex;justify-content:center;gap:6px;padding:6px 0;position:absolute;bottom:4px;left:0;right:0;}
+.banner-dot{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.5);cursor:pointer;transition:background .2s;}
+.banner-dot.active{background:#fff;}
+.pat-item{background:var(--blue-light);border-radius:10px;padding:12px 14px;margin-bottom:10px;border:1.5px solid rgba(0,92,169,.15);}
+.pat-item-header{display:flex;align-items:center;gap:10px;}
+.pat-thumb{width:60px;height:30px;object-fit:contain;border-radius:4px;background:#fff;border:1px solid var(--gray2);flex-shrink:0;}
+.pat-info{flex:1;font-size:12px;}
+.pat-info .pat-name{font-weight:700;color:var(--blue);}
+.pat-info .pat-url{font-size:10px;color:var(--text-light);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px;}
+.pat-actions{display:flex;gap:6px;}
+.pat-btn{padding:4px 10px;border:none;border-radius:6px;font-family:var(--font);font-size:10px;font-weight:700;cursor:pointer;}
+.pat-btn.del{background:#fde8e8;color:#c0392b;}
+.add-pat-form{background:#f8faff;border-radius:10px;padding:14px;border:1.5px dashed rgba(0,92,169,.25);margin-top:10px;}
+.add-pat-form h4{font-size:11px;font-weight:800;color:var(--blue);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px;}
+.pat-field{margin-bottom:9px;}
+.pat-field label{display:block;font-size:10px;font-weight:600;color:var(--text-light);margin-bottom:3px;text-transform:uppercase;}
+.pat-field input{width:100%;padding:7px 9px;border:1.5px solid var(--gray2);border-radius:7px;font-family:var(--font);font-size:12px;color:var(--text);background:#fff;}
+.pat-add-btn{width:100%;padding:9px;background:var(--blue);color:#fff;border:none;border-radius:8px;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer;margin-top:4px;}
 .rsvp-stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px;}
 .rsvp-stat{border-radius:12px;padding:14px 10px;text-align:center;border:1.5px solid rgba(0,0,0,.07);}
 .rsvp-stat .rs-num{font-size:28px;font-weight:900;line-height:1;}
@@ -504,6 +526,8 @@ html,body{font-family:var(--font);background:#fff;color:var(--text);min-height:1
     </div>
     <div id="landing-extra-text"></div>
   </div>
+  <!-- Banner patrocínio -->
+  <div id="banner-landing" class="banner-strip" style="display:none;position:absolute;bottom:0;left:0;right:0;z-index:5;"></div>
 </div>
 
 <!-- ══ SCREEN: PRIVACY ══ -->
@@ -591,6 +615,7 @@ html,body{font-family:var(--font);background:#fff;color:var(--text);min-height:1
       <button class="nova-inscricao-btn" onclick="novaInscricao()">← Nova inscrição</button>
     </div>
   </div>
+  <div id="banner-confirm" class="banner-strip" style="display:none;position:absolute;bottom:0;left:0;right:0;z-index:5;"></div>
 </div>
 
 <!-- ══ SCREEN: PALESTRANTES ══ -->
@@ -612,7 +637,9 @@ html,body{font-family:var(--font);background:#fff;color:var(--text);min-height:1
       <div class="palestrantes-section-title">Palestrantes</div>
       <div class="palestrantes-grid" id="palestrantes-grid"></div>
     </div>
+    <div style="height:130px;"></div><!-- space for banner -->
   </div>
+  <div id="banner-palestrantes" class="banner-strip" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:10;"></div>
 </div>
 
 <!-- Speaker modal -->
@@ -712,8 +739,10 @@ html,body{font-family:var(--font);background:#fff;color:var(--text);min-height:1
   <div class="admin-header">
     <div class="admin-tabs-row">
       <div class="admin-tab active" onclick="showAdminTab('edit')">✏️ Edição</div>
+      <div class="admin-tab" onclick="showAdminTab('evento')">📅 Evento</div>
       <div class="admin-tab" onclick="showAdminTab('colors')">🎨 Cores</div>
       <div class="admin-tab" onclick="showAdminTab('speakers')">🎤 Palestr.</div>
+      <div class="admin-tab" onclick="showAdminTab('patrocinio')">🏷 Patroc.</div>
       <div class="admin-tab" onclick="showAdminTab('rsvp')">📲 RSVP</div>
       <div class="admin-tab" onclick="showAdminTab('dash')">📊 Dash</div>
       <div class="admin-tab" onclick="showAdminTab('data')">📋 Dados</div>
@@ -844,9 +873,6 @@ html,body{font-family:var(--font);background:#fff;color:var(--text);min-height:1
         <span>Campo CPF ativo</span>
         <label class="toggle-switch"><input type="checkbox" id="toggle-cpf" checked onchange="updateCpfField()"><span class="toggle-slider"></span></label>
       </div>
-      <div class="admin-field"><label>Tag do evento</label><input type="text" id="ed-tag" value="Inscrição Gratuita"></div>
-      <div class="admin-field"><label>Título</label><input type="text" id="ed-title" value="Evento Médico Científico"></div>
-      <div class="admin-field"><label>Descrição</label><textarea id="ed-desc">Preencha o formulário abaixo para confirmar sua participação.</textarea></div>
       <div class="admin-field"><label>Pergunta Rede D'Or</label><input type="text" id="ed-redor-q" value="Trabalha na Rede D'Or?"></div>
       <div class="admin-field"><label>Rodapé</label><input type="text" id="ed-footer" value="© Rede D'Or – Eventos Médicos Científicos"></div>
     </div>
@@ -923,6 +949,67 @@ html,body{font-family:var(--font);background:#fff;color:var(--text);min-height:1
         <div style="font-size:10px;color:var(--text-light);margin-top:4px;">Salva localmente. Acesso via <strong>seusite.com/#validar</strong></div>
       </div>
       <button class="apply-btn" style="margin-top:8px;font-size:12px;padding:10px;" onclick="saveValSenha()">💾 Salvar senha</button>
+    </div>
+
+    <div class="admin-section" style="margin-top:16px;border:2px solid #f5c6c6;border-radius:12px;padding:16px;background:#fff8f8;">
+      <h3 style="color:#c0392b;">🔄 Resetar para novo evento</h3>
+      <p style="font-size:11px;color:#c0392b;line-height:1.6;margin-bottom:12px;">Remove <strong>toda</strong> a identidade visual, textos personalizados, imagens, cores e configurações salvas. O aplicativo volta ao estado padrão, pronto para um novo evento. <strong>Esta ação não pode ser desfeita.</strong></p>
+      <button class="danger-btn" style="margin-top:0;" onclick="resetToDefault()">🔄 Resetar tudo para o padrão</button>
+    </div>
+  </div>
+
+  <!-- hidden fields for backward compat with gatherSettings -->
+  <input type="hidden" id="ed-tag" value="Inscrição Gratuita">
+  <input type="hidden" id="ed-title" value="Evento Médico Científico">
+  <textarea id="ed-desc" style="display:none;">Preencha o formulário abaixo para confirmar sua participação.</textarea>
+
+  <!-- TAB: DADOS DO EVENTO -->
+  <div id="tab-evento" class="admin-tab-panel">
+    <div class="admin-section">
+      <h3>📅 Dados do Evento</h3>
+      <div class="admin-field"><label>Nome do evento</label>
+        <input type="text" id="ev-nome" placeholder="Ex: 3º Simpósio de Oncointensivismo" oninput="syncEventoToForm()">
+      </div>
+      <div class="admin-field"><label>Logo do evento (PNG)</label>
+        <label class="admin-file-btn" for="up-ev-logo">📁 Escolher logo</label>
+        <input type="file" id="up-ev-logo" class="admin-file-input" accept="image/*" onchange="handleEvLogo(this)">
+        <div id="ev-logo-preview" style="margin-top:6px;"></div>
+      </div>
+      <div class="admin-field"><label>Data do evento</label>
+        <input type="date" id="ev-data">
+      </div>
+      <div class="admin-field"><label>Horário</label>
+        <div style="display:flex;gap:10px;align-items:center;">
+          <select id="ev-hora-ini" style="flex:1;padding:8px 10px;border:1.5px solid var(--gray2);border-radius:8px;font-family:var(--font);font-size:13px;"></select>
+          <span style="font-size:12px;color:var(--text-light);">às</span>
+          <select id="ev-hora-fim" style="flex:1;padding:8px 10px;border:1.5px solid var(--gray2);border-radius:8px;font-family:var(--font);font-size:13px;"></select>
+        </div>
+        <div style="font-size:10px;color:var(--text-light);margin-top:4px;">A página de inscrição ficará disponível até o horário de término do evento.</div>
+      </div>
+      <div class="admin-field"><label>Público estimado</label>
+        <input type="number" id="ev-publico" placeholder="Ex: 200" min="1">
+      </div>
+      <div class="admin-field"><label>Local do evento</label>
+        <div style="display:flex;gap:8px;">
+          <select id="ev-local-select" style="flex:1;padding:8px 10px;border:1.5px solid var(--gray2);border-radius:8px;font-family:var(--font);font-size:13px;">
+            <option value="">Selecione ou adicione novo…</option>
+          </select>
+        </div>
+        <div style="background:#f8faff;border:1.5px dashed rgba(0,92,169,.25);border-radius:8px;padding:12px;margin-top:8px;" id="local-form-wrap">
+          <div style="font-size:10px;font-weight:800;color:var(--blue);text-transform:uppercase;margin-bottom:8px;">Novo local / Editar</div>
+          <input type="hidden" id="ev-local-edit-id">
+          <div class="admin-field" style="margin-bottom:6px;"><label>Nome do local</label><input type="text" id="ev-local-nome" placeholder="Ex: Auditório Hospital X"></div>
+          <div class="admin-field" style="margin-bottom:8px;"><label>Endereço completo</label><input type="text" id="ev-local-endereco" placeholder="Rua, número, bairro, cidade"></div>
+          <div style="display:flex;gap:6px;">
+            <button onclick="saveLocal()" style="flex:1;padding:8px;background:var(--blue);color:#fff;border:none;border-radius:8px;font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer;">💾 Salvar local</button>
+            <button onclick="deleteLocalSelected()" style="padding:8px 12px;background:#fde8e8;color:#c0392b;border:none;border-radius:8px;font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer;">🗑 Excluir</button>
+          </div>
+        </div>
+      </div>
+      <div class="admin-field"><label>Observações adicionais</label>
+        <textarea id="ev-obs" rows="3" placeholder="Informações extras sobre o evento…"></textarea>
+      </div>
+      <button class="apply-btn" onclick="saveEventoData()">💾 Salvar dados do evento</button>
     </div>
   </div>
 
@@ -1059,6 +1146,35 @@ html,body{font-family:var(--font);background:#fff;color:var(--text);min-height:1
     </div>
   </div>
 
+  <!-- TAB: PATROCÍNIO -->
+  <div id="tab-patrocinio" class="admin-tab-panel">
+    <div class="admin-section">
+      <h3>🏷 Banners de Patrocínio</h3>
+      <p style="font-size:11px;color:var(--text-light);margin-bottom:12px;line-height:1.5;">Os banners aparecem na parte inferior das telas Inicial, Confirmação e Palestrantes. Dimensão recomendada: <strong>1200×180px</strong> (proporção ~6:1, funciona em desktop e mobile).</p>
+      <div class="toggle-row" style="margin-bottom:14px;">
+        <span>Patrocínios ativos</span>
+        <label class="toggle-switch"><input type="checkbox" id="toggle-patrocinio" onchange="updatePatrocinoState()"><span class="toggle-slider"></span></label>
+      </div>
+      <div id="pat-list"></div>
+      <div class="add-pat-form">
+        <h4>Adicionar banner</h4>
+        <div class="pat-field"><label>Título do banner</label>
+          <input type="text" id="pat-titulo" placeholder="Ex: Patrocinador Diamante">
+        </div>
+        <div class="pat-field"><label>Imagem do banner</label>
+          <label class="admin-file-btn" for="up-pat-img">📁 Escolher imagem</label>
+          <input type="file" id="up-pat-img" class="admin-file-input" accept="image/*" onchange="handlePatImg(this)">
+          <div id="pat-img-preview" style="margin-top:6px;"></div>
+        </div>
+        <div class="pat-field"><label>Link ao clicar (URL)</label>
+          <input type="url" id="pat-url" placeholder="https://patrocinador.com.br">
+        </div>
+        <button class="pat-add-btn" onclick="addPatrocinio()">+ Adicionar banner</button>
+      </div>
+    </div>
+    <button class="apply-btn" onclick="applyPatrocinioAndSave()">✔ Aplicar e Salvar Patrocínios</button>
+  </div>
+
   <!-- TAB: RSVP -->
   <div id="tab-rsvp" class="admin-tab-panel">
 
@@ -1189,10 +1305,12 @@ Nos vemos lá! Não esqueça de trazer seu QR Code. 🎟</div>
   <!-- TAB: DASHBOARD -->
   <div id="tab-dash" class="admin-tab-panel">
     <div class="admin-section">
-      <h3>📊 Resumo</h3>
+      <h3>📊 Inscrições</h3>
       <div class="stat-grid">
         <div class="stat-card"><div class="stat-num" id="dash-total">0</div><div class="stat-label">Total Inscritos</div></div>
         <div class="stat-card"><div class="stat-num" id="dash-redor-sim">0</div><div class="stat-label">Na Rede D'Or</div></div>
+        <div class="stat-card"><div class="stat-num" id="dash-inscritos-local">0</div><div class="stat-label">Inscritos no Local</div></div>
+        <div class="stat-card"><div class="stat-num" id="dash-checkins">0</div><div class="stat-label">Check-ins QR</div></div>
       </div>
     </div>
     <div class="admin-section">
@@ -1203,6 +1321,21 @@ Nos vemos lá! Não esqueça de trazer seu QR Code. 🎟</div>
       <h3>Trabalha na Rede D'Or?</h3>
       <div class="chart-wrap"><canvas id="chart-redor"></canvas></div>
     </div>
+    <div class="admin-section">
+      <h3>📲 RSVP em Tempo Real</h3>
+      <div class="stat-grid">
+        <div class="stat-card" style="background:#e8f8ef;border-color:#2ecc71;"><div class="stat-num" id="dash-rsvp-sim" style="color:#1a7a40;">0</div><div class="stat-label">Confirmados</div></div>
+        <div class="stat-card" style="background:#fde8e8;border-color:#e74c3c;"><div class="stat-num" id="dash-rsvp-nao" style="color:#c0392b;">0</div><div class="stat-label">Recusados</div></div>
+        <div class="stat-card" style="background:#fff8e1;border-color:#f0c040;"><div class="stat-num" id="dash-rsvp-pend" style="color:#7a5e00;">0</div><div class="stat-label">Pendentes</div></div>
+        <div class="stat-card"><div class="stat-num" id="dash-rsvp-total">0</div><div class="stat-label">Enviados</div></div>
+      </div>
+    </div>
+    <div class="admin-section">
+      <h3>🏷 Cliques nos Banners</h3>
+      <div id="dash-banner-clicks"><div class="empty-state" style="font-size:12px;">Nenhum banner ativo.</div></div>
+    </div>
+    <button class="apply-btn" style="background:#1e7e3e;margin-bottom:8px;" onclick="gerarRelatorioPDF()">📄 Gerar Relatório em PDF</button>
+    <button class="apply-btn" style="font-size:12px;padding:10px;margin-top:4px;" onclick="updateDashboard()">🔄 Atualizar agora</button>
   </div>
 
   <!-- TAB: DADOS -->
@@ -1215,7 +1348,13 @@ Nos vemos lá! Não esqueça de trazer seu QR Code. 🎟</div>
     <div class="admin-section">
       <h3>📋 Inscrições (<span id="data-count">0</span>)</h3>
       <div id="inscricoes-list-wrap"></div>
-      <button class="danger-btn" onclick="deleteAllInscricoes()">🗑 Deletar todas as inscrições</button>
+    </div>
+    <div class="admin-section" style="border:2px solid #f5c6c6;border-radius:12px;padding:16px;background:#fff8f8;">
+      <h3 style="color:#c0392b;">🗑 Limpeza de dados</h3>
+      <p style="font-size:11px;color:#c0392b;line-height:1.5;margin-bottom:12px;">As exclusões são permanentes e também removem os dados do Supabase.</p>
+      <button class="danger-btn" style="margin-top:0;margin-bottom:8px;" onclick="deleteRsvpOnly()">🗑 Apagar apenas RSVPs</button>
+      <button class="danger-btn" style="margin-top:0;margin-bottom:8px;" onclick="deleteInscricoesOnly()">🗑 Apagar apenas inscrições</button>
+      <button class="danger-btn" style="margin-top:0;background:#c0392b;color:#fff;border-color:#c0392b;" onclick="deleteAllInscricoes()">🗑 Apagar inscrições + RSVPs + presenças</button>
     </div>
   </div>
 
@@ -1386,6 +1525,9 @@ function gatherSettings() {
     speakerBorderGradC1: document.getElementById('ed-border-grad-c1').value,
     speakerBorderGradC2: document.getElementById('ed-border-grad-c2').value,
     speakerBorderGradDir: borderGradDir,
+    patrocinios: patrocinios.map(p=>({...p, imgDataUrl:null})),
+    patAtivo,
+    eventoData: currentSettings.eventoData || null,
   };
   // Merge: currentSettings is the base, fresh values override — prevents empty fields from wiping saved data
   currentSettings = Object.assign({}, currentSettings, fresh);
@@ -1502,6 +1644,20 @@ async function applySettingsToPage(s) {
     document.querySelectorAll('#border-grad-dirs .grad-dir-btn').forEach(b=>b.classList.remove('active'));
   }
   updateSpeakerBorderPreview();
+
+  // Restaurar patrocínios
+  if(s.patrocinios){ patrocinios=s.patrocinios; renderPatList(); }
+  if(s.patAtivo!==undefined){
+    patAtivo=s.patAtivo;
+    const tog=document.getElementById('toggle-patrocinio'); if(tog) tog.checked=patAtivo;
+  }
+  renderBanners();
+
+  // Restaurar dados do evento
+  if(s.eventoData){
+    restoreEventoData(s.eventoData);
+    checkEventoTime();
+  }
 }
 
 // ═══════════════════════════════════════
@@ -2227,9 +2383,12 @@ window.onload = async function(){
   updateBtnPalestrantes();
   updateCpfField();
   updateAuxBtnColors();
+  initHourSelects();
 
   // Load global speakers DB for search
   loadSpeakersDB().then(data => { speakersDB = data; renderDBBankList(); });
+  // Load locais DB
+  loadLocaisDB().then(data => { locaisDB = data; renderLocalSelect(); });
 
   const settingsPromise=loadSettings();
   const timeoutPromise=new Promise(resolve=>setTimeout(()=>resolve(null),5000));
@@ -2364,13 +2523,15 @@ function openAdminPanel(){
 
 function showAdminTab(tab){
   document.querySelectorAll('.admin-tab').forEach((t,i)=>
-    t.classList.toggle('active',['edit','colors','speakers','rsvp','dash','data'][i]===tab));
+    t.classList.toggle('active',['edit','evento','colors','speakers','patrocinio','rsvp','dash','data'][i]===tab));
   document.querySelectorAll('.admin-tab-panel').forEach(p=>p.classList.remove('active'));
   document.getElementById('tab-'+tab).classList.add('active');
   if(tab==='dash') updateDashboard();
   if(tab==='data') renderInscricoesList();
   if(tab==='speakers') renderDBBankList();
   if(tab==='rsvp'){ loadRsvpStats(); renderRsvpPerfilGrid(); }
+  if(tab==='patrocinio') renderPatList();
+  if(tab==='evento') renderLocalSelect();
 }
 
 // ═══════════════════════════════════════
@@ -2656,8 +2817,50 @@ const PALETTE=['#005ca9','#0a7bc4','#1a9fde','#4ab8e8','#7dd0f0','#aee2f8','#5c9
 async function updateDashboard(){
   const online=await loadFromSupabase();
   if(online!==null) inscricoes=online; else inscricoes=JSON.parse(localStorage.getItem('redor_inscricoes')||'[]');
+
+  // Detect "inscritos no local" — inscribed during event hours
+  const evData = currentSettings.eventoData || {};
+  let inscritosLocal = 0;
+  if(evData.data && evData.horaFim){
+    const eventEnd = new Date(evData.data + 'T' + evData.horaFim + ':00');
+    const eventStart = new Date(evData.data + 'T' + (evData.horaIni||'00:00') + ':00');
+    inscritosLocal = inscricoes.filter(r => {
+      if(!r.created_at) return false;
+      const d = new Date(r.created_at);
+      return d >= eventStart && d <= eventEnd;
+    }).length;
+  }
+
   const total=inscricoes.length; const sim=inscricoes.filter(r=>r.redor==='Sim').length;
-  document.getElementById('dash-total').textContent=total; document.getElementById('dash-redor-sim').textContent=sim;
+  document.getElementById('dash-total').textContent=total;
+  document.getElementById('dash-redor-sim').textContent=sim;
+  document.getElementById('dash-inscritos-local').textContent=inscritosLocal;
+
+  // Check-ins
+  try {
+    const {data:presencas}=await sb.from('presencas').select('id');
+    document.getElementById('dash-checkins').textContent=presencas?.length||0;
+  } catch(e){}
+
+  // RSVP stats
+  try {
+    const {data:rsvpData}=await sb.from('rsvp').select('status');
+    if(rsvpData){
+      document.getElementById('dash-rsvp-sim').textContent=rsvpData.filter(r=>r.status==='sim').length;
+      document.getElementById('dash-rsvp-nao').textContent=rsvpData.filter(r=>r.status==='nao').length;
+      document.getElementById('dash-rsvp-pend').textContent=rsvpData.filter(r=>r.status==='pendente').length;
+      document.getElementById('dash-rsvp-total').textContent=rsvpData.length;
+    }
+  } catch(e){}
+
+  // Banner clicks
+  const bannerWrap = document.getElementById('dash-banner-clicks');
+  if(bannerWrap){
+    if(!patrocinios.length){ bannerWrap.innerHTML='<div class="empty-state" style="font-size:12px;">Nenhum banner ativo.</div>'; }
+    else { bannerWrap.innerHTML=patrocinios.map(p=>`<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--gray2);font-size:12px;"><span style="font-weight:600;">${p.titulo||'Banner'}</span><span style="color:var(--blue);font-weight:800;">${p.cliques||0} cliques</span></div>`).join(''); }
+  }
+
+  // Charts
   const pc={}; inscricoes.forEach(r=>{ pc[r.perfil]=(pc[r.perfil]||0)+1; });
   const pL=Object.keys(pc),pD=pL.map(k=>pc[k]);
   if(chartPerfis)chartPerfis.destroy();
@@ -3639,6 +3842,489 @@ function valExportPresenca(){
   XLSX.utils.book_append_sheet(wb, ws, 'Presença');
   const title = document.getElementById('event-title').textContent||'Evento';
   XLSX.writeFile(wb, 'Presenca_'+title.replace(/[^a-zA-Z0-9]/g,'_')+'.xlsx');
+}
+
+// ═══════════════════════════════════════
+// DADOS DO EVENTO
+// ═══════════════════════════════════════
+let locaisDB = []; // [{id, nome, endereco}]
+let evLogoTemp = null;
+let evLogoPublicUrl = null;
+
+function initHourSelects(){
+  const opts = [];
+  for(let h=0;h<24;h++) for(let m=0;m<60;m+=30){
+    const hh=String(h).padStart(2,'0'), mm=String(m).padStart(2,'0');
+    opts.push(`<option value="${hh}:${mm}">${hh}:${mm}</option>`);
+  }
+  const html = opts.join('');
+  const ini=document.getElementById('ev-hora-ini'); if(ini) ini.innerHTML=html;
+  const fim=document.getElementById('ev-hora-fim'); if(fim){ fim.innerHTML=html; fim.value='13:00'; }
+}
+
+function handleEvLogo(input){
+  if(!input.files[0]) return;
+  const file=input.files[0];
+  const r=new FileReader();
+  r.onload=async e=>{
+    evLogoTemp=e.target.result;
+    document.getElementById('ev-logo-preview').innerHTML=`<img src="${evLogoTemp}" style="max-height:60px;max-width:200px;object-fit:contain;border-radius:6px;margin-top:4px;">`;
+    try {
+      const ext=file.name.split('.').pop().toLowerCase();
+      const path='ev-logo-'+Date.now()+'.'+ext;
+      const {error}=await sb.storage.from('event-media').upload(path,file,{upsert:true,cacheControl:'3600'});
+      if(error) throw error;
+      const {data}=sb.storage.from('event-media').getPublicUrl(path);
+      evLogoPublicUrl=data.publicUrl;
+    } catch(e){ evLogoPublicUrl=null; }
+  };
+  r.readAsDataURL(file);
+}
+
+function renderLocalSelect(){
+  const sel=document.getElementById('ev-local-select'); if(!sel) return;
+  const cur=sel.value;
+  sel.innerHTML='<option value="">Selecione ou adicione novo…</option>'+
+    locaisDB.map(l=>`<option value="${l.id}">${l.nome} — ${l.endereco}</option>`).join('');
+  if(cur) sel.value=cur;
+  sel.onchange=()=>{
+    const loc=locaisDB.find(l=>l.id===sel.value);
+    if(loc){
+      document.getElementById('ev-local-edit-id').value=loc.id;
+      document.getElementById('ev-local-nome').value=loc.nome;
+      document.getElementById('ev-local-endereco').value=loc.endereco;
+    }
+  };
+}
+
+async function saveLocal(){
+  const editId=document.getElementById('ev-local-edit-id').value;
+  const nome=document.getElementById('ev-local-nome').value.trim();
+  const endereco=document.getElementById('ev-local-endereco').value.trim();
+  if(!nome){ alert('Preencha o nome do local.'); return; }
+  if(editId){
+    const idx=locaisDB.findIndex(l=>l.id===editId);
+    if(idx>-1){ locaisDB[idx]={...locaisDB[idx],nome,endereco}; }
+  } else {
+    locaisDB.push({id:'loc_'+Date.now(),nome,endereco});
+  }
+  document.getElementById('ev-local-edit-id').value='';
+  document.getElementById('ev-local-nome').value='';
+  document.getElementById('ev-local-endereco').value='';
+  await saveLocaisDB();
+  renderLocalSelect();
+  showSaveIndicator(true,'✔ Local salvo!');
+}
+
+function deleteLocalSelected(){
+  const editId=document.getElementById('ev-local-edit-id').value;
+  if(!editId){ alert('Selecione um local para excluir.'); return; }
+  if(!confirm('Excluir este local?')) return;
+  locaisDB=locaisDB.filter(l=>l.id!==editId);
+  document.getElementById('ev-local-edit-id').value='';
+  document.getElementById('ev-local-nome').value='';
+  document.getElementById('ev-local-endereco').value='';
+  document.getElementById('ev-local-select').value='';
+  saveLocaisDB();
+  renderLocalSelect();
+}
+
+async function saveLocaisDB(){
+  try { await sb.from('settings').upsert([{key:'locais_db',value:JSON.stringify(locaisDB),updated_at:new Date().toISOString()}],{onConflict:'key'}); } catch(e){}
+  localStorage.setItem('locais_db',JSON.stringify(locaisDB));
+}
+
+async function loadLocaisDB(){
+  try {
+    const {data}=await sb.from('settings').select('value').eq('key','locais_db').maybeSingle();
+    if(data) return JSON.parse(data.value);
+  } catch(e){}
+  const local=localStorage.getItem('locais_db'); return local?JSON.parse(local):[];
+}
+
+function syncEventoToForm(){
+  const nome=document.getElementById('ev-nome')?.value||'';
+  const data=document.getElementById('ev-data')?.value||'';
+  const horaIni=document.getElementById('ev-hora-ini')?.value||'';
+  const horaFim=document.getElementById('ev-hora-fim')?.value||'';
+  const localSel=document.getElementById('ev-local-select');
+  const localId=localSel?.value||'';
+  const localObj=locaisDB.find(l=>l.id===localId);
+  const localNome=localObj?localObj.nome:'';
+
+  // Update form header
+  if(nome) document.getElementById('event-title').textContent=nome;
+  // Build subtitle: data + hora + local
+  let desc='Preencha o formulário abaixo para confirmar sua participação.';
+  const parts=[];
+  if(data){ const [y,m,d]=data.split('-'); parts.push(`📅 ${d}/${m}/${y}`); }
+  if(horaIni&&horaFim) parts.push(`🕐 Das ${horaIni} às ${horaFim}`);
+  if(localNome) parts.push(`📍 ${localNome}`);
+  if(parts.length) desc=parts.join('  ·  ');
+  document.getElementById('event-desc').textContent=desc;
+
+  // Update hidden fields for gatherSettings
+  document.getElementById('ed-title').value=nome||document.getElementById('ed-title').value;
+  document.getElementById('ed-desc').value=desc;
+}
+
+async function saveEventoData(){
+  const nome=document.getElementById('ev-nome').value.trim();
+  const data=document.getElementById('ev-data').value;
+  const horaIni=document.getElementById('ev-hora-ini').value;
+  const horaFim=document.getElementById('ev-hora-fim').value;
+  const publico=document.getElementById('ev-publico').value;
+  const localId=document.getElementById('ev-local-select').value;
+  const obs=document.getElementById('ev-obs').value.trim();
+
+  const evData={nome,data,horaIni,horaFim,publico,localId,obs,
+    logoUrl:evLogoPublicUrl||evLogoTemp||null};
+
+  currentSettings.eventoData=evData;
+  document.getElementById('ed-title').value=nome||document.getElementById('ed-title').value;
+  syncEventoToForm();
+
+  const saved=await saveSettings(gatherSettings());
+  showSaveIndicator(saved,'✔ Dados do evento salvos!');
+}
+
+function restoreEventoData(evData){
+  if(!evData) return;
+  if(evData.nome){ document.getElementById('ev-nome').value=evData.nome; document.getElementById('ed-title').value=evData.nome; }
+  if(evData.data) document.getElementById('ev-data').value=evData.data;
+  if(evData.horaIni) document.getElementById('ev-hora-ini').value=evData.horaIni;
+  if(evData.horaFim) document.getElementById('ev-hora-fim').value=evData.horaFim;
+  if(evData.publico) document.getElementById('ev-publico').value=evData.publico;
+  if(evData.localId){ document.getElementById('ev-local-select').value=evData.localId; }
+  if(evData.obs) document.getElementById('ev-obs').value=evData.obs;
+  if(evData.logoUrl){
+    evLogoPublicUrl=evData.logoUrl;
+    document.getElementById('ev-logo-preview').innerHTML=`<img src="${evData.logoUrl}" style="max-height:60px;max-width:200px;object-fit:contain;border-radius:6px;margin-top:4px;">`;
+  }
+  syncEventoToForm();
+}
+
+// Check event time for "inscritos no local" — close form after event end
+function checkEventoTime(){
+  const evData=currentSettings.eventoData;
+  if(!evData||!evData.data||!evData.horaFim) return;
+  const now=new Date();
+  const eventEnd=new Date(evData.data+'T'+evData.horaFim+':00');
+  if(now>eventEnd){
+    // Hide form screens — event ended
+    const formScreen=document.getElementById('screen-form');
+    const privScreen=document.getElementById('screen-privacy');
+    const btnIns=document.getElementById('btn-inscrever');
+    if(formScreen) formScreen.style.pointerEvents='none';
+    if(privScreen) privScreen.style.pointerEvents='none';
+    if(btnIns){ btnIns.disabled=true; btnIns.textContent='Inscrições encerradas'; }
+  }
+}
+
+// ═══════════════════════════════════════
+// RELATÓRIO PDF
+// ═══════════════════════════════════════
+async function gerarRelatorioPDF(){
+  // Gather all data
+  const evData=currentSettings.eventoData||{};
+  const localObj=locaisDB.find(l=>l.id===evData.localId)||{};
+  const eventoNome=evData.nome||document.getElementById('event-title').textContent||'Evento';
+  const eventoData=evData.data?((d=>{const[y,m,dd]=d.split('-');return `${dd}/${m}/${y}`;})(evData.data)):'';
+  const eventoHora=evData.horaIni&&evData.horaFim?`Das ${evData.horaIni} às ${evData.horaFim}`:'';
+  const eventoLocal=localObj.nome||(evData.localId||'');
+  const eventoEndereco=localObj.endereco||'';
+  const rodape=document.getElementById('footer-text')?.textContent||"© Rede D'Or – Eventos Médicos Científicos";
+
+  const total=inscricoes.length;
+  const sim=inscricoes.filter(r=>r.redor==='Sim').length;
+  const nao=total-sim;
+  const pc={}; inscricoes.forEach(r=>{ pc[r.perfil]=(pc[r.perfil]||0)+1; });
+
+  let rsvpSim=0,rsvpNao=0,rsvpPend=0,rsvpTotal=0,checkins=0;
+  try {
+    const {data:rv}=await sb.from('rsvp').select('status');
+    if(rv){ rsvpSim=rv.filter(r=>r.status==='sim').length; rsvpNao=rv.filter(r=>r.status==='nao').length; rsvpPend=rv.filter(r=>r.status==='pendente').length; rsvpTotal=rv.length; }
+    const {data:pr}=await sb.from('presencas').select('id');
+    if(pr) checkins=pr.length;
+  } catch(e){}
+
+  // Inscritos no local
+  let inscritosLocal=0;
+  if(evData.data&&evData.horaFim){
+    const end=new Date(evData.data+'T'+evData.horaFim+':00');
+    const start=new Date(evData.data+'T'+(evData.horaIni||'00:00')+':00');
+    inscritosLocal=inscricoes.filter(r=>{ if(!r.created_at) return false; const d=new Date(r.created_at); return d>=start&&d<=end; }).length;
+  }
+
+  const perfisRows=Object.entries(pc).sort((a,b)=>b[1]-a[1])
+    .map(([p,n])=>`<tr><td>${p}</td><td style="text-align:center;font-weight:700;">${n}</td><td style="text-align:center;">${total?Math.round(n/total*100):0}%</td></tr>`).join('');
+
+  const bannersRows=patrocinios.length
+    ? patrocinios.map(p=>`<tr><td>${p.titulo||'Banner'}</td><td style="text-align:center;font-weight:700;">${p.cliques||0}</td></tr>`).join('')
+    : '<tr><td colspan="2" style="text-align:center;color:#999;">Nenhum banner</td></tr>';
+
+  const logoHtml=evData.logoUrl?`<img src="${evData.logoUrl}" style="max-height:60px;max-width:180px;object-fit:contain;display:block;margin:0 auto 10px;">`:'' ;
+
+  const win=window.open('','_blank');
+  win.document.write(`<!DOCTYPE html><html><head>
+  <meta charset="UTF-8"><title>Relatório — ${eventoNome}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:'Montserrat',sans-serif;color:#1a2640;background:#fff;padding:32px;}
+    .report-header{text-align:center;border-bottom:3px solid #005ca9;padding-bottom:20px;margin-bottom:24px;}
+    .report-header h1{font-size:22px;font-weight:900;color:#005ca9;}
+    .report-header .meta{font-size:12px;color:#5a6a82;margin-top:6px;line-height:1.8;}
+    .section{margin-bottom:24px;}
+    .section h2{font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:#005ca9;border-bottom:2px solid #e8f0fb;padding-bottom:6px;margin-bottom:12px;}
+    .stat-row{display:flex;gap:12px;margin-bottom:12px;flex-wrap:wrap;}
+    .stat-box{flex:1;min-width:100px;background:#e8f0fb;border-radius:8px;padding:12px;text-align:center;}
+    .stat-box .num{font-size:26px;font-weight:900;color:#005ca9;}
+    .stat-box .lbl{font-size:9px;color:#5a6a82;text-transform:uppercase;letter-spacing:.5px;margin-top:3px;}
+    table{width:100%;border-collapse:collapse;font-size:12px;}
+    th{background:#005ca9;color:#fff;padding:8px 10px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.5px;}
+    td{padding:7px 10px;border-bottom:1px solid #e8f0fb;}
+    tr:last-child td{border-bottom:none;}
+    tr:nth-child(even){background:#f8faff;}
+    .footer{margin-top:32px;padding-top:12px;border-top:1px solid #dde3ec;text-align:center;font-size:10px;color:#5a6a82;}
+    @media print{body{padding:16px;}@page{margin:12mm;}}
+  </style>
+  </head><body>
+  <div class="report-header">
+    ${logoHtml}
+    <h1>${eventoNome}</h1>
+    <div class="meta">
+      ${eventoData?`📅 ${eventoData}`:''}${eventoHora?` &nbsp;·&nbsp; 🕐 ${eventoHora}`:''}${eventoLocal?`<br>📍 ${eventoLocal}${eventoEndereco?' — '+eventoEndereco:''}`:''}
+      ${evData.publico?`<br>👥 Público estimado: ${evData.publico}`:''}
+      ${evData.obs?`<br>ℹ️ ${evData.obs}`:''}
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>📊 Inscrições</h2>
+    <div class="stat-row">
+      <div class="stat-box"><div class="num">${total}</div><div class="lbl">Total inscritos</div></div>
+      <div class="stat-box"><div class="num">${sim}</div><div class="lbl">Na Rede D'Or</div></div>
+      <div class="stat-box"><div class="num">${inscritosLocal}</div><div class="lbl">Inscritos no local</div></div>
+      <div class="stat-box"><div class="num">${checkins}</div><div class="lbl">Check-ins QR</div></div>
+    </div>
+    <table>
+      <thead><tr><th>Perfil</th><th style="text-align:center;">Quantidade</th><th style="text-align:center;">%</th></tr></thead>
+      <tbody>${perfisRows||'<tr><td colspan="3" style="text-align:center;">Sem dados</td></tr>'}</tbody>
+    </table>
+    <br>
+    <table>
+      <thead><tr><th>Trabalha na Rede D\'Or?</th><th style="text-align:center;">Quantidade</th><th style="text-align:center;">%</th></tr></thead>
+      <tbody>
+        <tr><td>Sim</td><td style="text-align:center;font-weight:700;">${sim}</td><td style="text-align:center;">${total?Math.round(sim/total*100):0}%</td></tr>
+        <tr><td>Não</td><td style="text-align:center;font-weight:700;">${nao}</td><td style="text-align:center;">${total?Math.round(nao/total*100):0}%</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>📲 RSVP</h2>
+    <div class="stat-row">
+      <div class="stat-box" style="background:#e8f8ef;"><div class="num" style="color:#1a7a40;">${rsvpSim}</div><div class="lbl">Confirmados</div></div>
+      <div class="stat-box" style="background:#fde8e8;"><div class="num" style="color:#c0392b;">${rsvpNao}</div><div class="lbl">Recusados</div></div>
+      <div class="stat-box" style="background:#fff8e1;"><div class="num" style="color:#7a5e00;">${rsvpPend}</div><div class="lbl">Pendentes</div></div>
+      <div class="stat-box"><div class="num">${rsvpTotal}</div><div class="lbl">Enviados</div></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>🏷 Cliques nos Banners</h2>
+    <table>
+      <thead><tr><th>Banner</th><th style="text-align:center;">Cliques</th></tr></thead>
+      <tbody>${bannersRows}</tbody>
+    </table>
+  </div>
+
+  <div class="footer">${rodape}</div>
+  <script>window.onload=()=>{setTimeout(()=>window.print(),600);}<\/script>
+  </body></html>`);
+  win.document.close();
+}
+
+
+let patrocinios = [];
+let patAtivo = false;
+let patImgTemp = null;
+let patImgPublicUrl = null;
+let bannerIntervals = {};
+
+function updatePatrocinoState(){
+  patAtivo = document.getElementById('toggle-patrocinio').checked;
+  renderBanners();
+}
+
+function handlePatImg(input){
+  if(!input.files[0]) return;
+  const file = input.files[0];
+  const label = input.previousElementSibling;
+  if(label) label.textContent = '⏳ Enviando…';
+  const r = new FileReader();
+  r.onload = async e => {
+    patImgTemp = e.target.result;
+    document.getElementById('pat-img-preview').innerHTML =
+      `<img src="${patImgTemp}" style="width:100%;max-height:60px;object-fit:contain;border-radius:6px;margin-top:4px;border:1px solid var(--gray2);">`;
+    try {
+      const ext = file.name.split('.').pop().toLowerCase();
+      const path = 'banner-' + Date.now() + '.' + ext;
+      const { error } = await sb.storage.from('event-media').upload(path, file, { upsert:true, cacheControl:'3600' });
+      if(error) throw error;
+      const { data } = sb.storage.from('event-media').getPublicUrl(path);
+      patImgPublicUrl = data.publicUrl;
+      if(label) label.textContent = '✔ ' + file.name.slice(0,20);
+    } catch(e){
+      patImgPublicUrl = null;
+      if(label) label.textContent = '⚠ Upload falhou (usando local)';
+    }
+  };
+  r.readAsDataURL(file);
+}
+
+function addPatrocinio(){
+  if(!patImgTemp && !patImgPublicUrl){ alert('Escolha uma imagem para o banner.'); return; }
+  const url = document.getElementById('pat-url').value.trim();
+  const titulo = document.getElementById('pat-titulo').value.trim() || 'Banner '+(patrocinios.length+1);
+  patrocinios.push({ id:'pat_'+Date.now(), titulo, imgUrl:patImgPublicUrl||null, imgDataUrl:patImgTemp||null, linkUrl:url, cliques:0 });
+  patImgTemp=null; patImgPublicUrl=null;
+  document.getElementById('pat-img-preview').innerHTML='';
+  document.getElementById('pat-url').value='';
+  document.getElementById('pat-titulo').value='';
+  document.getElementById('up-pat-img').value='';
+  const lbl=document.querySelector('label[for="up-pat-img"]'); if(lbl) lbl.textContent='📁 Escolher imagem';
+  renderPatList(); renderBanners();
+}
+
+function deletePatrocinio(id){
+  if(!confirm('Remover este banner?')) return;
+  patrocinios=patrocinios.filter(p=>p.id!==id);
+  renderPatList(); renderBanners();
+}
+
+function renderPatList(){
+  const container=document.getElementById('pat-list'); if(!container) return;
+  if(!patrocinios.length){ container.innerHTML='<div class="empty-state" style="font-size:12px;padding:10px 0;">Nenhum banner adicionado.</div>'; return; }
+  container.innerHTML=patrocinios.map((p,i)=>{
+    const src=p.imgUrl||p.imgDataUrl||'';
+    return `<div class="pat-item"><div class="pat-item-header">
+      ${src?`<img class="pat-thumb" src="${src}" alt="banner">`:' <div class="pat-thumb" style="background:var(--gray2);"></div>'}
+      <div class="pat-info"><div class="pat-name">${p.titulo||'Banner '+(i+1)}</div><div class="pat-url">${p.linkUrl||'Sem link'} · ${p.cliques||0} cliques</div></div>
+      <div class="pat-actions"><button class="pat-btn del" onclick="deletePatrocinio('${p.id}')">✕ Remover</button></div>
+    </div></div>`;
+  }).join('');
+}
+
+function registerBannerClick(patId){
+  const p = patrocinios.find(x=>x.id===patId);
+  if(p){ p.cliques=(p.cliques||0)+1; saveSettings(gatherSettings()); renderPatList(); }
+}
+
+function renderBanners(){
+  ['landing','confirm','palestrantes'].forEach(screen=>{
+    const el=document.getElementById('banner-'+screen); if(!el) return;
+    if(bannerIntervals[screen]){ clearInterval(bannerIntervals[screen]); delete bannerIntervals[screen]; }
+    if(!patAtivo||!patrocinios.length){ el.style.display='none'; el.innerHTML=''; return; }
+    el.style.display='block';
+    if(patrocinios.length===1){
+      const p=patrocinios[0]; const src=p.imgUrl||p.imgDataUrl||'';
+      el.innerHTML=`<div class="banner-strip-inner" style="display:block;"><div class="banner-item" onclick="registerBannerClick('${p.id}');${p.linkUrl?`window.open('${p.linkUrl}','_blank')`:''}">
+        <img src="${src}" alt="${p.titulo||'Patrocinador'}" style="width:100%;max-height:120px;object-fit:cover;display:block;cursor:${p.linkUrl?'pointer':'default'};"></div></div>`;
+    } else {
+      const itemsHtml=patrocinios.map(p=>{const src=p.imgUrl||p.imgDataUrl||'';
+        return `<div class="banner-item" onclick="registerBannerClick('${p.id}');${p.linkUrl?`window.open('${p.linkUrl}','_blank')`:''}">
+          <img src="${src}" alt="${p.titulo||'Patrocinador'}" style="width:100%;max-height:120px;object-fit:cover;display:block;cursor:${p.linkUrl?'pointer':'default'};"></div>`;}).join('');
+      const dotsHtml=patrocinios.map((_,i)=>`<div class="banner-dot${i===0?' active':''}" onclick="goToBanner('${screen}',${i})"></div>`).join('');
+      el.innerHTML=`<div style="position:relative;"><div class="banner-strip-inner" id="banner-inner-${screen}">${itemsHtml}</div><div class="banner-dots">${dotsHtml}</div></div>`;
+      let cur=0;
+      bannerIntervals[screen]=setInterval(()=>{ cur=(cur+1)%patrocinios.length; goToBanner(screen,cur); },4000);
+    }
+  });
+}
+
+function goToBanner(screen,idx){
+  const inner=document.getElementById('banner-inner-'+screen); if(!inner) return;
+  inner.style.transform=`translateX(-${idx*100}%)`;
+  const dots=inner.parentElement.querySelectorAll('.banner-dot');
+  dots.forEach((d,i)=>d.classList.toggle('active',i===idx));
+}
+
+async function applyPatrocinioAndSave(){
+  patAtivo=document.getElementById('toggle-patrocinio').checked;
+  renderBanners();
+  currentSettings.patrocinios=patrocinios.map(p=>({...p,imgDataUrl:null}));
+  currentSettings.patAtivo=patAtivo;
+  const saved=await saveSettings(gatherSettings());
+  showSaveIndicator(saved,saved?'✔ Patrocínios salvos para todos!':'✔ Salvo localmente');
+}
+
+// ═══════════════════════════════════════
+// RESET TO DEFAULT
+// ═══════════════════════════════════════
+async function resetToDefault(){
+  if(!confirm('⚠️ Isso vai apagar TODA a identidade visual, textos, imagens e configurações.\nO app voltará ao estado padrão. Continuar?')) return;
+  if(!confirm('Confirme: resetar tudo para o padrão?')) return;
+  try {
+    await sb.from('settings').delete().eq('key','global');
+    try { const {data:files}=await sb.storage.from('event-media').list(); if(files&&files.length) await sb.storage.from('event-media').remove(files.map(f=>f.name)); } catch(e){}
+    ['redor_settings','redor_media_cache','twilio_cfg','val_lista_rsvp','val_entradas'].forEach(k=>localStorage.removeItem(k));
+    currentSettings={}; fileStore={}; colorStates={}; patrocinios=[]; patAtivo=false; speakers=[]; customQuestions=[];
+    const defs={'--blue':'#005ca9','--btn-bg':'#005ca9','--btn-color':'#ffffff','--header-bg':'#005ca9',
+      '--form-bg':'#f4f6f9','--card-bg':'#ffffff','--confirm-box-bg':'rgba(255,255,255,0.92)',
+      '--privacy-card-bg':'#ffffff','--aux-prog-bg':'#005ca9','--aux-prog-color':'#ffffff',
+      '--aux-prog-border':'#005ca9','--aux-pales-bg':'#005ca9','--aux-pales-color':'#ffffff',
+      '--aux-pales-border':'#005ca9','--speaker-border':'#005ca9','--speaker-border-width':'3px'};
+    Object.entries(defs).forEach(([k,v])=>document.documentElement.style.setProperty(k,v));
+    ['landing','privacy','confirm'].forEach(sc=>{
+      const bg=document.getElementById(sc+'-bg'); if(bg) bg.style.backgroundImage='';
+      const vid=document.getElementById(sc+'-video'); if(vid){vid.src='';vid.style.display='none';}
+    });
+    const sf=document.getElementById('screen-form'); sf.style.backgroundImage=''; sf.style.backgroundSize=''; sf.style.backgroundPosition='';
+    document.getElementById('evento-img').src='';
+    document.getElementById('confirm-evento-img').src='';
+    document.getElementById('event-tag').textContent='Inscrição Gratuita';
+    document.getElementById('event-title').textContent='Evento Médico Científico';
+    document.getElementById('event-desc').textContent='Preencha o formulário abaixo para confirmar sua participação.';
+    document.getElementById('footer-text').textContent="© Rede D'Or – Eventos Médicos Científicos";
+    document.getElementById('confirm-title').textContent='Agradecemos sua inscrição!';
+    document.getElementById('btn-inscrever').textContent='Inscreva-se →';
+    renderBanners(); buildColorTargets(); renderSpeakersAdminList(); renderCustomQList(); renderCustomQuestionsForm(); renderPatList();
+    showSaveIndicator(true,'✔ App resetado com sucesso!');
+    alert('✅ App resetado! A página será recarregada.');
+    setTimeout(()=>window.location.reload(),1500);
+  } catch(e){ alert('Erro ao resetar: '+e.message); }
+}
+
+// ═══════════════════════════════════════
+// DELETE OPTIONS
+// ═══════════════════════════════════════
+async function deleteRsvpOnly(){
+  if(!confirm('Apagar todos os RSVPs, presenças e disparos?\nAs inscrições serão mantidas.')) return;
+  try {
+    await sb.from('presencas').delete().gt('hora_entrada','2000-01-01');
+    await sb.from('rsvp').delete().gt('created_at','2000-01-01');
+    await sb.from('disparos').delete().gt('criado_em','2000-01-01');
+    localStorage.removeItem('val_entradas'); localStorage.removeItem('val_lista_rsvp');
+    showSaveIndicator(true,'🗑 RSVPs apagados!');
+    loadRsvpStats();
+  } catch(e){ alert('Erro: '+e.message); }
+}
+
+async function deleteInscricoesOnly(){
+  if(!confirm('⚠️ Apagar apenas as inscrições?\nOs RSVPs vinculados também serão removidos.')) return;
+  if(!confirm('Confirme: apagar todas as inscrições?')) return;
+  try {
+    await sb.from('presencas').delete().gt('hora_entrada','2000-01-01');
+    await sb.from('rsvp').delete().gt('created_at','2000-01-01');
+    await sb.from('disparos').delete().gt('criado_em','2000-01-01');
+    const {error}=await sb.from('inscricoes').delete().gt('created_at','2000-01-01');
+    if(error){ alert('Erro: '+error.message); return; }
+    inscricoes=[]; localStorage.removeItem('redor_inscricoes');
+    renderInscricoesList(); updateDashboard();
+    showSaveIndicator(true,'🗑 Inscrições apagadas!');
+  } catch(e){ alert('Erro: '+e.message); }
 }
 
 </script>
