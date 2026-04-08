@@ -198,17 +198,19 @@ html,body{font-family:var(--font);background:#fff;color:var(--text);min-height:1
 .speaker-modal-divider{border:none;border-top:1px solid var(--gray2);margin:14px 0;}
 
 /* ══════ ADMIN PANEL ══════ */
-#admin-panel{display:none;position:fixed;top:0;right:0;width:620px;max-width:100vw;height:100vh;background:#fff;box-shadow:-4px 0 32px rgba(0,0,0,.18);z-index:999;overflow-y:auto;flex-direction:column;}
+#admin-panel{display:none;position:fixed;top:0;right:0;width:620px;max-width:100vw;height:100vh;background:#fff;box-shadow:-4px 0 32px rgba(0,0,0,.18);z-index:999;flex-direction:column;overflow:hidden;}
 #admin-panel.open{display:flex;}
-.admin-header{background:var(--blue);color:#fff;position:sticky;top:0;z-index:2;flex-shrink:0;}
-.admin-tabs-row{display:flex;}
-.admin-tab{flex:1;padding:13px 2px;text-align:center;font-size:9.5px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;cursor:pointer;border-bottom:3px solid transparent;color:rgba(255,255,255,.55);transition:all .2s;}
+.admin-header{background:var(--blue);color:#fff;flex-shrink:0;z-index:2;}
+.admin-tabs-row{display:flex;overflow-x:auto;scrollbar-width:none;}
+.admin-tabs-row::-webkit-scrollbar{display:none;}
+.admin-tab{flex:1;min-width:58px;padding:13px 2px;text-align:center;font-size:9.5px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;cursor:pointer;border-bottom:3px solid transparent;color:rgba(255,255,255,.55);transition:all .2s;}
 .admin-tab.active{color:#fff;border-bottom-color:#fff;}
 .admin-close{position:absolute;top:10px;right:12px;background:none;border:none;color:#fff;font-size:22px;cursor:pointer;z-index:3;line-height:1;}
+#admin-panel-body{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;}
 .admin-tab-panel{display:none;padding:18px 20px 32px;}
 .admin-tab-panel.active{display:block;}
 
-.screen-nav{display:flex;align-items:center;justify-content:space-between;padding:10px 20px;background:#f0f5fc;border-bottom:1px solid var(--gray2);gap:6px;flex-wrap:wrap;}
+.screen-nav{display:flex;align-items:center;justify-content:space-between;padding:10px 20px;background:#f0f5fc;border-bottom:1px solid var(--gray2);gap:6px;flex-wrap:wrap;position:sticky;top:0;z-index:1;}
 .screen-nav-label{font-size:10px;font-weight:700;text-transform:uppercase;color:var(--text-light);letter-spacing:.5px;white-space:nowrap;}
 .screen-nav-btns{display:flex;gap:6px;flex-wrap:wrap;}
 .snav-btn{padding:6px 10px;background:var(--blue-light);color:var(--blue);border:1.5px solid rgba(0,92,169,.2);border-radius:20px;font-family:var(--font);font-size:10px;font-weight:700;cursor:pointer;transition:background .15s,color .15s;white-space:nowrap;}
@@ -701,6 +703,21 @@ html,body{font-family:var(--font);background:#fff;color:var(--text);min-height:1
 
     <div style="text-align:center;color:rgba(255,255,255,.5);font-size:12px;margin-bottom:12px;">Aponte a câmera para o QR Code do participante</div>
 
+    <!-- CPF Check-in -->
+    <div style="width:calc(100% - 32px);margin:0 16px 12px;background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.12);border-radius:14px;padding:14px;">
+      <div style="font-size:11px;font-weight:800;color:rgba(255,255,255,.7);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">🪪 Check-in por CPF</div>
+      <div style="display:flex;gap:8px;">
+        <input type="text" id="val-cpf-input" placeholder="000.000.000-00" inputmode="numeric" maxlength="14"
+          oninput="maskValCPF(this)" onkeydown="if(event.key==='Enter')valCheckCPF()"
+          style="flex:1;padding:12px 14px;background:rgba(255,255,255,.1);border:1.5px solid rgba(255,255,255,.2);border-radius:10px;font-family:var(--font);font-size:15px;color:#fff;letter-spacing:1px;">
+        <button onclick="valCheckCPF()" id="val-cpf-btn"
+          style="padding:12px 18px;background:#005ca9;border:none;border-radius:10px;color:#fff;font-family:var(--font);font-size:13px;font-weight:800;cursor:pointer;white-space:nowrap;">
+          Verificar
+        </button>
+      </div>
+      <div style="font-size:10px;color:rgba(255,255,255,.4);margin-top:6px;">Requer conexão com a internet para buscar inscrições recentes.</div>
+    </div>
+
     <!-- Sync & export -->
     <button class="val-sync-btn" onclick="valSyncOnline()">🔄 Sincronizar lista agora <span id="val-last-sync" style="opacity:.6;font-weight:500;"></span></button>
     <button class="val-export-btn" onclick="valExportPresenca()">⬇ Exportar lista de presença (.xlsx)</button>
@@ -754,6 +771,8 @@ html,body{font-family:var(--font);background:#fff;color:var(--text);min-height:1
     </div>
     <button class="admin-close" onclick="toggleAdmin()">✕</button>
   </div>
+
+  <div id="admin-panel-body">
 
   <div class="screen-nav">
     <span class="screen-nav-label">Visualizar:</span>
@@ -1379,7 +1398,8 @@ Nos vemos lá! Não esqueça de trazer seu QR Code. 🎟</div>
     </div>
   </div>
 
-</div>
+  </div><!-- /admin-panel-body -->
+</div><!-- /admin-panel -->
 
 <script>
 // ═══════════════════════════════════════
@@ -3911,14 +3931,106 @@ function valRenderPresenceList(){
 // ── Export presence ──
 function valExportPresenca(){
   if(!valEntradas.length){ alert('Nenhuma entrada registrada ainda.'); return; }
-  const headers = ['Nome','Perfil','Hora de Entrada','Sincronizado'];
-  const rows = valEntradas.map(e=>[e.nome, e.perfil, e.hora, e.synced?'Sim':'Pendente']);
+  const headers = ['Nome','Perfil','Hora de Entrada','Via','Sincronizado'];
+  const rows = valEntradas.map(e=>[e.nome, e.perfil, e.hora, e.via||'QR Code', e.synced?'Sim':'Pendente']);
   const wb = XLSX.utils.book_new();
   const ws = XLSX.utils.aoa_to_sheet([headers,...rows]);
-  ws['!cols'] = [{wch:35},{wch:40},{wch:15},{wch:12}];
+  ws['!cols'] = [{wch:35},{wch:40},{wch:15},{wch:10},{wch:12}];
   XLSX.utils.book_append_sheet(wb, ws, 'Presença');
   const title = document.getElementById('event-title').textContent||'Evento';
   XLSX.writeFile(wb, 'Presenca_'+title.replace(/[^a-zA-Z0-9]/g,'_')+'.xlsx');
+}
+
+// ── CPF Check-in ──
+function maskValCPF(input){
+  let v = input.value.replace(/\D/g,'').slice(0,11);
+  v = v.replace(/(\d{3})(\d)/,'$1.$2')
+       .replace(/(\d{3})\.(\d{3})(\d)/,'$1.$2.$3')
+       .replace(/(\d{3})\.(\d{3})\.(\d{3})(\d)/,'$1.$2.$3-$4');
+  input.value = v;
+}
+
+async function valCheckCPF(){
+  const input = document.getElementById('val-cpf-input');
+  const btn   = document.getElementById('val-cpf-btn');
+  const cpfRaw = input.value.replace(/\D/g,'');
+
+  if(cpfRaw.length !== 11){ alert('CPF inválido. Digite os 11 dígitos.'); return; }
+  if(valResultVisible) return;
+
+  btn.disabled = true;
+  btn.textContent = '⏳';
+
+  const cpfFormatado = cpfRaw.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/,'$1.$2.$3-$4');
+
+  try {
+    // Buscar no Supabase (sempre online para pegar inscrições recentes)
+    const { data, error } = await sb
+      .from('inscricoes')
+      .select('id, nome_completo, perfil, cpf')
+      .eq('cpf', cpfFormatado)
+      .maybeSingle();
+
+    if(error) throw error;
+
+    if(!data){
+      // CPF não encontrado — não inscrito
+      valCountInv++;
+      document.getElementById('val-count-inv').textContent = valCountInv;
+      valResultVisible = true;
+      showValResult('nao', '❌', 'CPF não encontrado', '', 'Este CPF não está entre os inscritos.', 'Solicite a inscrição no local e tente novamente.');
+      btn.disabled = false; btn.textContent = 'Verificar';
+      return;
+    }
+
+    // CPF encontrado — verificar se já entrou
+    const jaEntrou = valEntradas.find(e => e.cpf === cpfFormatado);
+    if(jaEntrou){
+      valCountDup++;
+      document.getElementById('val-count-dup').textContent = valCountDup;
+      valResultVisible = true;
+      showValResult('ja-usado', '⚠️', 'Já registrado', jaEntrou.nome, jaEntrou.perfil, 'Entrada registrada às '+jaEntrou.hora);
+      btn.disabled = false; btn.textContent = 'Verificar';
+      input.value = '';
+      return;
+    }
+
+    // Tudo ok — registrar entrada
+    const hora = new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+    const entrada = {
+      token: 'cpf_'+cpfRaw+'_'+Date.now(),
+      nome: data.nome_completo,
+      perfil: data.perfil,
+      cpf: cpfFormatado,
+      inscricaoId: data.id,
+      hora,
+      via: 'CPF',
+      synced: false
+    };
+    valEntradas.push(entrada);
+    valSaveCache();
+
+    document.getElementById('val-count-sim').textContent = valEntradas.length;
+    valResultVisible = true;
+    showValResult('sim', '✅', 'Entrada Confirmada!', data.nome_completo, data.perfil, 'Entrada às '+hora+' · via CPF');
+
+    // Registrar no Supabase
+    valRegisterEntrada(entrada);
+    valRenderPresenceList();
+
+  } catch(e){
+    // Sem internet — tentar na lista local (só funciona para quem confirmou RSVP antes)
+    const localMatch = valLista.find(l => {
+      // valLista não tem CPF direto, mas podemos tentar pelo nome não — só avisa
+      return false;
+    });
+    valResultVisible = true;
+    showValResult('nao', '📵', 'Sem conexão', '', 'Não foi possível verificar o CPF.', 'Conecte-se à internet e tente novamente.');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Verificar';
+    input.value = '';
+  }
 }
 
 // ═══════════════════════════════════════
