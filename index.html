@@ -31,6 +31,9 @@
   --aux-pales-bg:#005ca9;
   --aux-pales-color:#ffffff;
   --aux-pales-border:#005ca9;
+  --aux-chegar-bg:#005ca9;
+  --aux-chegar-color:#ffffff;
+  --aux-chegar-border:#005ca9;
 }
 
 html,body{font-family:var(--font);background:#fff;color:var(--text);min-height:100vh;overflow-x:hidden;}
@@ -61,6 +64,7 @@ html,body{font-family:var(--font);background:#fff;color:var(--text);min-height:1
 .landing-aux-btn{padding:12px 28px;border-radius:50px;font-family:var(--font);font-size:13px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;cursor:pointer;transition:filter .2s,transform .15s,background .2s,color .2s;box-shadow:0 3px 14px rgba(0,92,169,.2);}
 #btn-programacao{background:var(--aux-prog-bg);color:var(--aux-prog-color);border:2px solid var(--aux-prog-border);}
 #btn-palestrantes{background:var(--aux-pales-bg);color:var(--aux-pales-color);border:2px solid var(--aux-pales-border);}
+#btn-chegar{background:var(--aux-chegar-bg);color:var(--aux-chegar-color);border:2px solid var(--aux-chegar-border);}
 .landing-aux-btn:hover:not(:disabled){filter:brightness(1.1);transform:translateY(-2px);}
 .landing-aux-btn:disabled{background:#b0b8c8 !important;border-color:#b0b8c8 !important;color:#fff !important;cursor:not-allowed;box-shadow:none;transform:none !important;filter:none !important;}
 .landing-aux-btn .em-breve-tag{display:block;font-size:9px;font-weight:600;letter-spacing:.5px;opacity:.85;margin-top:2px;text-transform:uppercase;}
@@ -523,6 +527,7 @@ html,body{font-family:var(--font);background:#fff;color:var(--text);min-height:1
     <div class="landing-extra-btns">
       <button class="landing-aux-btn" id="btn-programacao" onclick="openProgramacao()">Programação</button>
       <button class="landing-aux-btn" id="btn-palestrantes" onclick="openPalestrantes()">Palestrantes</button>
+      <button class="landing-aux-btn" id="btn-chegar" onclick="openComoChegar()" style="display:none;">Como chegar<span class="em-breve-tag" id="btn-chegar-local"></span></button>
     </div>
     <div id="landing-extra-text"></div>
   </div>
@@ -815,7 +820,22 @@ html,body{font-family:var(--font);background:#fff;color:var(--text);min-height:1
         </div>
       </div>
       <div class="admin-section" style="border:1.5px solid var(--gray2);border-radius:10px;padding:12px;margin-top:8px;">
-        <h3 style="margin-bottom:10px;">🎤 Botão Palestrantes</h3>
+        <h3 style="margin-bottom:10px;">🗺 Botão Como Chegar</h3>
+        <div class="toggle-row">
+          <span>Ativo (usa link do Maps do local selecionado)</span>
+          <label class="toggle-switch"><input type="checkbox" id="toggle-chegar" onchange="updateBtnChegar()"><span class="toggle-slider"></span></label>
+        </div>
+        <div style="font-size:10px;color:var(--text-light);margin-bottom:8px;line-height:1.4;">O link do Google Maps é configurado na aba <strong>📅 Evento → Local do evento</strong>.</div>
+        <div class="admin-field"><label>Cor de fundo do botão</label>
+          <div class="color-row"><input type="color" id="ed-chegar-bg" value="#005ca9" oninput="updateAuxBtnColors()"><span style="font-size:10px;color:var(--text-light);">Fundo</span></div>
+        </div>
+        <div class="admin-field"><label>Cor da borda do botão</label>
+          <div class="color-row"><input type="color" id="ed-chegar-border" value="#005ca9" oninput="updateAuxBtnColors()"><span style="font-size:10px;color:var(--text-light);">Borda</span></div>
+        </div>
+        <div class="admin-field"><label>Cor do texto do botão</label>
+          <div class="color-row"><input type="color" id="ed-chegar-color" value="#ffffff" oninput="updateAuxBtnColors()"><span style="font-size:10px;color:var(--text-light);">Texto</span></div>
+        </div>
+      </div>
         <div class="toggle-row">
           <span>Ativo (vai para a página)</span>
           <label class="toggle-switch"><input type="checkbox" id="toggle-palestrantes" onchange="updateBtnPalestrantes()"><span class="toggle-slider"></span></label>
@@ -1000,6 +1020,7 @@ html,body{font-family:var(--font);background:#fff;color:var(--text);min-height:1
           <input type="hidden" id="ev-local-edit-id">
           <div class="admin-field" style="margin-bottom:6px;"><label>Nome do local</label><input type="text" id="ev-local-nome" placeholder="Ex: Auditório Hospital X"></div>
           <div class="admin-field" style="margin-bottom:8px;"><label>Endereço completo</label><input type="text" id="ev-local-endereco" placeholder="Rua, número, bairro, cidade"></div>
+          <div class="admin-field" style="margin-bottom:8px;"><label>Link Google Maps (para botão "Como chegar")</label><input type="url" id="ev-local-maps" placeholder="https://maps.google.com/?q=..."></div>
           <div style="display:flex;gap:6px;">
             <button onclick="saveLocal()" style="flex:1;padding:8px;background:var(--blue);color:#fff;border:none;border-radius:8px;font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer;">💾 Salvar local</button>
             <button onclick="deleteLocalSelected()" style="padding:8px 12px;background:#fde8e8;color:#c0392b;border:none;border-radius:8px;font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer;">🗑 Excluir</button>
@@ -1519,6 +1540,10 @@ function gatherSettings() {
     auxPalesBg:     document.getElementById('ed-pales-btn-bg').value,
     auxPalesBorder: document.getElementById('ed-pales-btn-border').value,
     auxPalesColor:  document.getElementById('ed-pales-btn-color').value,
+    auxChegarBg:    document.getElementById('ed-chegar-bg')?.value||'#005ca9',
+    auxChegarBorder:document.getElementById('ed-chegar-border')?.value||'#005ca9',
+    auxChegarColor: document.getElementById('ed-chegar-color')?.value||'#ffffff',
+    chegarAtivo:    document.getElementById('toggle-chegar')?.checked||false,
     speakerBorderColor: document.getElementById('ed-speaker-border-color').value,
     speakerBorderWidth: document.getElementById('ed-speaker-border-width').value,
     speakerBorderStyle: borderStyle,
@@ -1619,7 +1644,12 @@ async function applySettingsToPage(s) {
   if(s.auxPalesBg){    document.getElementById('ed-pales-btn-bg').value=s.auxPalesBg; }
   if(s.auxPalesBorder){document.getElementById('ed-pales-btn-border').value=s.auxPalesBorder; }
   if(s.auxPalesColor){ document.getElementById('ed-pales-btn-color').value=s.auxPalesColor; }
+  if(s.auxChegarBg){   const el=document.getElementById('ed-chegar-bg'); if(el) el.value=s.auxChegarBg; }
+  if(s.auxChegarBorder){const el=document.getElementById('ed-chegar-border'); if(el) el.value=s.auxChegarBorder; }
+  if(s.auxChegarColor){const el=document.getElementById('ed-chegar-color'); if(el) el.value=s.auxChegarColor; }
+  if(s.chegarAtivo!==undefined){ const el=document.getElementById('toggle-chegar'); if(el) el.checked=s.chegarAtivo; }
   updateAuxBtnColors();
+  updateBtnChegar();
 
   updateBtnProgramacao();
   updateBtnPalestrantes();
@@ -1657,6 +1687,8 @@ async function applySettingsToPage(s) {
   if(s.eventoData){
     restoreEventoData(s.eventoData);
     checkEventoTime();
+    // updateBtnChegar needs locais loaded first — defer slightly
+    setTimeout(updateBtnChegar, 500);
   }
 }
 
@@ -1779,12 +1811,48 @@ function updateAuxBtnColors(){
   const palesBg   = document.getElementById('ed-pales-btn-bg').value;
   const palesBorder=document.getElementById('ed-pales-btn-border').value;
   const palesColor= document.getElementById('ed-pales-btn-color').value;
+  const chegarBg  = document.getElementById('ed-chegar-bg')?.value||'#005ca9';
+  const chegarBorder=document.getElementById('ed-chegar-border')?.value||'#005ca9';
+  const chegarColor=document.getElementById('ed-chegar-color')?.value||'#ffffff';
   document.documentElement.style.setProperty('--aux-prog-bg', progBg);
   document.documentElement.style.setProperty('--aux-prog-border', progBorder);
   document.documentElement.style.setProperty('--aux-prog-color', progColor);
   document.documentElement.style.setProperty('--aux-pales-bg', palesBg);
   document.documentElement.style.setProperty('--aux-pales-border', palesBorder);
   document.documentElement.style.setProperty('--aux-pales-color', palesColor);
+  document.documentElement.style.setProperty('--aux-chegar-bg', chegarBg);
+  document.documentElement.style.setProperty('--aux-chegar-border', chegarBorder);
+  document.documentElement.style.setProperty('--aux-chegar-color', chegarColor);
+}
+
+function updateBtnChegar(){
+  const chegarAtivo = document.getElementById('toggle-chegar')?.checked||false;
+  const btn = document.getElementById('btn-chegar');
+  if(!btn) return;
+  // Get selected local
+  const localId = document.getElementById('ev-local-select')?.value||
+                  currentSettings.eventoData?.localId||'';
+  const localObj = locaisDB.find(l=>l.id===localId);
+  const mapsLink = localObj?.mapsLink||'';
+  const localNome = localObj?.nome||'Local do evento';
+  if(chegarAtivo && mapsLink){
+    btn.style.display='';
+    btn.disabled=false;
+    btn.onclick=()=>window.open(mapsLink,'_blank');
+    const lbl=document.getElementById('btn-chegar-local');
+    if(lbl) lbl.textContent=localNome;
+  } else {
+    btn.style.display='';
+    btn.disabled=true;
+    btn.innerHTML='Como chegar<span class="em-breve-tag">Em Breve</span>';
+  }
+}
+
+function openComoChegar(){
+  const localId = currentSettings.eventoData?.localId||'';
+  const localObj = locaisDB.find(l=>l.id===localId);
+  const mapsLink = localObj?.mapsLink||'';
+  if(mapsLink) window.open(mapsLink,'_blank');
 }
 
 function openProgramacao(){
@@ -2383,6 +2451,7 @@ window.onload = async function(){
   updateBtnPalestrantes();
   updateCpfField();
   updateAuxBtnColors();
+  updateBtnChegar();
   initHourSelects();
 
   // Load global speakers DB for search
@@ -2457,20 +2526,28 @@ async function deleteAllInscricoes(){
   if(!confirm('⚠️ Tem certeza? Isso vai deletar TODAS as inscrições e RSVPs permanentemente. Esta ação não pode ser desfeita.')) return;
   if(!confirm('Confirme novamente: deletar tudo?')) return;
   try {
-    // Deletar RSVPs primeiro (referência às inscrições)
     await sb.from('presencas').delete().gt('hora_entrada','2000-01-01');
     await sb.from('rsvp').delete().gt('created_at','2000-01-01');
     await sb.from('disparos').delete().gt('criado_em','2000-01-01');
-    // Deletar inscrições
     const { error } = await sb.from('inscricoes').delete().gt('created_at','2000-01-01');
     if(error){ alert('Erro ao deletar: '+error.message); return; }
+    // Limpar imediatamente — não esperar loadFromSupabase
     inscricoes=[];
     localStorage.removeItem('redor_inscricoes');
     localStorage.removeItem('val_entradas');
     localStorage.removeItem('val_lista_rsvp');
-    renderInscricoesList();
-    updateDashboard();
-    showSaveIndicator(true,'🗑 Todas as inscrições e RSVPs foram deletados');
+    // Atualizar UI diretamente sem rebuscar do banco
+    document.getElementById('data-count').textContent='0';
+    document.getElementById('inscricoes-list-wrap').innerHTML='<div class="empty-state">Nenhuma inscrição ainda.</div>';
+    document.getElementById('dash-total').textContent='0';
+    document.getElementById('dash-redor-sim').textContent='0';
+    document.getElementById('dash-checkins').textContent='0';
+    document.getElementById('dash-inscritos-local').textContent='0';
+    document.getElementById('dash-rsvp-sim').textContent='0';
+    document.getElementById('dash-rsvp-nao').textContent='0';
+    document.getElementById('dash-rsvp-pend').textContent='0';
+    document.getElementById('dash-rsvp-total').textContent='0';
+    showSaveIndicator(true,'🗑 Tudo deletado com sucesso!');
   } catch(e){ alert('Erro: '+e.message); }
 }
 
@@ -2576,7 +2653,7 @@ async function applyAll(){
   programacaoUrl=document.getElementById('ed-programacao-url').value.trim();
   palestrantesActive=document.getElementById('toggle-palestrantes').checked;
   cpfEnabled=document.getElementById('toggle-cpf').checked;
-  updateBtnProgramacao(); updateBtnPalestrantes(); updateCpfField(); updateAuxBtnColors();
+  updateBtnProgramacao(); updateBtnPalestrantes(); updateCpfField(); updateAuxBtnColors(); updateBtnChegar();
   renderCustomQuestionsForm();
 
   const btn=document.getElementById('apply-btn');
@@ -3893,7 +3970,9 @@ function renderLocalSelect(){
       document.getElementById('ev-local-edit-id').value=loc.id;
       document.getElementById('ev-local-nome').value=loc.nome;
       document.getElementById('ev-local-endereco').value=loc.endereco;
+      document.getElementById('ev-local-maps').value=loc.mapsLink||'';
     }
+    updateBtnChegar();
   };
 }
 
@@ -3901,16 +3980,18 @@ async function saveLocal(){
   const editId=document.getElementById('ev-local-edit-id').value;
   const nome=document.getElementById('ev-local-nome').value.trim();
   const endereco=document.getElementById('ev-local-endereco').value.trim();
+  const mapsLink=document.getElementById('ev-local-maps').value.trim();
   if(!nome){ alert('Preencha o nome do local.'); return; }
   if(editId){
     const idx=locaisDB.findIndex(l=>l.id===editId);
-    if(idx>-1){ locaisDB[idx]={...locaisDB[idx],nome,endereco}; }
+    if(idx>-1){ locaisDB[idx]={...locaisDB[idx],nome,endereco,mapsLink}; }
   } else {
-    locaisDB.push({id:'loc_'+Date.now(),nome,endereco});
+    locaisDB.push({id:'loc_'+Date.now(),nome,endereco,mapsLink});
   }
   document.getElementById('ev-local-edit-id').value='';
   document.getElementById('ev-local-nome').value='';
   document.getElementById('ev-local-endereco').value='';
+  document.getElementById('ev-local-maps').value='';
   await saveLocaisDB();
   renderLocalSelect();
   showSaveIndicator(true,'✔ Local salvo!');
@@ -3924,6 +4005,7 @@ function deleteLocalSelected(){
   document.getElementById('ev-local-edit-id').value='';
   document.getElementById('ev-local-nome').value='';
   document.getElementById('ev-local-endereco').value='';
+  document.getElementById('ev-local-maps').value='';
   document.getElementById('ev-local-select').value='';
   saveLocaisDB();
   renderLocalSelect();
@@ -4306,9 +4388,15 @@ async function deleteRsvpOnly(){
     await sb.from('presencas').delete().gt('hora_entrada','2000-01-01');
     await sb.from('rsvp').delete().gt('created_at','2000-01-01');
     await sb.from('disparos').delete().gt('criado_em','2000-01-01');
-    localStorage.removeItem('val_entradas'); localStorage.removeItem('val_lista_rsvp');
+    localStorage.removeItem('val_entradas');
+    localStorage.removeItem('val_lista_rsvp');
+    // Atualizar UI imediatamente
+    ['dash-rsvp-sim','dash-rsvp-nao','dash-rsvp-pend','dash-rsvp-total'].forEach(id=>{
+      const el=document.getElementById(id); if(el) el.textContent='0';
+    });
+    const rsvpCountEl=document.getElementById('rsvp-count-sim');
+    if(rsvpCountEl){ ['rsvp-count-sim','rsvp-count-nao','rsvp-count-pend','rsvp-count-total'].forEach(id=>{ const e=document.getElementById(id); if(e) e.textContent='0'; }); }
     showSaveIndicator(true,'🗑 RSVPs apagados!');
-    loadRsvpStats();
   } catch(e){ alert('Erro: '+e.message); }
 }
 
@@ -4321,8 +4409,14 @@ async function deleteInscricoesOnly(){
     await sb.from('disparos').delete().gt('criado_em','2000-01-01');
     const {error}=await sb.from('inscricoes').delete().gt('created_at','2000-01-01');
     if(error){ alert('Erro: '+error.message); return; }
-    inscricoes=[]; localStorage.removeItem('redor_inscricoes');
-    renderInscricoesList(); updateDashboard();
+    inscricoes=[];
+    localStorage.removeItem('redor_inscricoes');
+    // Atualizar UI imediatamente sem rebuscar do banco
+    document.getElementById('data-count').textContent='0';
+    document.getElementById('inscricoes-list-wrap').innerHTML='<div class="empty-state">Nenhuma inscrição ainda.</div>';
+    document.getElementById('dash-total').textContent='0';
+    document.getElementById('dash-redor-sim').textContent='0';
+    document.getElementById('dash-inscritos-local').textContent='0';
     showSaveIndicator(true,'🗑 Inscrições apagadas!');
   } catch(e){ alert('Erro: '+e.message); }
 }
