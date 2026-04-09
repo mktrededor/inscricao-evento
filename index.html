@@ -394,7 +394,31 @@ body.admin-open.admin-collapsed{margin-right:110px;}
 .apply-btn:hover{background:#084d8a;}
 .apply-btn.success{background:#1e7e3e;}
 
-/* ══════ VALIDATOR SCREEN ══════ */
+/* ══════ PROGRAMAÇÃO ══════ */
+#screen-programacao{position:relative;align-items:flex-start;justify-content:flex-start;overflow:hidden;min-height:100vh;}
+#prog-content{position:relative;z-index:2;width:100%;max-width:800px;margin:0 auto;padding:40px 24px 80px;}
+.prog-header{text-align:center;margin-bottom:40px;}
+.prog-logo{max-height:90px;max-width:240px;object-fit:contain;display:block;margin:0 auto 16px;}
+.prog-event-name{font-size:clamp(20px,4vw,32px);font-weight:900;color:#fff;text-shadow:0 2px 12px rgba(0,0,0,.4);line-height:1.2;}
+.prog-item{display:flex;gap:14px;margin-bottom:6px;align-items:flex-start;}
+.prog-hora{font-size:13px;font-weight:700;color:rgba(255,255,255,.75);min-width:110px;padding-top:2px;flex-shrink:0;}
+.prog-body{flex:1;}
+.prog-titulo{font-size:15px;font-weight:800;color:#fff;line-height:1.4;}
+.prog-tipo{font-size:11px;font-weight:700;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;}
+.prog-subtexto{font-size:13px;color:rgba(255,255,255,.75);margin-top:4px;cursor:pointer;}
+.prog-subtexto span{text-decoration:underline;opacity:.85;}
+.prog-subtexto span:hover{opacity:1;}
+.prog-separador{border:none;border-top:1px solid rgba(255,255,255,.2);margin:20px 0;}
+.prog-download-btn{display:block;margin:32px auto 0;padding:14px 40px;background:var(--btn-bg);color:var(--btn-color);border:none;border-radius:50px;font-family:var(--font);font-size:15px;font-weight:800;cursor:pointer;letter-spacing:.5px;box-shadow:0 4px 20px rgba(0,0,0,.2);}
+.prog-back-btn{position:absolute;top:20px;left:20px;z-index:5;background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.3);color:#fff;border-radius:50px;padding:8px 18px;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer;backdrop-filter:blur(4px);}
+/* Speaker card popup */
+.prog-speaker-card{position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:20px;}
+.prog-speaker-inner{background:#fff;border-radius:20px;padding:28px;max-width:360px;width:100%;text-align:center;position:relative;}
+.prog-speaker-inner img{width:100px;height:100px;border-radius:50%;object-fit:cover;margin-bottom:12px;border:3px solid var(--blue);}
+.prog-speaker-inner h3{font-size:17px;font-weight:800;color:var(--blue);margin-bottom:4px;}
+.prog-speaker-inner .sp-role{font-size:12px;color:var(--text-light);margin-bottom:12px;}
+.prog-speaker-inner .sp-bio{font-size:13px;color:var(--text);line-height:1.6;text-align:left;}
+.prog-speaker-close{position:absolute;top:12px;right:14px;background:none;border:none;font-size:20px;cursor:pointer;color:var(--text-light);}
 #screen-validar{position:fixed;inset:0;z-index:9500;display:none;flex-direction:column;background:#0a1628;align-items:center;justify-content:flex-start;overflow-y:auto;}
 #screen-validar.active{display:flex;}
 .val-header{width:100%;background:linear-gradient(135deg,#005ca9,#0a7bc4);padding:18px 20px;display:flex;align-items:center;gap:14px;flex-shrink:0;}
@@ -463,7 +487,7 @@ body.admin-open.admin-collapsed{margin-right:110px;}
 .banner-strip{width:100%;position:relative;z-index:10;overflow:hidden;background:transparent;flex-shrink:0;}
 .banner-strip-inner{display:flex;transition:transform .6s ease;will-change:transform;}
 .banner-item{min-width:100%;cursor:pointer;}
-.banner-item img{width:100%;height:auto;display:block;object-fit:cover;max-height:120px;}
+.banner-item img{width:100%;height:200px;display:block;object-fit:cover;border-radius:14px;}
 .banner-dots{display:flex;justify-content:center;gap:6px;padding:6px 0;position:absolute;bottom:4px;left:0;right:0;}
 .banner-dot{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.5);cursor:pointer;transition:background .2s;}
 .banner-dot.active{background:#fff;}
@@ -598,9 +622,8 @@ body.admin-open.admin-collapsed{margin-right:110px;}
       <button class="landing-aux-btn" id="btn-chegar" onclick="openComoChegar()" style="display:none;">Como chegar<span class="em-breve-tag" id="btn-chegar-local"></span></button>
     </div>
     <div id="landing-extra-text"></div>
+    <div id="banner-landing" class="banner-strip" style="display:none;width:min(600px,90vw);margin:24px auto 0;border-radius:14px;overflow:hidden;"></div>
   </div>
-  <!-- Banner patrocínio -->
-  <div id="banner-landing" class="banner-strip" style="display:none;position:absolute;bottom:0;left:0;right:0;z-index:5;"></div>
 </div>
 
 <!-- ══ SCREEN: PRIVACY ══ -->
@@ -687,8 +710,8 @@ body.admin-open.admin-collapsed{margin-right:110px;}
       <br>
       <button class="nova-inscricao-btn" onclick="novaInscricao()">← Nova inscrição</button>
     </div>
+    <div id="banner-confirm" class="banner-strip" style="display:none;width:min(600px,90vw);margin:24px auto 0;border-radius:14px;overflow:hidden;"></div>
   </div>
-  <div id="banner-confirm" class="banner-strip" style="display:none;position:absolute;bottom:0;left:0;right:0;z-index:5;"></div>
 </div>
 
 <!-- ══ SCREEN: PALESTRANTES ══ -->
@@ -710,9 +733,9 @@ body.admin-open.admin-collapsed{margin-right:110px;}
       <div class="palestrantes-section-title">Palestrantes</div>
       <div class="palestrantes-grid" id="palestrantes-grid"></div>
     </div>
-    <div style="height:130px;"></div><!-- space for banner -->
+    <div style="height:20px;"></div>
+    <div id="banner-palestrantes" class="banner-strip" style="display:none;width:min(600px,90vw);margin:0 auto 32px;border-radius:14px;overflow:hidden;"></div>
   </div>
-  <div id="banner-palestrantes" class="banner-strip" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:10;"></div>
 </div>
 
 <!-- Speaker modal -->
@@ -721,6 +744,32 @@ body.admin-open.admin-collapsed{margin-right:110px;}
   <div class="speaker-modal" id="speaker-modal">
     <button class="speaker-modal-close" onclick="closeSpeakerModalDirect()">✕</button>
     <div id="speaker-modal-body"></div>
+  </div>
+</div>
+
+<!-- ══ SCREEN: PROGRAMAÇÃO ══ -->
+<div class="screen" id="screen-programacao">
+  <div class="bg-layer" id="prog-bg"></div>
+  <div class="bg-overlay" id="prog-overlay"></div>
+  <button class="prog-back-btn" onclick="fadeToScreen('screen-landing')">← Voltar</button>
+  <div id="prog-content">
+    <div class="prog-header">
+      <img id="prog-logo" class="prog-logo" src="" alt="" style="display:none;">
+      <div id="prog-event-name" class="prog-event-name"></div>
+    </div>
+    <div id="prog-lista"></div>
+    <a id="prog-download-link" href="#" download style="display:none;">
+      <button class="prog-download-btn" id="prog-download-btn">⬇ Download da Programação</button>
+    </a>
+  </div>
+  <div id="prog-speaker-popup" class="prog-speaker-card" style="display:none;" onclick="closeProgSpeaker(event)">
+    <div class="prog-speaker-inner">
+      <button class="prog-speaker-close" onclick="closeProgSpeakerBtn()">✕</button>
+      <img id="prog-sp-foto" src="" alt="">
+      <h3 id="prog-sp-nome"></h3>
+      <div id="prog-sp-role" class="sp-role"></div>
+      <div id="prog-sp-bio" class="sp-bio"></div>
+    </div>
   </div>
 </div>
 
@@ -787,6 +836,7 @@ body.admin-open.admin-collapsed{margin-right:110px;}
     <!-- Sync & export -->
     <button class="val-sync-btn" onclick="valSyncOnline()">🔄 Sincronizar lista agora <span id="val-last-sync" style="opacity:.6;font-weight:500;"></span></button>
     <button class="val-export-btn" onclick="valExportPresenca()">⬇ Exportar lista de presença (.xlsx)</button>
+    <button class="val-export-btn" style="background:#c0392b;margin-top:0;" onclick="valDeletePresencas()">🗑 Apagar todas as validações</button>
 
     <!-- Presence list -->
     <div style="width:100%;padding:0 16px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;">
@@ -854,6 +904,9 @@ body.admin-open.admin-collapsed{margin-right:110px;}
     </button>
     <button class="admin-nav-item" onclick="showAdminTab('data')">
       <span class="nav-icon">📋</span><span class="nav-label">Dados</span>
+    </button>
+    <button class="admin-nav-item" onclick="showAdminTab('programacao')">
+      <span class="nav-icon">🗓</span><span class="nav-label">Prog.</span>
     </button>
     <button id="admin-collapse-btn" onclick="toggleAdminCollapse()">⟨⟨ Recolher</button>
     <button onclick="window.location.reload()" style="width:100%;padding:8px 0;background:rgba(255,255,255,.08);border:none;border-top:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.6);font-family:var(--font);font-size:9px;font-weight:700;cursor:pointer;letter-spacing:.3px;text-transform:uppercase;">🔄 Recarregar</button>
@@ -948,17 +1001,19 @@ body.admin-open.admin-collapsed{margin-right:110px;}
           <div class="color-row"><input type="color" id="ed-chegar-color" value="#ffffff" oninput="updateAuxBtnColors()"><span style="font-size:10px;color:var(--text-light);">Texto</span></div>
         </div>
       </div>
+      <div class="admin-section" style="border:1.5px solid var(--gray2);border-radius:10px;padding:12px;margin-top:8px;">
+        <h3 style="margin-bottom:10px;">🎤 Botão Palestrantes</h3>
         <div class="toggle-row">
           <span>Ativo (vai para a página)</span>
           <label class="toggle-switch"><input type="checkbox" id="toggle-palestrantes" onchange="updateBtnPalestrantes()"><span class="toggle-slider"></span></label>
         </div>
-        <div class="admin-field"><label>Cor de fundo do botão</label>
+        <div class="admin-field"><label>Cor de fundo</label>
           <div class="color-row"><input type="color" id="ed-pales-btn-bg" value="#005ca9" oninput="updateAuxBtnColors()"><span style="font-size:10px;color:var(--text-light);">Fundo</span></div>
         </div>
-        <div class="admin-field"><label>Cor da borda do botão</label>
+        <div class="admin-field"><label>Cor da borda</label>
           <div class="color-row"><input type="color" id="ed-pales-btn-border" value="#005ca9" oninput="updateAuxBtnColors()"><span style="font-size:10px;color:var(--text-light);">Borda</span></div>
         </div>
-        <div class="admin-field"><label>Cor do texto do botão</label>
+        <div class="admin-field"><label>Cor do texto</label>
           <div class="color-row"><input type="color" id="ed-pales-btn-color" value="#ffffff" oninput="updateAuxBtnColors()"><span style="font-size:10px;color:var(--text-light);">Texto</span></div>
         </div>
       </div>
@@ -1288,6 +1343,9 @@ body.admin-open.admin-collapsed{margin-right:110px;}
         <span>Patrocínios ativos</span>
         <label class="toggle-switch"><input type="checkbox" id="toggle-patrocinio" onchange="updatePatrocinoState()"><span class="toggle-slider"></span></label>
       </div>
+      <div class="admin-field"><label>Tempo de transição entre banners (segundos)</label>
+        <input type="number" id="pat-intervalo" min="1" max="30" value="4" style="width:100px;padding:7px 10px;border:1.5px solid var(--gray2);border-radius:8px;font-family:var(--font);font-size:13px;">
+      </div>
       <div id="pat-list"></div>
       <div class="add-pat-form">
         <h4>Adicionar banner</h4>
@@ -1491,6 +1549,44 @@ Nos vemos lá! Não esqueça de trazer seu QR Code. 🎟</div>
     </div>
   </div>
 
+  <!-- TAB: PROGRAMAÇÃO -->
+  <div id="tab-programacao" class="admin-tab-panel">
+    <div class="admin-section">
+      <h3>🗓 Editor da Programação</h3>
+      <p style="font-size:11px;color:var(--text-light);margin-bottom:14px;line-height:1.5;">Monte a programação linha a linha. Ela aparece na tela de Programação do evento.</p>
+
+      <!-- Botão na home -->
+      <div class="admin-field" style="background:#f8faff;border-radius:8px;padding:10px;margin-bottom:14px;">
+        <div style="font-size:10px;font-weight:700;color:var(--blue);text-transform:uppercase;margin-bottom:8px;">Botão na Home</div>
+        <div class="toggle-row">
+          <span>Ativar botão "Programação" (abre tela interna)</span>
+          <label class="toggle-switch"><input type="checkbox" id="toggle-prog-interno" onchange="updateBtnProgInterno()"><span class="toggle-slider"></span></label>
+        </div>
+        <div style="font-size:10px;color:var(--text-light);margin-top:4px;">Quando ativo, o botão abre a tela de Programação do próprio app. Desative para usar URL externa.</div>
+      </div>
+
+      <!-- Upload PDF download -->
+      <div class="admin-field">
+        <label>Arquivo para download (PDF, DOCX, etc.)</label>
+        <label class="admin-file-btn" for="up-prog-file">📁 Escolher arquivo</label>
+        <input type="file" id="up-prog-file" class="admin-file-input" accept=".pdf,.doc,.docx,.ppt,.pptx" onchange="handleProgFile(this)">
+        <div id="prog-file-status" style="font-size:10px;color:var(--text-light);margin-top:4px;">Nenhum arquivo carregado.</div>
+      </div>
+
+      <!-- Lista de itens -->
+      <div id="prog-admin-lista" style="margin-bottom:12px;"></div>
+
+      <!-- Botões de adicionar -->
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button onclick="addProgItem('linha')" style="flex:1;padding:10px;background:var(--blue-light);color:var(--blue);border:1.5px solid var(--blue);border-radius:8px;font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer;">+ Linha</button>
+        <button onclick="addProgItem('subtexto')" style="flex:1;padding:10px;background:var(--blue-light);color:var(--blue);border:1.5px dashed var(--blue);border-radius:8px;font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer;">+ Subtexto</button>
+        <button onclick="addProgItem('separador')" style="flex:1;padding:10px;background:#f4f6f9;color:var(--text-light);border:1.5px dashed var(--gray2);border-radius:8px;font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer;">— Separador</button>
+      </div>
+
+      <button class="apply-btn" style="margin-top:14px;" onclick="saveProgData()">💾 Salvar Programação</button>
+    </div>
+  </div>
+
   </div><!-- /admin-templates -->
 
   <div id="admin-templates-inner" style="display:none;position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden;"></div>
@@ -1669,6 +1765,9 @@ function gatherSettings() {
     patrocinios: patrocinios.map(p=>({...p, imgDataUrl:null})),
     patAtivo,
     eventoData: currentSettings.eventoData || null,
+    progItems: progItems,
+    progInternoAtivo: progInternoAtivo,
+    progFileUrl: progFileUrl,
   };
   // Merge: currentSettings is the base, fresh values override — prevents empty fields from wiping saved data
   currentSettings = Object.assign({}, currentSettings, fresh);
@@ -1803,8 +1902,13 @@ async function applySettingsToPage(s) {
   if(s.eventoData){
     restoreEventoData(s.eventoData);
     checkEventoTime();
-    // updateBtnChegar needs locais loaded first — defer slightly
     setTimeout(updateBtnChegar, 500);
+  }
+  // Restaurar programação
+  restoreProgData(s);
+  if(s.progInternoAtivo){
+    const el = document.getElementById('btn-programacao');
+    if(el){ el.disabled=false; el.innerHTML='Programação'; el.onclick=openProgramacao; }
   }
 }
 
@@ -1960,7 +2064,7 @@ function updateBtnChegar(){
   } else {
     btn.style.display='';
     btn.disabled=true;
-    btn.innerHTML='Como chegar<span class="em-breve-tag">Em Breve</span>';
+    btn.innerHTML='Como chegar<span class="em-breve-tag">No local do evento</span>';
   }
 }
 
@@ -1972,7 +2076,12 @@ function openComoChegar(){
 }
 
 function openProgramacao(){
-  if(programacaoActive && programacaoUrl) window.open(programacaoUrl,'_blank');
+  if(progInternoAtivo){
+    renderProgScreen();
+    fadeToScreen('screen-programacao');
+  } else if(programacaoActive && programacaoUrl){
+    window.open(programacaoUrl,'_blank');
+  }
 }
 
 function openPalestrantes(){
@@ -2734,7 +2843,8 @@ function updateCollapseBtn(collapsed){
 const ADMIN_TAB_LABELS = {
   edit:'Edição', evento:'Dados do Evento', colors:'Cores',
   speakers:'Palestrantes', patrocinio:'Patrocínio',
-  rsvp:'RSVP', dash:'Dashboard', data:'Dados'
+  rsvp:'RSVP', dash:'Dashboard', data:'Dados',
+  programacao:'Programação'
 };
 let _currentAdminTab = 'edit';
 
@@ -2777,6 +2887,7 @@ function showAdminTab(tab){
   if(tab==='rsvp'){ loadRsvpStats(); renderRsvpPerfilGrid(); }
   if(tab==='patrocinio') renderPatList();
   if(tab==='evento') renderLocalSelect();
+  if(tab==='programacao') renderProgAdmin();
 }
 
 // ═══════════════════════════════════════
@@ -4092,6 +4203,23 @@ function valExportPresenca(){
   XLSX.writeFile(wb, 'Presenca_'+title.replace(/[^a-zA-Z0-9]/g,'_')+'.xlsx');
 }
 
+async function valDeletePresencas(){
+  if(!confirm('⚠️ Apagar TODAS as validações de entrada (QR Code e CPF)?\nEsta ação não pode ser desfeita.')) return;
+  try {
+    await sb.from('presencas').delete().neq('id',0);
+    valEntradas = [];
+    valCountDup = 0;
+    valCountInv = 0;
+    valSaveCache();
+    localStorage.removeItem('val_entradas');
+    document.getElementById('val-count-sim').textContent='0';
+    document.getElementById('val-count-dup').textContent='0';
+    document.getElementById('val-count-inv').textContent='0';
+    valRenderPresenceList();
+    alert('✅ Todas as validações foram apagadas.');
+  } catch(e){ alert('Erro: '+e.message); }
+}
+
 // ── CPF Check-in ──
 function maskValCPF(input){
   let v = input.value.replace(/\D/g,'').slice(0,11);
@@ -4564,7 +4692,21 @@ function renderPatList(){
 
 function registerBannerClick(patId){
   const p = patrocinios.find(x=>x.id===patId);
-  if(p){ p.cliques=(p.cliques||0)+1; saveSettings(gatherSettings()); renderPatList(); }
+  if(p){
+    p.cliques=(p.cliques||0)+1;
+    saveSettings(gatherSettings());
+    // Update dashboard in real time
+    const bannerWrap = document.getElementById('dash-banner-clicks');
+    if(bannerWrap && bannerWrap.children.length){
+      bannerWrap.innerHTML=patrocinios.map(p=>`<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--gray2);font-size:12px;"><span style="font-weight:600;">${p.titulo||'Banner'}</span><span style="color:var(--blue);font-weight:800;">${p.cliques||0} cliques</span></div>`).join('');
+    }
+    renderPatList();
+  }
+}
+
+function getBannerIntervalo(){
+  const el = document.getElementById('pat-intervalo');
+  return el ? (parseInt(el.value)||4)*1000 : 4000;
 }
 
 function renderBanners(){
@@ -4576,15 +4718,16 @@ function renderBanners(){
     if(patrocinios.length===1){
       const p=patrocinios[0]; const src=p.imgUrl||p.imgDataUrl||'';
       el.innerHTML=`<div class="banner-strip-inner" style="display:block;"><div class="banner-item" onclick="registerBannerClick('${p.id}');${p.linkUrl?`window.open('${p.linkUrl}','_blank')`:''}">
-        <img src="${src}" alt="${p.titulo||'Patrocinador'}" style="width:100%;max-height:120px;object-fit:cover;display:block;cursor:${p.linkUrl?'pointer':'default'};"></div></div>`;
+        <img src="${src}" alt="${p.titulo||'Patrocinador'}" style="cursor:${p.linkUrl?'pointer':'default'};"></div></div>`;
     } else {
       const itemsHtml=patrocinios.map(p=>{const src=p.imgUrl||p.imgDataUrl||'';
         return `<div class="banner-item" onclick="registerBannerClick('${p.id}');${p.linkUrl?`window.open('${p.linkUrl}','_blank')`:''}">
-          <img src="${src}" alt="${p.titulo||'Patrocinador'}" style="width:100%;max-height:120px;object-fit:cover;display:block;cursor:${p.linkUrl?'pointer':'default'};"></div>`;}).join('');
+          <img src="${src}" alt="${p.titulo||'Patrocinador'}" style="cursor:${p.linkUrl?'pointer':'default'};"></div>`;}).join('');
       const dotsHtml=patrocinios.map((_,i)=>`<div class="banner-dot${i===0?' active':''}" onclick="goToBanner('${screen}',${i})"></div>`).join('');
       el.innerHTML=`<div style="position:relative;"><div class="banner-strip-inner" id="banner-inner-${screen}">${itemsHtml}</div><div class="banner-dots">${dotsHtml}</div></div>`;
+      const intervalo = getBannerIntervalo();
       let cur=0;
-      bannerIntervals[screen]=setInterval(()=>{ cur=(cur+1)%patrocinios.length; goToBanner(screen,cur); },4000);
+      bannerIntervals[screen]=setInterval(()=>{ cur=(cur+1)%patrocinios.length; goToBanner(screen,cur); },intervalo);
     }
   });
 }
@@ -4703,6 +4846,227 @@ async function deleteInscricoesOnly(){
     showSaveIndicator(true,'🗑 Inscrições apagadas!');
   } catch(e){ alert('Erro: '+e.message); }
 }
+
+// ═══════════════════════════════════════
+// PROGRAMAÇÃO
+// ═══════════════════════════════════════
+let progItems = []; // [{type:'linha'|'subtexto'|'separador', hora, tipo, titulo, palestrante, texto}]
+let progInternoAtivo = false;
+let progFileUrl = null;
+
+function updateBtnProgInterno(){
+  progInternoAtivo = document.getElementById('toggle-prog-interno')?.checked || false;
+  const btn = document.getElementById('btn-programacao');
+  if(!btn) return;
+  if(progInternoAtivo){
+    btn.disabled = false;
+    btn.innerHTML = 'Programação';
+    btn.onclick = openProgramacao;
+  } else {
+    updateBtnProgramacao(); // fallback to URL mode
+  }
+}
+
+async function handleProgFile(input){
+  if(!input.files[0]) return;
+  const file = input.files[0];
+  const status = document.getElementById('prog-file-status');
+  if(status) status.textContent = '⏳ Enviando…';
+  try {
+    const path = 'programacao-' + Date.now() + '.' + file.name.split('.').pop();
+    const { error } = await sb.storage.from('event-media').upload(path, file, { upsert:true, cacheControl:'3600' });
+    if(error) throw error;
+    const { data } = sb.storage.from('event-media').getPublicUrl(path);
+    progFileUrl = data.publicUrl;
+    if(status) status.textContent = '✔ ' + file.name;
+    // Update download button on screen
+    renderProgDownloadBtn();
+  } catch(e){
+    progFileUrl = null;
+    if(status) status.textContent = '⚠ Falha no upload: ' + e.message;
+  }
+}
+
+function renderProgDownloadBtn(){
+  const link = document.getElementById('prog-download-link');
+  if(!link) return;
+  if(progFileUrl){ link.href = progFileUrl; link.style.display = 'block'; }
+  else { link.style.display = 'none'; }
+}
+
+function addProgItem(type){
+  const id = 'pi_'+Date.now();
+  progItems.push({ id, type, hora:'', tipoPalestra:'', titulo:'', palestrante:'', texto:'' });
+  renderProgAdmin();
+}
+
+function removeProgItem(id){
+  progItems = progItems.filter(p=>p.id!==id);
+  renderProgAdmin();
+}
+
+function moveProgItem(id, dir){
+  const idx = progItems.findIndex(p=>p.id===id);
+  if(dir==='up' && idx>0){ [progItems[idx-1],progItems[idx]]=[progItems[idx],progItems[idx-1]]; }
+  if(dir==='down' && idx<progItems.length-1){ [progItems[idx+1],progItems[idx]]=[progItems[idx],progItems[idx+1]]; }
+  renderProgAdmin();
+}
+
+function renderProgAdmin(){
+  const wrap = document.getElementById('prog-admin-lista');
+  if(!wrap) return;
+  if(!progItems.length){ wrap.innerHTML='<div class="empty-state" style="font-size:12px;padding:12px 0;">Nenhum item ainda. Use os botões abaixo para adicionar.</div>'; return; }
+
+  // Build speaker options
+  const spOptions = speakers.map(s=>`<option value="${s.name}">${s.name}</option>`).join('');
+
+  wrap.innerHTML = progItems.map((item,i)=>{
+    if(item.type==='separador') return `
+      <div style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:#f4f6f9;border-radius:8px;margin-bottom:8px;">
+        <span style="flex:1;font-size:11px;color:var(--text-light);font-weight:600;">— SEPARADOR DE SESSÃO —</span>
+        <button onclick="moveProgItem('${item.id}','up')" style="padding:3px 7px;border:1px solid var(--gray2);border-radius:5px;background:#fff;cursor:pointer;font-size:11px;">↑</button>
+        <button onclick="moveProgItem('${item.id}','down')" style="padding:3px 7px;border:1px solid var(--gray2);border-radius:5px;background:#fff;cursor:pointer;font-size:11px;">↓</button>
+        <button onclick="removeProgItem('${item.id}')" style="padding:3px 7px;border:none;background:#fde8e8;color:#c0392b;border-radius:5px;cursor:pointer;font-size:11px;">✕</button>
+      </div>`;
+
+    if(item.type==='subtexto') return `
+      <div style="background:#fffde7;border-radius:8px;padding:12px;margin-bottom:8px;border:1px solid #f0e080;">
+        <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+          <span style="font-size:10px;font-weight:700;color:#7a6000;text-transform:uppercase;">Subtexto</span>
+          <div style="display:flex;gap:4px;">
+            <button onclick="moveProgItem('${item.id}','up')" style="padding:2px 6px;border:1px solid #ddd;border-radius:4px;background:#fff;cursor:pointer;font-size:10px;">↑</button>
+            <button onclick="moveProgItem('${item.id}','down')" style="padding:2px 6px;border:1px solid #ddd;border-radius:4px;background:#fff;cursor:pointer;font-size:10px;">↓</button>
+            <button onclick="removeProgItem('${item.id}')" style="padding:2px 6px;border:none;background:#fde8e8;color:#c0392b;border-radius:4px;cursor:pointer;font-size:10px;">✕</button>
+          </div>
+        </div>
+        <div style="font-size:10px;font-weight:600;color:var(--text-light);margin-bottom:3px;">TIPO DE PALESTRANTE</div>
+        <input type="text" value="${item.tipoPalestra||''}" placeholder="Ex: Palestrante, Mediador…" oninput="progItems[${i}].tipoPalestra=this.value"
+          style="width:100%;padding:6px 8px;border:1px solid #ddd;border-radius:6px;font-size:12px;margin-bottom:6px;">
+        <div style="font-size:10px;font-weight:600;color:var(--text-light);margin-bottom:3px;">PALESTRANTE</div>
+        <select oninput="progItems[${i}].palestrante=this.value" style="width:100%;padding:6px 8px;border:1px solid #ddd;border-radius:6px;font-size:12px;">
+          <option value="">Selecione…</option>${spOptions}
+          ${item.palestrante&&!speakers.find(s=>s.name===item.palestrante)?`<option value="${item.palestrante}" selected>${item.palestrante}</option>`:''}
+        </select>
+      </div>`;
+
+    // type === 'linha'
+    return `
+      <div style="background:#fff;border:1.5px solid var(--gray2);border-radius:10px;padding:12px;margin-bottom:8px;">
+        <div style="display:flex;justify-content:space-between;margin-bottom:10px;">
+          <span style="font-size:10px;font-weight:700;color:var(--blue);text-transform:uppercase;">Linha ${i+1}</span>
+          <div style="display:flex;gap:4px;">
+            <button onclick="moveProgItem('${item.id}','up')" style="padding:2px 6px;border:1px solid var(--gray2);border-radius:4px;background:#fff;cursor:pointer;font-size:10px;">↑</button>
+            <button onclick="moveProgItem('${item.id}','down')" style="padding:2px 6px;border:1px solid var(--gray2);border-radius:4px;background:#fff;cursor:pointer;font-size:10px;">↓</button>
+            <button onclick="removeProgItem('${item.id}')" style="padding:2px 6px;border:none;background:#fde8e8;color:#c0392b;border-radius:4px;cursor:pointer;font-size:10px;">✕</button>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+          <div>
+            <div style="font-size:10px;font-weight:600;color:var(--text-light);margin-bottom:3px;">HORÁRIO</div>
+            <input type="text" value="${item.hora||''}" placeholder="Ex: 8h - 8h30" oninput="progItems[${i}].hora=this.value"
+              style="width:100%;padding:6px 8px;border:1.5px solid var(--gray2);border-radius:6px;font-size:12px;">
+          </div>
+          <div>
+            <div style="font-size:10px;font-weight:600;color:var(--text-light);margin-bottom:3px;">TIPO (opcional)</div>
+            <input type="text" value="${item.tipoPalestra||''}" placeholder="Ex: Conferência, Mesa" oninput="progItems[${i}].tipoPalestra=this.value"
+              style="width:100%;padding:6px 8px;border:1.5px solid var(--gray2);border-radius:6px;font-size:12px;">
+          </div>
+        </div>
+        <div style="font-size:10px;font-weight:600;color:var(--text-light);margin-bottom:3px;">TÍTULO DA PALESTRA</div>
+        <input type="text" value="${item.titulo||''}" placeholder="Ex: A Troca de Plantão: Desafios Médicos e Bioéticos" oninput="progItems[${i}].titulo=this.value"
+          style="width:100%;padding:6px 8px;border:1.5px solid var(--gray2);border-radius:6px;font-size:12px;">
+      </div>`;
+  }).join('');
+
+  // Restore select values after render
+  progItems.forEach((item,i)=>{
+    if(item.type==='subtexto'){
+      const sel = wrap.querySelectorAll('select')[i] || wrap.querySelectorAll('select')[0];
+      // Use safer approach
+    }
+  });
+}
+
+async function saveProgData(){
+  progInternoAtivo = document.getElementById('toggle-prog-interno')?.checked || false;
+  currentSettings.progItems = progItems;
+  currentSettings.progInternoAtivo = progInternoAtivo;
+  currentSettings.progFileUrl = progFileUrl;
+  const saved = await saveSettings(gatherSettings());
+  showSaveIndicator(saved, '✔ Programação salva!');
+}
+
+function restoreProgData(s){
+  if(s.progItems) progItems = s.progItems;
+  if(s.progInternoAtivo !== undefined){
+    progInternoAtivo = s.progInternoAtivo;
+    const el = document.getElementById('toggle-prog-interno');
+    if(el) el.checked = progInternoAtivo;
+  }
+  if(s.progFileUrl){ progFileUrl = s.progFileUrl; }
+}
+
+function renderProgScreen(){
+  // Logo
+  const logoEl = document.getElementById('prog-logo');
+  const eventoImgSrc = document.getElementById('evento-img')?.src||'';
+  if(eventoImgSrc && !eventoImgSrc.endsWith('/')){
+    logoEl.src = eventoImgSrc; logoEl.style.display='block';
+  } else { logoEl.style.display='none'; }
+
+  // Event name
+  document.getElementById('prog-event-name').textContent = document.getElementById('event-title').textContent||'Programação';
+
+  // Background — same as landing
+  const landingBg = document.getElementById('landing-bg');
+  const progBg = document.getElementById('prog-bg');
+  if(progBg && landingBg) progBg.style.cssText = landingBg.style.cssText;
+
+  // Build list
+  const lista = document.getElementById('prog-lista');
+  if(!lista) return;
+  if(!progItems.length){ lista.innerHTML='<p style="text-align:center;color:rgba(255,255,255,.6);padding:40px 0;">Programação em breve.</p>'; return; }
+
+  lista.innerHTML = progItems.map(item=>{
+    if(item.type==='separador') return `<hr class="prog-separador">`;
+    if(item.type==='subtexto'){
+      const sp = speakers.find(s=>s.name===item.palestrante);
+      const clickAttr = sp ? `onclick="openProgSpeaker('${item.palestrante}')" style="cursor:pointer;"` : '';
+      return `<div class="prog-subtexto" style="padding-left:${item.hora?'126px':'0'};margin-bottom:12px;">
+        ${item.tipoPalestra?`<span style="font-size:11px;color:rgba(255,255,255,.55);font-weight:700;text-transform:uppercase;margin-right:6px;">${item.tipoPalestra}:</span>`:''}
+        <span ${clickAttr}>${item.palestrante||''}</span>
+      </div>`;
+    }
+    // linha
+    return `<div class="prog-item">
+      <div class="prog-hora">${item.hora||''}</div>
+      <div class="prog-body">
+        ${item.tipoPalestra?`<div class="prog-tipo">${item.tipoPalestra}</div>`:''}
+        <div class="prog-titulo">${item.titulo||''}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Download button
+  renderProgDownloadBtn();
+}
+
+function openProgSpeaker(name){
+  const sp = speakers.find(s=>s.name===name);
+  if(!sp) return;
+  const popup = document.getElementById('prog-speaker-popup');
+  const foto = document.getElementById('prog-sp-foto');
+  const src = sp.photoAdjust?.dataUrl || sp.photo || '';
+  foto.src = src; foto.style.display = src ? 'block':'none';
+  document.getElementById('prog-sp-nome').textContent = sp.name||'';
+  document.getElementById('prog-sp-role').textContent = sp.role||'';
+  document.getElementById('prog-sp-bio').textContent = sp.bio||'';
+  popup.style.display = 'flex';
+}
+
+function closeProgSpeaker(e){ if(e.target===document.getElementById('prog-speaker-popup')) closeProgSpeakerBtn(); }
+function closeProgSpeakerBtn(){ document.getElementById('prog-speaker-popup').style.display='none'; }
+
 
 </script>
 </body>
