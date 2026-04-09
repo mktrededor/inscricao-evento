@@ -200,19 +200,18 @@ html,body{font-family:var(--font);background:#fff;color:var(--text);min-height:1
 /* ══════ ADMIN PANEL ══════ */
 #admin-panel{display:none;position:fixed;top:0;right:0;width:620px;max-width:100vw;height:100vh;background:#fff;box-shadow:-4px 0 32px rgba(0,0,0,.18);z-index:999;flex-direction:column;overflow:hidden;}
 #admin-panel.open{display:flex;}
-.admin-header{background:var(--blue);color:#fff;flex-shrink:0;z-index:2;}
+.admin-header{background:var(--blue);color:#fff;flex-shrink:0;}
 .admin-tabs-row{display:flex;overflow-x:auto;scrollbar-width:none;}
 .admin-tabs-row::-webkit-scrollbar{display:none;}
-.admin-tab{flex:1;min-width:58px;padding:13px 2px;text-align:center;font-size:9.5px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;cursor:pointer;border-bottom:3px solid transparent;color:rgba(255,255,255,.55);transition:all .2s;}
+.admin-tab{flex:1;min-width:56px;padding:12px 2px;text-align:center;font-size:9px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;cursor:pointer;border-bottom:3px solid transparent;color:rgba(255,255,255,.55);transition:all .2s;}
 .admin-tab.active{color:#fff;border-bottom-color:#fff;}
 .admin-close{position:absolute;top:10px;right:12px;background:none;border:none;color:#fff;font-size:22px;cursor:pointer;z-index:3;line-height:1;}
-#admin-panel-body{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;}
-.admin-tab-panel{display:none;padding:18px 20px 32px;}
-.admin-tab-panel.active{display:block;}
-
-.screen-nav{display:flex;align-items:center;justify-content:space-between;padding:10px 20px;background:#f0f5fc;border-bottom:1px solid var(--gray2);gap:6px;flex-wrap:wrap;position:sticky;top:0;z-index:1;}
+.screen-nav{display:flex;align-items:center;justify-content:space-between;padding:8px 16px;background:#f0f5fc;border-bottom:1px solid var(--gray2);gap:6px;flex-wrap:wrap;flex-shrink:0;}
 .screen-nav-label{font-size:10px;font-weight:700;text-transform:uppercase;color:var(--text-light);letter-spacing:.5px;white-space:nowrap;}
-.screen-nav-btns{display:flex;gap:6px;flex-wrap:wrap;}
+.screen-nav-btns{display:flex;gap:5px;flex-wrap:wrap;}
+#admin-panel-body{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;}
+.admin-tab-panel{display:none;padding:16px 18px 40px;}
+.admin-tab-panel.active{display:block;}
 .snav-btn{padding:6px 10px;background:var(--blue-light);color:var(--blue);border:1.5px solid rgba(0,92,169,.2);border-radius:20px;font-family:var(--font);font-size:10px;font-weight:700;cursor:pointer;transition:background .15s,color .15s;white-space:nowrap;}
 .snav-btn:hover,.snav-btn.active{background:var(--blue);color:#fff;border-color:var(--blue);}
 
@@ -772,8 +771,6 @@ html,body{font-family:var(--font);background:#fff;color:var(--text);min-height:1
     <button class="admin-close" onclick="toggleAdmin()">✕</button>
   </div>
 
-  <div id="admin-panel-body">
-
   <div class="screen-nav">
     <span class="screen-nav-label">Visualizar:</span>
     <div class="screen-nav-btns">
@@ -784,6 +781,8 @@ html,body{font-family:var(--font);background:#fff;color:var(--text);min-height:1
       <button class="snav-btn" onclick="adminNav('screen-palestrantes',this)">Palestr.</button>
     </div>
   </div>
+
+  <div id="admin-panel-body">
 
   <!-- TAB: EDIÇÃO -->
   <div id="tab-edit" class="admin-tab-panel active">
@@ -2524,9 +2523,11 @@ async function loadFromSupabase(){
     const { data, error }=await sb.from('inscricoes').select('*').order('created_at',{ascending:false});
     if(error) return null;
     return data.map(r=>({
+      id:r.id||'',
       data:r.data_inscricao||'', hora:r.hora_inscricao||'', nome:r.nome_completo||'',
       cpf:r.cpf||'', telefone:r.telefone||'', email:r.email||'',
       perfil:r.perfil||'', redor:r.trabalha_redor||'',
+      created_at:r.created_at||'',
       extras:r.respostas_extras?JSON.parse(r.respostas_extras):{}
     }));
   } catch(e){ return null; }
@@ -2551,22 +2552,13 @@ async function deleteAllInscricoes(){
     await sb.from('disparos').delete().gt('criado_em','2000-01-01');
     const { error } = await sb.from('inscricoes').delete().gt('created_at','2000-01-01');
     if(error){ alert('Erro ao deletar: '+error.message); return; }
-    // Limpar imediatamente — não esperar loadFromSupabase
+    // Zerar estado em memória
     inscricoes=[];
     localStorage.removeItem('redor_inscricoes');
     localStorage.removeItem('val_entradas');
     localStorage.removeItem('val_lista_rsvp');
-    // Atualizar UI diretamente sem rebuscar do banco
-    document.getElementById('data-count').textContent='0';
-    document.getElementById('inscricoes-list-wrap').innerHTML='<div class="empty-state">Nenhuma inscrição ainda.</div>';
-    document.getElementById('dash-total').textContent='0';
-    document.getElementById('dash-redor-sim').textContent='0';
-    document.getElementById('dash-checkins').textContent='0';
-    document.getElementById('dash-inscritos-local').textContent='0';
-    document.getElementById('dash-rsvp-sim').textContent='0';
-    document.getElementById('dash-rsvp-nao').textContent='0';
-    document.getElementById('dash-rsvp-pend').textContent='0';
-    document.getElementById('dash-rsvp-total').textContent='0';
+    // Atualizar UI sem rebuscar banco
+    clearAllUI();
     showSaveIndicator(true,'🗑 Tudo deletado com sucesso!');
   } catch(e){ alert('Erro: '+e.message); }
 }
@@ -2623,6 +2615,9 @@ function showAdminTab(tab){
     t.classList.toggle('active',['edit','evento','colors','speakers','patrocinio','rsvp','dash','data'][i]===tab));
   document.querySelectorAll('.admin-tab-panel').forEach(p=>p.classList.remove('active'));
   document.getElementById('tab-'+tab).classList.add('active');
+  // Scroll body to top on tab switch
+  const body=document.getElementById('admin-panel-body');
+  if(body) body.scrollTop=0;
   if(tab==='dash') updateDashboard();
   if(tab==='data') renderInscricoesList();
   if(tab==='speakers') renderDBBankList();
@@ -2966,9 +2961,12 @@ async function updateDashboard(){
   if(total) chartRedor=new Chart(document.getElementById('chart-redor').getContext('2d'),{type:'pie',data:{labels:['Sim','Não'],datasets:[{data:[sim,total-sim],backgroundColor:['#005ca9','#aee2f8'],borderWidth:2,borderColor:'#fff'}]},options:{responsive:true,plugins:{legend:{position:'bottom',labels:{font:{family:'Montserrat',size:11},padding:8}}}}});
 }
 
-async function renderInscricoesList(){
-  const online=await loadFromSupabase();
-  if(online!==null) inscricoes=online; else inscricoes=JSON.parse(localStorage.getItem('redor_inscricoes')||'[]');
+async function renderInscricoesList(skipFetch){
+  if(!skipFetch){
+    const online=await loadFromSupabase();
+    if(online!==null) inscricoes=online;
+    else inscricoes=JSON.parse(localStorage.getItem('redor_inscricoes')||'[]');
+  }
   document.getElementById('data-count').textContent=inscricoes.length;
   const wrap=document.getElementById('inscricoes-list-wrap');
   if(!inscricoes.length){wrap.innerHTML='<div class="empty-state">Nenhuma inscrição ainda.</div>';return;}
@@ -4494,6 +4492,29 @@ async function resetToDefault(){
 // ═══════════════════════════════════════
 // DELETE OPTIONS
 // ═══════════════════════════════════════
+function clearAllUI(){
+  // Dados tab
+  document.getElementById('data-count').textContent='0';
+  document.getElementById('inscricoes-list-wrap').innerHTML='<div class="empty-state">Nenhuma inscrição ainda.</div>';
+  // Dashboard
+  ['dash-total','dash-redor-sim','dash-checkins','dash-inscritos-local',
+   'dash-rsvp-sim','dash-rsvp-nao','dash-rsvp-pend','dash-rsvp-total'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.textContent='0';
+  });
+  const bw=document.getElementById('dash-banner-clicks');
+  if(bw&&!patrocinios.length) bw.innerHTML='<div class="empty-state" style="font-size:12px;">Nenhum banner ativo.</div>';
+  // RSVP tab
+  ['rsvp-count-sim','rsvp-count-nao','rsvp-count-pend','rsvp-count-total'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.textContent='0';
+  });
+  const prog=document.getElementById('rsvp-progress'); if(prog) prog.style.width='0%';
+  const lbl=document.getElementById('rsvp-progress-label'); if(lbl) lbl.textContent='0 confirmados de 0 enviados (0%)';
+  const disp=document.getElementById('rsvp-perfil-disponivel');
+  if(disp) disp.innerHTML='<div class="empty-state" style="font-size:12px;">Nenhuma inscrição disponível.</div>';
+  const listW=document.getElementById('rsvp-list-wrap');
+  if(listW) listW.innerHTML='<div class="empty-state" style="font-size:12px;">Nenhuma resposta ainda.</div>';
+}
+
 async function deleteRsvpOnly(){
   if(!confirm('Apagar todos os RSVPs, presenças e disparos?\nAs inscrições serão mantidas.')) return;
   try {
@@ -4502,12 +4523,15 @@ async function deleteRsvpOnly(){
     await sb.from('disparos').delete().gt('criado_em','2000-01-01');
     localStorage.removeItem('val_entradas');
     localStorage.removeItem('val_lista_rsvp');
-    // Atualizar UI imediatamente
-    ['dash-rsvp-sim','dash-rsvp-nao','dash-rsvp-pend','dash-rsvp-total'].forEach(id=>{
+    // Zerar apenas RSVP na UI
+    ['dash-rsvp-sim','dash-rsvp-nao','dash-rsvp-pend','dash-rsvp-total',
+     'rsvp-count-sim','rsvp-count-nao','rsvp-count-pend','rsvp-count-total'].forEach(id=>{
       const el=document.getElementById(id); if(el) el.textContent='0';
     });
-    const rsvpCountEl=document.getElementById('rsvp-count-sim');
-    if(rsvpCountEl){ ['rsvp-count-sim','rsvp-count-nao','rsvp-count-pend','rsvp-count-total'].forEach(id=>{ const e=document.getElementById(id); if(e) e.textContent='0'; }); }
+    const prog=document.getElementById('rsvp-progress'); if(prog) prog.style.width='0%';
+    const lbl=document.getElementById('rsvp-progress-label'); if(lbl) lbl.textContent='0 confirmados de 0 enviados (0%)';
+    const listW=document.getElementById('rsvp-list-wrap');
+    if(listW) listW.innerHTML='<div class="empty-state" style="font-size:12px;">Nenhuma resposta ainda.</div>';
     showSaveIndicator(true,'🗑 RSVPs apagados!');
   } catch(e){ alert('Erro: '+e.message); }
 }
@@ -4523,12 +4547,7 @@ async function deleteInscricoesOnly(){
     if(error){ alert('Erro: '+error.message); return; }
     inscricoes=[];
     localStorage.removeItem('redor_inscricoes');
-    // Atualizar UI imediatamente sem rebuscar do banco
-    document.getElementById('data-count').textContent='0';
-    document.getElementById('inscricoes-list-wrap').innerHTML='<div class="empty-state">Nenhuma inscrição ainda.</div>';
-    document.getElementById('dash-total').textContent='0';
-    document.getElementById('dash-redor-sim').textContent='0';
-    document.getElementById('dash-inscritos-local').textContent='0';
+    clearAllUI();
     showSaveIndicator(true,'🗑 Inscrições apagadas!');
   } catch(e){ alert('Erro: '+e.message); }
 }
