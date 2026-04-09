@@ -37,6 +37,11 @@
 }
 
 html,body{font-family:var(--font);background:#fff;color:var(--text);min-height:100vh;overflow-x:hidden;}
+body.admin-open{margin-right:700px;transition:margin-right .3s ease;}
+body.admin-open.admin-collapsed{margin-right:110px;}
+@media(max-width:900px){
+  body.admin-open{margin-right:0;}
+}
 
 /* ─── SCREENS & FADE ─── */
 .screen{display:none;width:100%;min-height:100vh;flex-direction:column;opacity:0;transition:opacity .45s ease;}
@@ -203,8 +208,18 @@ html,body{font-family:var(--font);background:#fff;color:var(--text);min-height:1
   width:700px;max-width:100vw;height:100vh;
   background:#f4f6f9;box-shadow:-6px 0 40px rgba(0,0,0,.22);
   z-index:999;flex-direction:row;overflow:hidden;
+  transition:width .3s ease;
 }
 #admin-panel.open{display:flex;}
+#admin-panel.collapsed{width:110px;}
+#admin-panel.collapsed #admin-content{display:none;}
+#admin-collapse-btn{
+  position:absolute;bottom:16px;left:0;width:110px;
+  padding:10px 0;background:rgba(255,255,255,.12);border:none;
+  color:rgba(255,255,255,.8);font-family:var(--font);font-size:10px;font-weight:700;
+  cursor:pointer;text-align:center;letter-spacing:.3px;transition:background .15s;
+}
+#admin-collapse-btn:hover{background:rgba(255,255,255,.2);}
 
 /* Left sidebar */
 #admin-sidebar{
@@ -840,6 +855,7 @@ html,body{font-family:var(--font);background:#fff;color:var(--text);min-height:1
     <button class="admin-nav-item" onclick="showAdminTab('data')">
       <span class="nav-icon">📋</span><span class="nav-label">Dados</span>
     </button>
+    <button id="admin-collapse-btn" onclick="toggleAdminCollapse()">⟨⟨ Recolher</button>
   </div>
 
   <!-- CONTENT AREA -->
@@ -2677,7 +2693,11 @@ function adminNav(targetId,btn){
 // ═══════════════════════════════════════
 function toggleAdmin(){
   const panel=document.getElementById('admin-panel');
-  if(panel.classList.contains('open')){ panel.classList.remove('open'); return; }
+  if(panel.classList.contains('open')){
+    panel.classList.remove('open','collapsed');
+    document.body.classList.remove('admin-open','admin-collapsed');
+    return;
+  }
   if(adminUnlocked){ openAdminPanel(); return; }
   const senha=prompt('🔒 Digite a senha do painel Admin:');
   if(senha===null) return;
@@ -2686,9 +2706,29 @@ function toggleAdmin(){
 }
 
 function openAdminPanel(){
-  document.getElementById('admin-panel').classList.add('open');
+  const panel = document.getElementById('admin-panel');
+  panel.classList.add('open');
+  panel.classList.remove('collapsed');
+  document.body.classList.add('admin-open');
+  document.body.classList.remove('admin-collapsed');
   _currentAdminTab = '__none__';
   showAdminTab('edit');
+  updateCollapseBtn(false);
+}
+
+let _adminCollapsed = false;
+function toggleAdminCollapse(){
+  const panel = document.getElementById('admin-panel');
+  _adminCollapsed = !_adminCollapsed;
+  panel.classList.toggle('collapsed', _adminCollapsed);
+  document.body.classList.toggle('admin-collapsed', _adminCollapsed);
+  updateCollapseBtn(_adminCollapsed);
+}
+
+function updateCollapseBtn(collapsed){
+  const btn = document.getElementById('admin-collapse-btn');
+  if(!btn) return;
+  btn.textContent = collapsed ? '⟩⟩ Expandir' : '⟨⟨ Recolher';
 }
 
 const ADMIN_TAB_LABELS = {
