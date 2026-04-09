@@ -270,8 +270,9 @@ body.admin-open.admin-collapsed{margin-right:110px;}
   -webkit-overflow-scrolling:touch;
   padding:18px 20px 60px;
 }
-/* Tab panels hidden in template, visible in body */
-#admin-templates, #admin-templates *{visibility:hidden !important;pointer-events:none !important;}
+/* Tab panels hidden in template source */
+#admin-templates{display:none !important;}
+#admin-templates-inner{display:none !important;position:absolute !important;left:-9999px !important;}
 #admin-content-body .admin-tab-panel{display:block !important;visibility:visible !important;}
 
 @media(max-width:640px){
@@ -876,10 +877,8 @@ body.admin-open.admin-collapsed{margin-right:110px;}
     </div>
   </div>
 
-</div>
-
-<!-- TAB CONTENT TEMPLATES (hidden, cloned into admin-content-body by JS) -->
-<div id="admin-templates" style="position:fixed !important;left:-99999px !important;top:-99999px !important;width:0 !important;height:0 !important;overflow:hidden !important;pointer-events:none !important;visibility:hidden !important;">
+  <!-- TAB TEMPLATES — inside admin-panel, hidden -->
+  <div id="admin-templates" style="display:none;position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden;">
   <div id="tab-edit" class="admin-tab-panel active">
 
     <div class="sync-all-banner">
@@ -1492,10 +1491,11 @@ Nos vemos lá! Não esqueça de trazer seu QR Code. 🎟</div>
     </div>
   </div>
 
-  </div><!-- /admin-panel-body -->
-</div><!-- /admin-panel -->
+  </div><!-- /admin-templates -->
 
-</div><!-- /admin-templates -->
+  <div id="admin-templates-inner" style="display:none;position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden;"></div>
+
+</div><!-- /admin-panel -->
 
 <script>
 // ═══════════════════════════════════════
@@ -2740,18 +2740,20 @@ let _currentAdminTab = 'edit';
 
 function showAdminTab(tab){
   const body = document.getElementById('admin-content-body');
-  const templates = document.getElementById('admin-templates');
-  if(!body || !templates) return;
+  const source = document.getElementById('admin-templates');
+  const stash = document.getElementById('admin-templates-inner');
+  if(!body) return;
 
-  // Move current tab back to templates
+  // Move current tab back to stash (inside panel, hidden)
   const currentEl = document.getElementById('tab-'+_currentAdminTab);
   if(currentEl && body.contains(currentEl)){
     currentEl.style.display = '';
-    templates.appendChild(currentEl);
+    if(stash) stash.appendChild(currentEl);
+    else if(source) source.appendChild(currentEl);
   }
 
-  // Move new tab into body
-  const nextEl = document.getElementById('tab-'+tab);
+  // Find tab — check body, stash, and source
+  let nextEl = document.getElementById('tab-'+tab);
   if(nextEl){
     body.innerHTML = '';
     body.appendChild(nextEl);
