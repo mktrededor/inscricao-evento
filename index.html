@@ -31,9 +31,8 @@
   --aux-pales-bg:#005ca9;
   --aux-pales-color:#ffffff;
   --aux-pales-border:#005ca9;
-  --aux-chegar-bg:#005ca9;
-  --aux-chegar-color:#ffffff;
-  --aux-chegar-border:#005ca9;
+  --prog-text-color:#ffffff;
+  --prog-subtexto-color:rgba(255,255,255,.75);
 }
 
 html,body{font-family:var(--font);background:#fff;color:var(--text);min-height:100vh;overflow-x:hidden;}
@@ -399,17 +398,19 @@ body.admin-open.admin-collapsed{margin-right:110px;}
 #prog-content{position:relative;z-index:2;width:100%;max-width:800px;margin:0 auto;padding:40px 24px 80px;}
 .prog-header{text-align:center;margin-bottom:40px;}
 .prog-logo{max-height:90px;max-width:240px;object-fit:contain;display:block;margin:0 auto 16px;}
-.prog-event-name{font-size:clamp(20px,4vw,32px);font-weight:900;color:#fff;text-shadow:0 2px 12px rgba(0,0,0,.4);line-height:1.2;}
-.prog-item{display:flex;gap:14px;margin-bottom:6px;align-items:flex-start;}
-.prog-hora{font-size:13px;font-weight:700;color:rgba(255,255,255,.75);min-width:110px;padding-top:2px;flex-shrink:0;}
+.prog-event-name{font-size:clamp(20px,4vw,32px);font-weight:900;color:var(--prog-text-color,#fff);text-shadow:0 2px 12px rgba(0,0,0,.4);line-height:1.2;}
+.prog-item{display:flex;gap:14px;margin-bottom:4px;align-items:flex-start;}
+.prog-hora{font-size:13px;font-weight:700;color:var(--prog-subtexto-color,rgba(255,255,255,.75));min-width:110px;padding-top:2px;flex-shrink:0;}
 .prog-body{flex:1;}
-.prog-titulo{font-size:15px;font-weight:800;color:#fff;line-height:1.4;}
-.prog-tipo{font-size:11px;font-weight:700;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;}
-.prog-subtexto{font-size:13px;color:rgba(255,255,255,.75);margin-top:4px;cursor:pointer;}
-.prog-subtexto span{text-decoration:underline;opacity:.85;}
-.prog-subtexto span:hover{opacity:1;}
+.prog-titulo{font-size:15px;font-weight:800;color:var(--prog-text-color,#fff);line-height:1.4;}
+.prog-tipo{font-size:11px;font-weight:700;color:var(--prog-subtexto-color,rgba(255,255,255,.6));text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;}
+.prog-subtexto{font-size:13px;color:var(--prog-subtexto-color,rgba(255,255,255,.75));margin-bottom:10px;}
+.prog-subtexto-inner{display:flex;gap:6px;align-items:baseline;padding-left:124px;}
+.prog-subtexto span.sp-link{cursor:pointer;text-decoration:none;}
+.prog-subtexto span.sp-link:hover{text-decoration:underline;}
 .prog-separador{border:none;border-top:1px solid rgba(255,255,255,.2);margin:20px 0;}
 .prog-download-btn{display:block;margin:32px auto 0;padding:14px 40px;background:var(--btn-bg);color:var(--btn-color);border:none;border-radius:50px;font-family:var(--font);font-size:15px;font-weight:800;cursor:pointer;letter-spacing:.5px;box-shadow:0 4px 20px rgba(0,0,0,.2);}
+a#prog-download-link{text-decoration:none !important;}
 .prog-back-btn{position:absolute;top:20px;left:20px;z-index:5;background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.3);color:#fff;border-radius:50px;padding:8px 18px;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer;backdrop-filter:blur(4px);}
 /* Speaker card popup */
 .prog-speaker-card{position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:20px;}
@@ -923,6 +924,7 @@ body.admin-open.admin-collapsed{margin-right:110px;}
         <button class="snav-btn" onclick="adminNav('screen-form',this)">Form.</button>
         <button class="snav-btn" onclick="adminNav('screen-confirm',this)">Confirm.</button>
         <button class="snav-btn" onclick="adminNav('screen-palestrantes',this)">Palestr.</button>
+        <button class="snav-btn" onclick="adminNavProg(this)">Prog.</button>
       </div>
     </div>
     <div id="admin-content-body">
@@ -1555,9 +1557,15 @@ Nos vemos lá! Não esqueça de trazer seu QR Code. 🎟</div>
       <h3>🗓 Editor da Programação</h3>
       <p style="font-size:11px;color:var(--text-light);margin-bottom:14px;line-height:1.5;">Monte a programação linha a linha. Ela aparece na tela de Programação do evento.</p>
 
-      <!-- Botão na home -->
       <div class="admin-field" style="background:#f8faff;border-radius:8px;padding:10px;margin-bottom:14px;">
-        <div style="font-size:10px;font-weight:700;color:var(--blue);text-transform:uppercase;margin-bottom:8px;">Botão na Home</div>
+        <div style="font-size:10px;font-weight:700;color:var(--blue);text-transform:uppercase;margin-bottom:8px;">Cores do Texto</div>
+        <div class="admin-field"><label>Cor do texto principal</label>
+          <div class="color-row"><input type="color" id="ed-prog-text-color" value="#ffffff" oninput="updateProgColors()"><span style="font-size:10px;color:var(--text-light);">Títulos e nomes</span></div>
+        </div>
+        <div class="admin-field"><label>Cor do texto secundário</label>
+          <div class="color-row"><input type="color" id="ed-prog-sub-color" value="#ccddee" oninput="updateProgColors()"><span style="font-size:10px;color:var(--text-light);">Horários e tipos</span></div>
+        </div>
+      </div>
         <div class="toggle-row">
           <span>Ativar botão "Programação" (abre tela interna)</span>
           <label class="toggle-switch"><input type="checkbox" id="toggle-prog-interno" onchange="updateBtnProgInterno()"><span class="toggle-slider"></span></label>
@@ -1768,6 +1776,8 @@ function gatherSettings() {
     progItems: progItems,
     progInternoAtivo: progInternoAtivo,
     progFileUrl: progFileUrl,
+    progTextColor: document.getElementById('ed-prog-text-color')?.value||'#ffffff',
+    progSubColor: document.getElementById('ed-prog-sub-color')?.value||'#ccddee',
   };
   // Merge: currentSettings is the base, fresh values override — prevents empty fields from wiping saved data
   currentSettings = Object.assign({}, currentSettings, fresh);
@@ -2791,6 +2801,16 @@ function goToForm(){ fadeToScreen('screen-form'); }
 function adminNav(targetId,btn){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active','visible','fading-out'));
   const t=document.getElementById(targetId);
+  t.classList.add('active');
+  setTimeout(()=>t.classList.add('visible'),30);
+  document.querySelectorAll('.snav-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function adminNavProg(btn){
+  renderProgScreen();
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active','visible','fading-out'));
+  const t=document.getElementById('screen-programacao');
   t.classList.add('active');
   setTimeout(()=>t.classList.add('visible'),30);
   document.querySelectorAll('.snav-btn').forEach(b=>b.classList.remove('active'));
@@ -4940,12 +4960,16 @@ function renderProgAdmin(){
           </div>
         </div>
         <div style="font-size:10px;font-weight:600;color:var(--text-light);margin-bottom:3px;">TIPO DE PALESTRANTE</div>
-        <input type="text" value="${item.tipoPalestra||''}" placeholder="Ex: Palestrante, Mediador…" oninput="progItems[${i}].tipoPalestra=this.value"
+        <input type="text" value="${item.tipoPalestra||''}" placeholder="Ex: Palestrante, Mediador…"
+          data-id="${item.id}" data-field="tipoPalestra"
+          onchange="updateProgField(this)"
           style="width:100%;padding:6px 8px;border:1px solid #ddd;border-radius:6px;font-size:12px;margin-bottom:6px;">
         <div style="font-size:10px;font-weight:600;color:var(--text-light);margin-bottom:3px;">PALESTRANTE</div>
-        <select oninput="progItems[${i}].palestrante=this.value" style="width:100%;padding:6px 8px;border:1px solid #ddd;border-radius:6px;font-size:12px;">
-          <option value="">Selecione…</option>${spOptions}
-          ${item.palestrante&&!speakers.find(s=>s.name===item.palestrante)?`<option value="${item.palestrante}" selected>${item.palestrante}</option>`:''}
+        <select data-id="${item.id}" data-field="palestrante"
+          onchange="updateProgField(this)"
+          style="width:100%;padding:6px 8px;border:1px solid #ddd;border-radius:6px;font-size:12px;">
+          <option value="">Selecione…</option>
+          ${speakers.map(s=>`<option value="${s.name}"${s.name===item.palestrante?' selected':''}>${s.name}</option>`).join('')}
         </select>
       </div>`;
 
@@ -4963,17 +4987,20 @@ function renderProgAdmin(){
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
           <div>
             <div style="font-size:10px;font-weight:600;color:var(--text-light);margin-bottom:3px;">HORÁRIO</div>
-            <input type="text" value="${item.hora||''}" placeholder="Ex: 8h - 8h30" oninput="progItems[${i}].hora=this.value"
+            <input type="text" value="${item.hora||''}" placeholder="Ex: 8h - 8h30"
+              data-id="${item.id}" data-field="hora" onchange="updateProgField(this)"
               style="width:100%;padding:6px 8px;border:1.5px solid var(--gray2);border-radius:6px;font-size:12px;">
           </div>
           <div>
             <div style="font-size:10px;font-weight:600;color:var(--text-light);margin-bottom:3px;">TIPO (opcional)</div>
-            <input type="text" value="${item.tipoPalestra||''}" placeholder="Ex: Conferência, Mesa" oninput="progItems[${i}].tipoPalestra=this.value"
+            <input type="text" value="${item.tipoPalestra||''}" placeholder="Ex: Conferência, Mesa"
+              data-id="${item.id}" data-field="tipoPalestra" onchange="updateProgField(this)"
               style="width:100%;padding:6px 8px;border:1.5px solid var(--gray2);border-radius:6px;font-size:12px;">
           </div>
         </div>
         <div style="font-size:10px;font-weight:600;color:var(--text-light);margin-bottom:3px;">TÍTULO DA PALESTRA</div>
-        <input type="text" value="${item.titulo||''}" placeholder="Ex: A Troca de Plantão: Desafios Médicos e Bioéticos" oninput="progItems[${i}].titulo=this.value"
+        <input type="text" value="${item.titulo||''}" placeholder="Ex: A Troca de Plantão: Desafios Médicos e Bioéticos"
+          data-id="${item.id}" data-field="titulo" onchange="updateProgField(this)"
           style="width:100%;padding:6px 8px;border:1.5px solid var(--gray2);border-radius:6px;font-size:12px;">
       </div>`;
   }).join('');
@@ -5004,14 +5031,23 @@ function restoreProgData(s){
     if(el) el.checked = progInternoAtivo;
   }
   if(s.progFileUrl){ progFileUrl = s.progFileUrl; }
+  if(s.progTextColor){
+    const el = document.getElementById('ed-prog-text-color'); if(el) el.value=s.progTextColor;
+    document.documentElement.style.setProperty('--prog-text-color', s.progTextColor);
+  }
+  if(s.progSubColor){
+    const el = document.getElementById('ed-prog-sub-color'); if(el) el.value=s.progSubColor;
+    document.documentElement.style.setProperty('--prog-subtexto-color', s.progSubColor);
+  }
 }
 
 function renderProgScreen(){
-  // Logo
+  // Logo — use evento logo first, fallback to evento-img
   const logoEl = document.getElementById('prog-logo');
-  const eventoImgSrc = document.getElementById('evento-img')?.src||'';
-  if(eventoImgSrc && !eventoImgSrc.endsWith('/')){
-    logoEl.src = eventoImgSrc; logoEl.style.display='block';
+  const evData = currentSettings.eventoData || {};
+  const logoSrc = evData.logoUrl || (document.getElementById('evento-img')?.src||'');
+  if(logoSrc && !logoSrc.endsWith('/')){
+    logoEl.src = logoSrc; logoEl.style.display='block';
   } else { logoEl.style.display='none'; }
 
   // Event name
@@ -5031,10 +5067,12 @@ function renderProgScreen(){
     if(item.type==='separador') return `<hr class="prog-separador">`;
     if(item.type==='subtexto'){
       const sp = speakers.find(s=>s.name===item.palestrante);
-      const clickAttr = sp ? `onclick="openProgSpeaker('${item.palestrante}')" style="cursor:pointer;"` : '';
-      return `<div class="prog-subtexto" style="padding-left:${item.hora?'126px':'0'};margin-bottom:12px;">
-        ${item.tipoPalestra?`<span style="font-size:11px;color:rgba(255,255,255,.55);font-weight:700;text-transform:uppercase;margin-right:6px;">${item.tipoPalestra}:</span>`:''}
-        <span ${clickAttr}>${item.palestrante||''}</span>
+      const clickAttr = sp ? `onclick="openProgSpeaker('${item.palestrante.replace(/'/g,"\\'")}')"` : '';
+      return `<div class="prog-subtexto">
+        <div class="prog-subtexto-inner">
+          ${item.tipoPalestra?`<span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;opacity:.7;">${item.tipoPalestra}:</span>`:''}
+          <span class="${sp?'sp-link':''}" ${clickAttr}>${item.palestrante||''}</span>
+        </div>
       </div>`;
     }
     // linha
@@ -5051,13 +5089,29 @@ function renderProgScreen(){
   renderProgDownloadBtn();
 }
 
+function updateProgField(el){
+  const id = el.dataset.id;
+  const field = el.dataset.field;
+  const item = progItems.find(p=>p.id===id);
+  if(item) item[field] = el.value;
+}
+
+function updateProgColors(){
+  const tc = document.getElementById('ed-prog-text-color')?.value||'#ffffff';
+  const sc = document.getElementById('ed-prog-sub-color')?.value||'#ccddee';
+  document.documentElement.style.setProperty('--prog-text-color', tc);
+  document.documentElement.style.setProperty('--prog-subtexto-color', sc);
+}
+
 function openProgSpeaker(name){
   const sp = speakers.find(s=>s.name===name);
   if(!sp) return;
   const popup = document.getElementById('prog-speaker-popup');
   const foto = document.getElementById('prog-sp-foto');
-  const src = sp.photoAdjust?.dataUrl || sp.photo || '';
-  foto.src = src; foto.style.display = src ? 'block':'none';
+  // Try multiple photo sources
+  const src = (sp.photoAdjust && sp.photoAdjust.dataUrl) || sp.photoUrl || sp.photo || '';
+  if(src){ foto.src = src; foto.style.display='block'; }
+  else { foto.style.display='none'; }
   document.getElementById('prog-sp-nome').textContent = sp.name||'';
   document.getElementById('prog-sp-role').textContent = sp.role||'';
   document.getElementById('prog-sp-bio').textContent = sp.bio||'';
