@@ -270,9 +270,9 @@ body.admin-open.admin-collapsed{margin-right:110px;}
   -webkit-overflow-scrolling:touch;
   padding:18px 20px 60px;
 }
-/* Tab panels: visible when inside admin-content-body, hidden in template */
-#admin-templates .admin-tab-panel{display:none !important;}
-#admin-content-body .admin-tab-panel{display:block !important;}
+/* Tab panels hidden in template, visible in body */
+#admin-templates, #admin-templates *{visibility:hidden !important;pointer-events:none !important;}
+#admin-content-body .admin-tab-panel{display:block !important;visibility:visible !important;}
 
 @media(max-width:640px){
   #admin-panel{width:100vw;}
@@ -879,7 +879,7 @@ body.admin-open.admin-collapsed{margin-right:110px;}
 </div>
 
 <!-- TAB CONTENT TEMPLATES (hidden, cloned into admin-content-body by JS) -->
-<div id="admin-templates" style="display:none !important;">
+<div id="admin-templates" style="position:fixed !important;left:-99999px !important;top:-99999px !important;width:0 !important;height:0 !important;overflow:hidden !important;pointer-events:none !important;visibility:hidden !important;">
   <div id="tab-edit" class="admin-tab-panel active">
 
     <div class="sync-all-banner">
