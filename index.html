@@ -418,13 +418,17 @@ body.admin-open.admin-collapsed{margin-right:110px;}
 a#prog-download-link{text-decoration:none !important;}
 .prog-back-btn{position:absolute;top:20px;left:20px;z-index:5;background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.3);color:#fff;border-radius:50px;padding:8px 18px;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer;backdrop-filter:blur(4px);}
 /* Speaker card popup */
-.prog-speaker-card{position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:20px;}
-.prog-speaker-inner{background:#fff;border-radius:20px;padding:28px;max-width:360px;width:100%;text-align:center;position:relative;display:flex;flex-direction:column;align-items:center;}
-.prog-speaker-inner img{width:100px;height:100px;border-radius:50%;object-fit:cover;margin:0 auto 12px;border:3px solid var(--blue);display:block;}
+.prog-speaker-card{position:fixed;inset:0;z-index:9000;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:opacity .35s ease;}
+.prog-speaker-card.active{opacity:1;pointer-events:all;}
+.prog-speaker-backdrop{position:absolute;inset:0;background:rgba(10,20,40,.75);backdrop-filter:blur(6px);}
+.prog-speaker-inner{background:#fff;border-radius:20px;padding:32px 28px;max-width:460px;width:100%;text-align:center;position:relative;display:flex;flex-direction:column;align-items:center;z-index:1;transform:scale(.92) translateY(10px);transition:transform .35s cubic-bezier(.34,1.56,.64,1);}
+.prog-speaker-card.active .prog-speaker-inner{transform:scale(1) translateY(0);}
+.prog-speaker-inner img{width:100px;height:100px;border-radius:50%;object-fit:cover;margin:0 auto 14px;border:3px solid var(--blue);display:block;}
 .prog-speaker-inner h3{font-size:17px;font-weight:800;color:var(--blue);margin-bottom:4px;}
 .prog-speaker-inner .sp-role{font-size:12px;color:var(--text-light);margin-bottom:12px;}
 .prog-speaker-inner .sp-bio{font-size:13px;color:var(--text);line-height:1.6;text-align:left;}
-.prog-speaker-close{position:absolute;top:12px;right:14px;background:none;border:none;font-size:20px;cursor:pointer;color:var(--text-light);}
+.prog-speaker-close{position:absolute;top:12px;right:14px;background:var(--gray);border:none;border-radius:50%;width:32px;height:32px;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text-light);transition:background .2s;}
+.prog-speaker-close:hover{background:var(--gray2);}
 #screen-validar{position:fixed;inset:0;z-index:9500;display:none;flex-direction:column;background:#0a1628;align-items:center;justify-content:flex-start;overflow-y:auto;}
 #screen-validar.active{display:flex;}
 .val-header{width:100%;background:linear-gradient(135deg,#005ca9,#0a7bc4);padding:18px 20px;display:flex;align-items:center;gap:14px;flex-shrink:0;}
@@ -493,7 +497,7 @@ a#prog-download-link{text-decoration:none !important;}
 .banner-strip{width:100%;position:relative;z-index:10;overflow:hidden;background:transparent;flex-shrink:0;}
 .banner-strip-inner{display:flex;transition:transform .6s ease;will-change:transform;}
 .banner-item{min-width:100%;cursor:pointer;}
-.banner-item img{width:100%;height:200px;display:block;object-fit:cover;border-radius:14px;}
+.banner-item img{width:100%;height:auto;max-height:200px;display:block;object-fit:cover;border-radius:14px;}
 .banner-dots{display:flex;justify-content:center;gap:6px;padding:6px 0;position:absolute;bottom:4px;left:0;right:0;}
 .banner-dot{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.5);cursor:pointer;transition:background .2s;}
 .banner-dot.active{background:#fff;}
@@ -768,7 +772,8 @@ a#prog-download-link{text-decoration:none !important;}
       <button class="prog-download-btn" id="prog-download-btn">⬇ Download da Programação</button>
     </a>
   </div>
-  <div id="prog-speaker-popup" class="prog-speaker-card" style="display:none;" onclick="closeProgSpeaker(event)">
+  <div id="prog-speaker-popup" class="prog-speaker-card" onclick="closeProgSpeaker(event)">
+    <div class="prog-speaker-backdrop"></div>
     <div class="prog-speaker-inner">
       <button class="prog-speaker-close" onclick="closeProgSpeakerBtn()">✕</button>
       <img id="prog-sp-foto" src="" alt="">
@@ -1562,6 +1567,22 @@ Nos vemos lá! Não esqueça de trazer seu QR Code. 🎟</div>
       <h3>🗓 Editor da Programação</h3>
       <p style="font-size:11px;color:var(--text-light);margin-bottom:14px;line-height:1.5;">Monte a programação linha a linha. Ela aparece na tela de Programação do evento.</p>
 
+      <!-- Background da tela -->
+      <div class="admin-field" style="background:#f8faff;border-radius:8px;padding:10px;margin-bottom:14px;">
+        <div style="font-size:10px;font-weight:700;color:var(--blue);text-transform:uppercase;margin-bottom:8px;">🖼 Fundo da Tela de Programação</div>
+        <div class="admin-field"><label>Imagem de fundo</label>
+          <label class="admin-file-btn" for="up-prog-bg">📁 Escolher imagem</label>
+          <input type="file" id="up-prog-bg" class="admin-file-input" accept="image/*" onchange="handleFile(this,'prog-bg-img','image')">
+        </div>
+        <div class="admin-field"><label>Cor de sobreposição</label>
+          <div class="color-row">
+            <input type="color" id="ed-prog-overlay-color" value="#005ca9" oninput="updateProgOverlay()">
+            <input type="range" id="ed-prog-overlay-opacity" min="0" max="100" value="60" oninput="updateProgOverlay()" style="flex:1;margin:0 8px;">
+            <span id="ed-prog-overlay-label" style="font-size:10px;color:var(--text-light);white-space:nowrap;">60%</span>
+          </div>
+        </div>
+      </div>
+
       <div class="admin-field" style="background:#f8faff;border-radius:8px;padding:10px;margin-bottom:14px;">
         <div style="font-size:10px;font-weight:700;color:var(--blue);text-transform:uppercase;margin-bottom:10px;">🎨 Cores da Programação</div>
         <div class="admin-field"><label>Título da palestra</label>
@@ -1794,6 +1815,8 @@ function gatherSettings() {
     progItems: progItems,
     progInternoAtivo: progInternoAtivo,
     progFileUrl: progFileUrl,
+    progOverlayColor:   document.getElementById('ed-prog-overlay-color')?.value||'#005ca9',
+    progOverlayOpacity: document.getElementById('ed-prog-overlay-opacity')?.value||'60',
     progTextColor:   document.getElementById('ed-prog-text-color')?.value||'#ffffff',
     progHoraColor:   document.getElementById('ed-prog-hora-color')?.value||'#aaccee',
     progTipoColor:   document.getElementById('ed-prog-tipo-color')?.value||'#aaccee',
@@ -5068,6 +5091,13 @@ function restoreProgData(s){
     if(el) el.checked = progInternoAtivo;
   }
   if(s.progFileUrl){ progFileUrl = s.progFileUrl; }
+  if(s.progOverlayColor){
+    const el = document.getElementById('ed-prog-overlay-color'); if(el) el.value=s.progOverlayColor;
+  }
+  if(s.progOverlayOpacity){
+    const el = document.getElementById('ed-prog-overlay-opacity'); if(el) el.value=s.progOverlayOpacity;
+    const lbl = document.getElementById('ed-prog-overlay-label'); if(lbl) lbl.textContent=s.progOverlayOpacity+'%';
+  }
   const colorMap = [
     ['progTextColor',   'ed-prog-text-color',   '--prog-text-color',       '#ffffff'],
     ['progHoraColor',   'ed-prog-hora-color',   '--prog-hora-color',       '#aaccee'],
@@ -5095,10 +5125,22 @@ function renderProgScreen(){
   // Title — always "PROGRAMAÇÃO"
   document.getElementById('prog-event-name').textContent = 'PROGRAMAÇÃO';
 
-  // Background — same as landing
-  const landingBg = document.getElementById('landing-bg');
-  const progBg = document.getElementById('prog-bg');
-  if(progBg && landingBg) progBg.style.cssText = landingBg.style.cssText;
+  // Background — use prog-specific background if set, else fallback to landing
+  const progBgEl = document.getElementById('prog-bg');
+  const progBgSrc = fileStore['prog-bg-img'];
+  if(progBgEl){
+    if(progBgSrc && (progBgSrc.url || progBgSrc.dataUrl)){
+      progBgEl.style.backgroundImage = `url('${progBgSrc.url || progBgSrc.dataUrl}')`;
+      progBgEl.style.backgroundSize = 'cover';
+      progBgEl.style.backgroundPosition = 'center';
+    } else {
+      // Fallback to landing bg
+      const landingBg = document.getElementById('landing-bg');
+      if(landingBg) progBgEl.style.cssText = landingBg.style.cssText;
+    }
+  }
+  // Apply overlay
+  updateProgOverlay();
 
   // Build list
   const lista = document.getElementById('prog-lista');
@@ -5132,7 +5174,18 @@ function renderProgScreen(){
   renderProgDownloadBtn();
 }
 
-function updateProgField(el){
+function updateProgOverlay(){
+  const color = document.getElementById('ed-prog-overlay-color')?.value||'#005ca9';
+  const opacity = parseInt(document.getElementById('ed-prog-overlay-opacity')?.value||60)/100;
+  const lbl = document.getElementById('ed-prog-overlay-label');
+  if(lbl) lbl.textContent = Math.round(opacity*100)+'%';
+  const overlay = document.getElementById('prog-overlay');
+  if(overlay){
+    const r=parseInt(color.slice(1,3),16), g=parseInt(color.slice(3,5),16), b=parseInt(color.slice(5,7),16);
+    overlay.style.background = `rgba(${r},${g},${b},${opacity})`;
+    overlay.style.pointerEvents = 'none';
+  }
+}
   const id = el.dataset.id;
   const field = el.dataset.field;
   const item = progItems.find(p=>p.id===id);
@@ -5159,18 +5212,21 @@ function openProgSpeaker(name){
   if(!sp) return;
   const popup = document.getElementById('prog-speaker-popup');
   const foto = document.getElementById('prog-sp-foto');
-  // Try multiple photo sources
   const src = (sp.photoAdjust && sp.photoAdjust.dataUrl) || sp.photoUrl || sp.photo || '';
   if(src){ foto.src = src; foto.style.display='block'; }
   else { foto.style.display='none'; }
   document.getElementById('prog-sp-nome').textContent = sp.name||'';
   document.getElementById('prog-sp-role').textContent = sp.role||'';
   document.getElementById('prog-sp-bio').textContent = sp.bio||'';
-  popup.style.display = 'flex';
+  popup.classList.add('active');
 }
 
-function closeProgSpeaker(e){ if(e.target===document.getElementById('prog-speaker-popup')) closeProgSpeakerBtn(); }
-function closeProgSpeakerBtn(){ document.getElementById('prog-speaker-popup').style.display='none'; }
+function closeProgSpeaker(e){
+  if(e.target===document.getElementById('prog-speaker-popup') || e.target.classList.contains('prog-speaker-backdrop')) closeProgSpeakerBtn();
+}
+function closeProgSpeakerBtn(){
+  document.getElementById('prog-speaker-popup').classList.remove('active');
+}
 
 
 </script>
