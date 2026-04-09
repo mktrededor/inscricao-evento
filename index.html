@@ -197,21 +197,82 @@ html,body{font-family:var(--font);background:#fff;color:var(--text);min-height:1
 .speaker-modal-bio{font-size:13px;color:var(--text);line-height:1.7;text-align:center;}
 .speaker-modal-divider{border:none;border-top:1px solid var(--gray2);margin:14px 0;}
 
-/* ══════ ADMIN PANEL ══════ */
-#admin-panel{display:none;position:fixed;top:0;right:0;width:620px;max-width:100vw;height:100vh;background:#fff;box-shadow:-4px 0 32px rgba(0,0,0,.18);z-index:999;flex-direction:column;overflow:hidden;}
+/* ══════ ADMIN PANEL — SIDEBAR LAYOUT ══════ */
+#admin-panel{
+  display:none;position:fixed;top:0;right:0;
+  width:min(860px,100vw);height:100vh;
+  background:#f4f6f9;box-shadow:-6px 0 40px rgba(0,0,0,.22);
+  z-index:999;flex-direction:row;overflow:hidden;
+}
 #admin-panel.open{display:flex;}
-.admin-header{background:var(--blue);color:#fff;flex-shrink:0;}
-.admin-tabs-row{display:flex;overflow-x:auto;scrollbar-width:none;}
-.admin-tabs-row::-webkit-scrollbar{display:none;}
-.admin-tab{flex:1;min-width:56px;padding:12px 2px;text-align:center;font-size:9px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;cursor:pointer;border-bottom:3px solid transparent;color:rgba(255,255,255,.55);transition:all .2s;}
-.admin-tab.active{color:#fff;border-bottom-color:#fff;}
-.admin-close{position:absolute;top:10px;right:12px;background:none;border:none;color:#fff;font-size:22px;cursor:pointer;z-index:3;line-height:1;}
-.screen-nav{display:flex;align-items:center;justify-content:space-between;padding:8px 16px;background:#f0f5fc;border-bottom:1px solid var(--gray2);gap:6px;flex-wrap:wrap;flex-shrink:0;}
-.screen-nav-label{font-size:10px;font-weight:700;text-transform:uppercase;color:var(--text-light);letter-spacing:.5px;white-space:nowrap;}
+
+/* Left sidebar — nav menu */
+#admin-sidebar{
+  width:140px;flex-shrink:0;
+  background:var(--blue);
+  display:flex;flex-direction:column;
+  overflow-y:auto;overflow-x:hidden;
+  scrollbar-width:none;
+}
+#admin-sidebar::-webkit-scrollbar{display:none;}
+#admin-sidebar-top{
+  padding:14px 10px 8px;
+  border-bottom:1px solid rgba(255,255,255,.15);
+  display:flex;align-items:center;justify-content:space-between;
+}
+#admin-sidebar-top span{font-size:11px;font-weight:800;color:#fff;letter-spacing:.5px;text-transform:uppercase;}
+#admin-close-btn{background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:6px;
+  width:28px;height:28px;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+
+.admin-nav-item{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:14px 6px;cursor:pointer;border:none;background:transparent;
+  color:rgba(255,255,255,.55);font-family:var(--font);
+  transition:background .15s,color .15s;text-align:center;gap:4px;
+  border-left:3px solid transparent;width:100%;
+}
+.admin-nav-item:hover{background:rgba(255,255,255,.1);color:rgba(255,255,255,.85);}
+.admin-nav-item.active{background:rgba(255,255,255,.15);color:#fff;border-left-color:#fff;}
+.admin-nav-item .nav-icon{font-size:18px;line-height:1;}
+.admin-nav-item .nav-label{font-size:8.5px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;line-height:1.2;}
+
+/* Right content area */
+#admin-content{
+  flex:1;min-width:0;
+  display:flex;flex-direction:column;
+  overflow:hidden;background:#fff;
+}
+#admin-content-header{
+  background:#fff;border-bottom:2px solid var(--blue-light);
+  padding:10px 16px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+}
+#admin-content-title{font-size:13px;font-weight:800;color:var(--blue);text-transform:uppercase;letter-spacing:.5px;}
 .screen-nav-btns{display:flex;gap:5px;flex-wrap:wrap;}
-#admin-panel-body{flex:1 1 0;min-height:0;overflow-y:scroll;overflow-x:hidden;-webkit-overflow-scrolling:touch;height:0;}
-.admin-tab-panel{display:none;padding:16px 18px 60px;}
-.admin-tab-panel.active{display:block;}
+.snav-btn{padding:5px 9px;background:var(--blue-light);color:var(--blue);border:1.5px solid rgba(0,92,169,.2);
+  border-radius:16px;font-family:var(--font);font-size:9.5px;font-weight:700;cursor:pointer;
+  transition:background .15s,color .15s;white-space:nowrap;}
+.snav-btn:hover,.snav-btn.active{background:var(--blue);color:#fff;border-color:var(--blue);}
+
+#admin-content-body{
+  flex:1 1 0;min-height:0;
+  overflow-y:auto;overflow-x:hidden;
+  -webkit-overflow-scrolling:touch;
+  padding:20px 22px 60px;
+}
+
+/* Hide old tab system */
+.admin-tab-panel{display:none !important;}
+.admin-tab-panel.active{display:none !important;}
+#admin-tab-active-content{display:block;}
+
+@media(max-width:600px){
+  #admin-panel{width:100vw;}
+  #admin-sidebar{width:56px;}
+  #admin-sidebar-top span{display:none;}
+  .admin-nav-item .nav-label{display:none;}
+  .admin-nav-item{padding:14px 4px;}
+}
 .snav-btn{padding:6px 10px;background:var(--blue-light);color:var(--blue);border:1.5px solid rgba(0,92,169,.2);border-radius:20px;font-family:var(--font);font-size:10px;font-weight:700;cursor:pointer;transition:background .15s,color .15s;white-space:nowrap;}
 .snav-btn:hover,.snav-btn.active{background:var(--blue);color:#fff;border-color:var(--blue);}
 
@@ -505,7 +566,7 @@ html,body{font-family:var(--font);background:#fff;color:var(--text);min-height:1
   .confirm-box{padding:24px 18px;}
   .privacy-body{padding:22px 18px;}
   #admin-panel{width:100vw;}
-  .admin-tabs-row .admin-tab{font-size:7.5px;padding:11px 1px;}
+  .admin-nav-item .nav-label{display:none;}
   .palestrantes-grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:16px;}
   .speaker-photo-wrap{width:110px;height:110px;}
   .landing-extra-btns{gap:8px;}
@@ -757,34 +818,61 @@ html,body{font-family:var(--font);background:#fff;color:var(--text);min-height:1
 
 <!-- ══ ADMIN PANEL ══ -->
 <div id="admin-panel">
-  <div class="admin-header">
-    <div class="admin-tabs-row">
-      <div class="admin-tab active" onclick="showAdminTab('edit')">✏️ Edição</div>
-      <div class="admin-tab" onclick="showAdminTab('evento')">📅 Evento</div>
-      <div class="admin-tab" onclick="showAdminTab('colors')">🎨 Cores</div>
-      <div class="admin-tab" onclick="showAdminTab('speakers')">🎤 Palestr.</div>
-      <div class="admin-tab" onclick="showAdminTab('patrocinio')">🏷 Patroc.</div>
-      <div class="admin-tab" onclick="showAdminTab('rsvp')">📲 RSVP</div>
-      <div class="admin-tab" onclick="showAdminTab('dash')">📊 Dash</div>
-      <div class="admin-tab" onclick="showAdminTab('data')">📋 Dados</div>
+
+  <!-- SIDEBAR -->
+  <div id="admin-sidebar">
+    <div id="admin-sidebar-top">
+      <span>Admin</span>
+      <button id="admin-close-btn" onclick="toggleAdmin()">✕</button>
     </div>
-    <button class="admin-close" onclick="toggleAdmin()">✕</button>
+    <button class="admin-nav-item active" onclick="showAdminTab('edit')">
+      <span class="nav-icon">✏️</span><span class="nav-label">Edição</span>
+    </button>
+    <button class="admin-nav-item" onclick="showAdminTab('evento')">
+      <span class="nav-icon">📅</span><span class="nav-label">Evento</span>
+    </button>
+    <button class="admin-nav-item" onclick="showAdminTab('colors')">
+      <span class="nav-icon">🎨</span><span class="nav-label">Cores</span>
+    </button>
+    <button class="admin-nav-item" onclick="showAdminTab('speakers')">
+      <span class="nav-icon">🎤</span><span class="nav-label">Palestr.</span>
+    </button>
+    <button class="admin-nav-item" onclick="showAdminTab('patrocinio')">
+      <span class="nav-icon">🏷</span><span class="nav-label">Patroc.</span>
+    </button>
+    <button class="admin-nav-item" onclick="showAdminTab('rsvp')">
+      <span class="nav-icon">📲</span><span class="nav-label">RSVP</span>
+    </button>
+    <button class="admin-nav-item" onclick="showAdminTab('dash')">
+      <span class="nav-icon">📊</span><span class="nav-label">Dash</span>
+    </button>
+    <button class="admin-nav-item" onclick="showAdminTab('data')">
+      <span class="nav-icon">📋</span><span class="nav-label">Dados</span>
+    </button>
   </div>
 
-  <div class="screen-nav">
-    <span class="screen-nav-label">Visualizar:</span>
-    <div class="screen-nav-btns">
-      <button class="snav-btn active" onclick="adminNav('screen-landing',this)">Inicial</button>
-      <button class="snav-btn" onclick="adminNav('screen-privacy',this)">Privacidade</button>
-      <button class="snav-btn" onclick="adminNav('screen-form',this)">Formulário</button>
-      <button class="snav-btn" onclick="adminNav('screen-confirm',this)">Confirmação</button>
-      <button class="snav-btn" onclick="adminNav('screen-palestrantes',this)">Palestr.</button>
+  <!-- CONTENT AREA -->
+  <div id="admin-content">
+    <div id="admin-content-header">
+      <div id="admin-content-title">Edição</div>
+      <div class="screen-nav-btns">
+        <span style="font-size:9px;font-weight:700;color:var(--text-light);text-transform:uppercase;margin-right:2px;">Ver:</span>
+        <button class="snav-btn active" onclick="adminNav('screen-landing',this)">Inicial</button>
+        <button class="snav-btn" onclick="adminNav('screen-privacy',this)">Privac.</button>
+        <button class="snav-btn" onclick="adminNav('screen-form',this)">Form.</button>
+        <button class="snav-btn" onclick="adminNav('screen-confirm',this)">Confirm.</button>
+        <button class="snav-btn" onclick="adminNav('screen-palestrantes',this)">Palestr.</button>
+      </div>
+    </div>
+    <div id="admin-content-body">
+      <!-- conteúdo renderizado dinamicamente pelo JS -->
     </div>
   </div>
 
-  <div id="admin-panel-body">
+</div>
 
-  <!-- TAB: EDIÇÃO -->
+<!-- TAB CONTENT TEMPLATES (hidden, cloned into admin-content-body by JS) -->
+<div id="admin-templates" style="display:none !important;">
   <div id="tab-edit" class="admin-tab-panel active">
 
     <div class="sync-all-banner">
@@ -1399,6 +1487,8 @@ Nos vemos lá! Não esqueça de trazer seu QR Code. 🎟</div>
 
   </div><!-- /admin-panel-body -->
 </div><!-- /admin-panel -->
+
+</div><!-- /admin-templates -->
 
 <script>
 // ═══════════════════════════════════════
@@ -2606,18 +2696,54 @@ function toggleAdmin(){
 
 function openAdminPanel(){
   document.getElementById('admin-panel').classList.add('open');
-  updateDashboard();
-  renderInscricoesList();
+  // Initialize first tab if not already done
+  const body = document.getElementById('admin-content-body');
+  if(body && !body.querySelector('#tab-edit')){
+    _currentAdminTab = '__none__'; // force init
+    showAdminTab('edit');
+  }
 }
 
+const ADMIN_TAB_LABELS = {
+  edit:'Edição', evento:'Dados do Evento', colors:'Cores',
+  speakers:'Palestrantes', patrocinio:'Patrocínio',
+  rsvp:'RSVP', dash:'Dashboard', data:'Dados'
+};
+let _currentAdminTab = 'edit';
+
 function showAdminTab(tab){
-  document.querySelectorAll('.admin-tab').forEach((t,i)=>
-    t.classList.toggle('active',['edit','evento','colors','speakers','patrocinio','rsvp','dash','data'][i]===tab));
-  document.querySelectorAll('.admin-tab-panel').forEach(p=>p.classList.remove('active'));
-  document.getElementById('tab-'+tab).classList.add('active');
-  // Scroll body to top on tab switch
-  const body=document.getElementById('admin-panel-body');
-  if(body) body.scrollTop=0;
+  if(tab === _currentAdminTab) return;
+
+  const body = document.getElementById('admin-content-body');
+  const templates = document.getElementById('admin-templates');
+
+  // Move current tab content back to templates
+  const currentEl = document.getElementById('tab-'+_currentAdminTab);
+  if(currentEl && body.contains(currentEl)){
+    templates.appendChild(currentEl);
+  }
+
+  // Move new tab content into body
+  const nextEl = document.getElementById('tab-'+tab);
+  if(nextEl){
+    body.innerHTML = '';
+    body.appendChild(nextEl);
+    nextEl.style.display = 'block';
+    body.scrollTop = 0;
+  }
+
+  // Update sidebar active state
+  document.querySelectorAll('.admin-nav-item').forEach(btn => {
+    btn.classList.toggle('active', btn.getAttribute('onclick') && btn.getAttribute('onclick').includes("'"+tab+"'"));
+  });
+
+  // Update content header title
+  const titleEl = document.getElementById('admin-content-title');
+  if(titleEl) titleEl.textContent = ADMIN_TAB_LABELS[tab] || tab;
+
+  _currentAdminTab = tab;
+
+  // Tab-specific actions
   if(tab==='dash') updateDashboard();
   if(tab==='data') renderInscricoesList();
   if(tab==='speakers') renderDBBankList();
