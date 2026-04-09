@@ -270,10 +270,10 @@ body.admin-open.admin-collapsed{margin-right:110px;}
   -webkit-overflow-scrolling:touch;
   padding:18px 20px 60px;
 }
-/* Tab panels hidden in template source */
+/* Tab panels — all hidden by default, shown only when moved to body by JS */
+.admin-tab-panel{display:none !important;}
 #admin-templates{display:none !important;}
-#admin-templates-inner{display:none !important;position:absolute !important;left:-9999px !important;}
-#admin-content-body .admin-tab-panel{display:block !important;visibility:visible !important;}
+#admin-templates-inner{display:none !important;}
 
 @media(max-width:640px){
   #admin-panel{width:100vw;}
@@ -857,6 +857,7 @@ body.admin-open.admin-collapsed{margin-right:110px;}
       <span class="nav-icon">📋</span><span class="nav-label">Dados</span>
     </button>
     <button id="admin-collapse-btn" onclick="toggleAdminCollapse()">⟨⟨ Recolher</button>
+    <button onclick="window.location.reload()" style="width:100%;padding:8px 0;background:rgba(255,255,255,.08);border:none;border-top:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.6);font-family:var(--font);font-size:9px;font-weight:700;cursor:pointer;letter-spacing:.3px;text-transform:uppercase;">🔄 Recarregar</button>
   </div>
 
   <!-- CONTENT AREA -->
@@ -2555,7 +2556,8 @@ async function applySpeakersAndSave(){
 window.onload = async function(){
   if(window.location.hash==='#admin'){
     adminUnlocked=false;
-    setTimeout(()=>toggleAdmin(),1500);
+    // Wait for full page load before opening admin
+    setTimeout(()=>toggleAdmin(), 2500);
   }
   renderProfiles();
   renderSelectOptions();
@@ -2644,17 +2646,16 @@ async function deleteAllInscricoes(){
   if(!confirm('⚠️ Tem certeza? Isso vai deletar TODAS as inscrições e RSVPs permanentemente. Esta ação não pode ser desfeita.')) return;
   if(!confirm('Confirme novamente: deletar tudo?')) return;
   try {
-    await sb.from('presencas').delete().gt('hora_entrada','2000-01-01');
-    await sb.from('rsvp').delete().gt('created_at','2000-01-01');
-    await sb.from('disparos').delete().gt('criado_em','2000-01-01');
-    const { error } = await sb.from('inscricoes').delete().gt('created_at','2000-01-01');
-    if(error){ alert('Erro ao deletar: '+error.message); return; }
-    // Zerar estado em memória
+    // Delete in correct FK order
+    const {error:e1} = await sb.from('presencas').delete().neq('id',0);
+    const {error:e2} = await sb.from('rsvp').delete().neq('id',0);
+    const {error:e3} = await sb.from('disparos').delete().neq('id',0);
+    const {error:e4} = await sb.from('inscricoes').delete().neq('id','00000000-0000-0000-0000-000000000000');
+    if(e4){ alert('Erro ao deletar inscrições: '+e4.message); return; }
     inscricoes=[];
     localStorage.removeItem('redor_inscricoes');
     localStorage.removeItem('val_entradas');
     localStorage.removeItem('val_lista_rsvp');
-    // Atualizar UI sem rebuscar banco
     clearAllUI();
     showSaveIndicator(true,'🗑 Tudo deletado com sucesso!');
   } catch(e){ alert('Erro: '+e.message); }
@@ -2740,27 +2741,26 @@ let _currentAdminTab = 'edit';
 
 function showAdminTab(tab){
   const body = document.getElementById('admin-content-body');
-  const source = document.getElementById('admin-templates');
-  const stash = document.getElementById('admin-templates-inner');
-  if(!body) return;
+  const stash = document.getElementById('admin-templates');
+  if(!body || !stash) return;
 
-  // Move current tab back to stash (inside panel, hidden)
+  // Move current tab back to stash and hide it
   const currentEl = document.getElementById('tab-'+_currentAdminTab);
-  if(currentEl && body.contains(currentEl)){
-    currentEl.style.display = '';
-    if(stash) stash.appendChild(currentEl);
-    else if(source) source.appendChild(currentEl);
+  if(currentEl){
+    currentEl.style.cssText = 'display:none !important;';
+    stash.appendChild(currentEl);
   }
 
-  // Find tab — check body, stash, and source
-  let nextEl = document.getElementById('tab-'+tab);
+  // Move new tab into body and show it
+  const nextEl = document.getElementById('tab-'+tab);
   if(nextEl){
     body.innerHTML = '';
+    nextEl.style.cssText = 'display:block;';
     body.appendChild(nextEl);
     body.scrollTop = 0;
   }
 
-  // Update sidebar
+  // Update sidebar active state
   document.querySelectorAll('.admin-nav-item').forEach(btn => {
     const oc = btn.getAttribute('onclick') || '';
     btn.classList.toggle('active', oc.includes("'"+tab+"'"));
@@ -4672,12 +4672,11 @@ function clearAllUI(){
 async function deleteRsvpOnly(){
   if(!confirm('Apagar todos os RSVPs, presenças e disparos?\nAs inscrições serão mantidas.')) return;
   try {
-    await sb.from('presencas').delete().gt('hora_entrada','2000-01-01');
-    await sb.from('rsvp').delete().gt('created_at','2000-01-01');
-    await sb.from('disparos').delete().gt('criado_em','2000-01-01');
+    await sb.from('presencas').delete().neq('id',0);
+    await sb.from('rsvp').delete().neq('id',0);
+    await sb.from('disparos').delete().neq('id',0);
     localStorage.removeItem('val_entradas');
     localStorage.removeItem('val_lista_rsvp');
-    // Zerar apenas RSVP na UI
     ['dash-rsvp-sim','dash-rsvp-nao','dash-rsvp-pend','dash-rsvp-total',
      'rsvp-count-sim','rsvp-count-nao','rsvp-count-pend','rsvp-count-total'].forEach(id=>{
       const el=document.getElementById(id); if(el) el.textContent='0';
@@ -4694,10 +4693,10 @@ async function deleteInscricoesOnly(){
   if(!confirm('⚠️ Apagar apenas as inscrições?\nOs RSVPs vinculados também serão removidos.')) return;
   if(!confirm('Confirme: apagar todas as inscrições?')) return;
   try {
-    await sb.from('presencas').delete().gt('hora_entrada','2000-01-01');
-    await sb.from('rsvp').delete().gt('created_at','2000-01-01');
-    await sb.from('disparos').delete().gt('criado_em','2000-01-01');
-    const {error}=await sb.from('inscricoes').delete().gt('created_at','2000-01-01');
+    await sb.from('presencas').delete().neq('id',0);
+    await sb.from('rsvp').delete().neq('id',0);
+    await sb.from('disparos').delete().neq('id',0);
+    const {error}=await sb.from('inscricoes').delete().neq('id','00000000-0000-0000-0000-000000000000');
     if(error){ alert('Erro: '+error.message); return; }
     inscricoes=[];
     localStorage.removeItem('redor_inscricoes');
