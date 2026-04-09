@@ -270,10 +270,9 @@ body.admin-open.admin-collapsed{margin-right:110px;}
   -webkit-overflow-scrolling:touch;
   padding:18px 20px 60px;
 }
-/* Tab panels — all hidden by default, shown only when moved to body by JS */
-.admin-tab-panel{display:none !important;}
-#admin-templates{display:none !important;}
-#admin-templates-inner{display:none !important;}
+/* Tab panels — controlled by JS class only */
+.admin-tab-panel{ display:none; }
+.admin-tab-panel.tab-active{ display:block; }
 
 @media(max-width:640px){
   #admin-panel{width:100vw;}
@@ -878,8 +877,8 @@ body.admin-open.admin-collapsed{margin-right:110px;}
     </div>
   </div>
 
-  <!-- TAB TEMPLATES — inside admin-panel, hidden -->
-  <div id="admin-templates" style="display:none;position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden;">
+  <!-- TAB TEMPLATES — tabs hidden by .admin-tab-panel{display:none} CSS -->
+  <div id="admin-templates" style="position:absolute;left:-9999px;top:0;width:1px;height:1px;overflow:hidden;">
   <div id="tab-edit" class="admin-tab-panel active">
 
     <div class="sync-all-banner">
@@ -2744,19 +2743,19 @@ function showAdminTab(tab){
   const stash = document.getElementById('admin-templates');
   if(!body || !stash) return;
 
-  // Move current tab back to stash and hide it
+  // Hide and stash current tab
   const currentEl = document.getElementById('tab-'+_currentAdminTab);
   if(currentEl){
-    currentEl.style.cssText = 'display:none !important;';
+    currentEl.classList.remove('tab-active');
     stash.appendChild(currentEl);
   }
 
-  // Move new tab into body and show it
+  // Activate new tab
   const nextEl = document.getElementById('tab-'+tab);
   if(nextEl){
     body.innerHTML = '';
-    nextEl.style.cssText = 'display:block;';
     body.appendChild(nextEl);
+    nextEl.classList.add('tab-active');
     body.scrollTop = 0;
   }
 
