@@ -5186,6 +5186,8 @@ function updateProgOverlay(){
     overlay.style.pointerEvents = 'none';
   }
 }
+
+function updateProgField(el){
   const id = el.dataset.id;
   const field = el.dataset.field;
   const item = progItems.find(p=>p.id===id);
