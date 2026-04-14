@@ -659,6 +659,9 @@ a#prog-download-link{text-decoration:none !important;}
 
 <!-- ══ SCREEN: FORM ══ -->
 <div class="screen" id="screen-form">
+  <div class="bg-layer" id="form-bg" style="background-size:cover;background-position:center;background-repeat:no-repeat;"></div>
+  <video class="bg-video" id="form-video" autoplay muted loop playsinline style="display:none"></video>
+  <div class="bg-overlay" id="form-overlay"></div>
   <div class="form-card">
     <div class="card">
       <div class="card-header">
@@ -1695,8 +1698,9 @@ const STORAGE_BUCKET = 'event-media';
 async function uploadToStorage(file, key) {
   try {
     const ext = file.name.split('.').pop().toLowerCase();
-    const path = key + '.' + ext;
-    const opts = { upsert: true, cacheControl: '3600', contentType: file.type || 'application/octet-stream' };
+    // Use timestamp in filename to avoid CDN caching issues
+    const path = key + '_' + Date.now() + '.' + ext;
+    const opts = { upsert: false, cacheControl: '0', contentType: file.type || 'application/octet-stream' };
     const { error } = await sb.storage.from(STORAGE_BUCKET).upload(path, file, opts);
     if (error) { console.warn('Storage upload error:', error.message); return null; }
     const { data } = sb.storage.from(STORAGE_BUCKET).getPublicUrl(path);
@@ -1987,7 +1991,6 @@ function setMediaType(screen,type,tab){
 }
 
 function applyMediaToScreen(screen, type, fileData) {
-  // fileData can be: a string URL/dataUrl, or {type, url, dataUrl}
   let src = null;
   if (typeof fileData === 'string') {
     src = fileData;
@@ -2000,9 +2003,14 @@ function applyMediaToScreen(screen, type, fileData) {
   if (type === 'video') {
     if (bgEl) { bgEl.style.backgroundImage = 'none'; bgEl.style.display = 'none'; }
     if (videoEl) { videoEl.src = src; videoEl.style.display = 'block'; videoEl.load(); videoEl.play().catch(() => {}); }
+    // Extra: clear inline bg on screen-form
+    if (screen === 'form') {
+      const sf = document.getElementById('screen-form');
+      sf.style.backgroundImage = '';
+    }
   } else {
     if (videoEl) { videoEl.src = ''; videoEl.style.display = 'none'; }
-    if (bgEl) { bgEl.style.backgroundImage = "url('" + src + "')"; bgEl.style.display = ''; }
+    if (bgEl) { bgEl.style.backgroundImage = "url('" + src + "')"; bgEl.style.display = ''; bgEl.style.backgroundSize = 'cover'; bgEl.style.backgroundPosition = 'center'; }
     if (screen === 'form') {
       const sf = document.getElementById('screen-form');
       sf.style.backgroundImage = "url('" + src + "')";
