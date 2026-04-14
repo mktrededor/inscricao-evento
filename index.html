@@ -1761,14 +1761,7 @@ async function loadSettings() {
     const { data, error } = await sb.from('settings').select('value').eq('key','global').maybeSingle();
     if (error) throw new Error(error.message);
     if (!data) return null;
-    const parsed = JSON.parse(data.value);
-    // Debug: log video-related settings
-    if(parsed.files) {
-      const videoKeys = Object.keys(parsed.files).filter(k=>k.includes('video')||k.includes('bg'));
-      console.log('[Settings] mediaTypes:', parsed.mediaTypes);
-      console.log('[Settings] video/bg files:', videoKeys.map(k=>({key:k, url:parsed.files[k]?.url, type:parsed.files[k]?.type})));
-    }
-    return parsed;
+    return JSON.parse(data.value);
   } catch(e) {
     return null;
   }
@@ -2009,7 +2002,7 @@ function applyMediaToScreen(screen, type, fileData) {
     src = fileData.url || fileData.dataUrl || null;
   }
   if (!src) return;
-  if (type === 'video') console.log('[Video] applying to screen:', screen, 'src:', src?.slice(0,80));
+  const bgEl = document.getElementById(screen + '-bg');
   const videoEl = document.getElementById(screen + '-video');
   if (type === 'video') {
     if (bgEl) { bgEl.style.backgroundImage = 'none'; bgEl.style.display = 'none'; }
