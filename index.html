@@ -949,7 +949,7 @@ a#prog-download-link{text-decoration:none !important;}
     <div class="sync-all-banner">
       <label>
         <input type="checkbox" id="sync-bg-all">
-        <div><div>Usar mesma mídia de fundo em todas as telas</div><span>A mídia da Tela Inicial será replicada para as demais</span></div>
+        <div><div>Usar mesma mídia de fundo em todas as telas</div><span>A mídia da Tela Inicial será replicada para Privacidade, Formulário e Confirmação. <strong>Palestrantes e Programação não são afetados.</strong></span></div>
       </label>
     </div>
 
@@ -968,6 +968,7 @@ a#prog-download-link{text-decoration:none !important;}
         <div id="mt-landing-vid-wrap" style="display:none;">
           <label class="admin-file-btn" for="up-landing-video">📁 Escolher vídeo</label>
           <input type="file" id="up-landing-video" class="admin-file-input" accept="video/*" onchange="handleFile(this,'landing-video','video')">
+          <div style="font-size:10px;color:var(--text-light);margin-top:3px;">Máximo: <strong>50MB</strong> (limite do plano Supabase Free). Formatos: MP4, WebM.</div>
         </div>
       </div>
       <div class="admin-field"><label>Imagem central (PNG sem fundo)</label>
@@ -1046,6 +1047,7 @@ a#prog-download-link{text-decoration:none !important;}
         <div id="mt-privacy-vid-wrap" style="display:none;">
           <label class="admin-file-btn" for="up-privacy-video">📁 Escolher vídeo</label>
           <input type="file" id="up-privacy-video" class="admin-file-input" accept="video/*" onchange="handleFile(this,'privacy-video','video')">
+          <div style="font-size:10px;color:var(--text-light);margin-top:3px;">Máximo: <strong>50MB</strong> (plano Free Supabase).</div>
         </div>
       </div>
       <div class="admin-field"><label>Texto do aviso</label><textarea id="ed-privacy-text">Para a participação neste evento gratuito, a Rede D'Or coleta os dados abaixo para a finalidade de cadastramento do participante no evento, contatos para divulgação de outros eventos similares e pesquisas estatísticas anonimizadas.</textarea></div>
@@ -1066,6 +1068,7 @@ a#prog-download-link{text-decoration:none !important;}
         <div id="mt-form-vid-wrap" style="display:none;">
           <label class="admin-file-btn" for="up-form-video">📁 Escolher vídeo</label>
           <input type="file" id="up-form-video" class="admin-file-input" accept="video/*" onchange="handleFile(this,'form-video','video')">
+          <div style="font-size:10px;color:var(--text-light);margin-top:3px;">Máximo: <strong>50MB</strong> (plano Free Supabase).</div>
         </div>
       </div>
       <div class="toggle-row" style="margin-bottom:10px;">
@@ -1126,6 +1129,7 @@ a#prog-download-link{text-decoration:none !important;}
         <div id="mt-confirm-vid-wrap" style="display:none;">
           <label class="admin-file-btn" for="up-confirm-video">📁 Escolher vídeo</label>
           <input type="file" id="up-confirm-video" class="admin-file-input" accept="video/*" onchange="handleFile(this,'confirm-video','video')">
+          <div style="font-size:10px;color:var(--text-light);margin-top:3px;">Máximo: <strong>50MB</strong> (plano Free Supabase).</div>
         </div>
       </div>
       <div class="admin-field"><label>Imagem central (PNG sem fundo)</label>
@@ -1283,7 +1287,7 @@ a#prog-download-link{text-decoration:none !important;}
           </div>
         </div>
         <button class="sp-add-btn" onclick="saveSpeaker()">+ Salvar</button>
-        <button class="sp-add-btn" style="background:#888;margin-top:6px;display:none;" id="sp-cancel-btn" onclick="cancelEditSpeaker()">Cancelar edição</button>
+        <button class="sp-add-btn" style="background:#e74c3c;margin-top:6px;" id="sp-cancel-btn" onclick="cancelEditSpeaker()">✕ Cancelar</button>
       </div>
     </div>
     <div class="admin-section">
@@ -1350,7 +1354,7 @@ a#prog-download-link{text-decoration:none !important;}
   <div id="tab-patrocinio" class="admin-tab-panel">
     <div class="admin-section">
       <h3>🏷 Banners de Patrocínio</h3>
-      <p style="font-size:11px;color:var(--text-light);margin-bottom:12px;line-height:1.5;">Os banners aparecem na parte inferior das telas Inicial, Confirmação e Palestrantes. Dimensão recomendada: <strong>1200×180px</strong> (proporção ~6:1, funciona em desktop e mobile).</p>
+      <p style="font-size:11px;color:var(--text-light);margin-bottom:12px;line-height:1.5;">Os banners aparecem nas telas Inicial, Confirmação e Palestrantes, centralizados abaixo dos botões. Dimensão recomendada: <strong>1200×400px</strong> (proporção 3:1, responsivo em desktop e mobile).</p>
       <div class="toggle-row" style="margin-bottom:14px;">
         <span>Patrocínios ativos</span>
         <label class="toggle-switch"><input type="checkbox" id="toggle-patrocinio" onchange="updatePatrocinoState()"><span class="toggle-slider"></span></label>
@@ -1367,6 +1371,7 @@ a#prog-download-link{text-decoration:none !important;}
         <div class="pat-field"><label>Imagem do banner</label>
           <label class="admin-file-btn" for="up-pat-img">📁 Escolher imagem</label>
           <input type="file" id="up-pat-img" class="admin-file-input" accept="image/*" onchange="handlePatImg(this)">
+          <div style="font-size:10px;color:var(--text-light);margin-top:3px;">Dimensão recomendada: <strong>1200×400px</strong> (proporção 3:1).</div>
           <div id="pat-img-preview" style="margin-top:6px;"></div>
         </div>
         <div class="pat-field"><label>Link ao clicar (URL)</label>
@@ -2435,7 +2440,28 @@ function resetSpeakerForm(){
   spPhotoAdjust={zoom:100,x:0,y:0};
 }
 
+let _originalSpeakerState = null;
+
 function cancelEditSpeaker(){
+  const editId = document.getElementById('sp-edit-id').value;
+  const isEditing = editId && !editId.startsWith('db_') && _originalSpeakerState;
+  if(isEditing){
+    const currentName = document.getElementById('sp-name').value.trim();
+    const currentRole = document.getElementById('sp-role').value.trim();
+    const currentBio  = document.getElementById('sp-bio').value.trim();
+    const changed = currentName !== _originalSpeakerState.name ||
+                    currentRole !== (_originalSpeakerState.role||'') ||
+                    currentBio  !== (_originalSpeakerState.bio||'');
+    if(changed){
+      const discard = confirm('Você fez alterações neste palestrante.\n\nOK → Descartar alterações\nCancelar → Continuar editando');
+      if(!discard) return;
+      // Restore original
+      const idx = speakers.findIndex(s=>s.id===editId);
+      if(idx>-1) speakers[idx] = JSON.parse(JSON.stringify(_originalSpeakerState));
+      renderSpeakersAdminList(); renderPalestrantesPage();
+    }
+  }
+  _originalSpeakerState = null;
   document.getElementById('sp-edit-id').value='';
   document.getElementById('add-speaker-form-title').textContent='Adicionar Pessoa';
   document.getElementById('sp-cancel-btn').style.display='none';
@@ -2445,6 +2471,7 @@ function cancelEditSpeaker(){
 
 function editSpeaker(id){
   const sp=speakers.find(s=>s.id===id); if(!sp)return;
+  _originalSpeakerState = JSON.parse(JSON.stringify(sp));
   document.getElementById('sp-edit-id').value=id;
   document.getElementById('sp-name').value=sp.name;
   document.getElementById('sp-type').value=sp.type;
