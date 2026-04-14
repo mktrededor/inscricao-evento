@@ -1871,16 +1871,20 @@ async function applySettingsToPage(s) {
     document.getElementById('sync-bg-all').checked=true;
     const lt=(s.mediaTypes&&s.mediaTypes.landing)||'image';
     const lf=s.files['landing-bg']||s.files['landing-video'];
-    ['landing','privacy','confirm'].forEach(sc=>applyMediaToScreen(sc,lt,lf));
-    applyMediaToScreen('form',lt,lf);
+    ['landing','privacy','confirm','form'].forEach(sc=>applyMediaToScreen(sc,lt,lf));
   } else {
     ['landing','privacy','confirm'].forEach(sc=>{
       const type=(s.mediaTypes&&s.mediaTypes[sc])||'image';
       const fk=type==='image'?(sc==='landing'?'landing-bg':sc+'-bg'):(sc==='landing'?'landing-video':sc+'-video');
       if(s.files&&s.files[fk]) applyMediaToScreen(sc,type,s.files[fk]);
     });
-    if(s.files&&s.files['form-bg']) applyMediaToScreen('form','image',s.files['form-bg']);
-    if(s.files&&s.files['form-video']) applyMediaToScreen('form','video',s.files['form-video']);
+    // Form screen — handle both image and video
+    const formType=(s.mediaTypes&&s.mediaTypes.form)||'image';
+    if(formType==='video' && s.files&&s.files['form-video']) {
+      applyMediaToScreen('form','video',s.files['form-video']);
+    } else if(s.files&&s.files['form-bg']) {
+      applyMediaToScreen('form','image',s.files['form-bg']);
+    }
   }
 
   // Central images — prefer public URL, fallback to dataUrl
@@ -2038,22 +2042,33 @@ function handleFile(input, key, type) {
     if (label) label.textContent = url ? '✔ ' + file.name.slice(0,20) : '⚠ Falha no upload';
     if (url) {
       fileStore[key] = { type, url };
-      const r = new FileReader();
-      r.onload = e => {
-        fileStore[key].dataUrl = e.target.result;
-        applyMediaToScreen(key.replace('-bg','').replace('-video',''), type, e.target.result);
-      };
-      r.readAsDataURL(file);
+      const screenKey = key.replace(/-bg$/,'').replace(/-video$/,'');
+      if (type === 'video') {
+        // Apply URL directly — dataUrl for video is unreliable for large files
+        applyMediaToScreen(screenKey, type, url);
+      } else {
+        // For images, use dataUrl for immediate preview then store URL
+        const r = new FileReader();
+        r.onload = e => {
+          fileStore[key].dataUrl = e.target.result;
+          applyMediaToScreen(screenKey, type, e.target.result);
+        };
+        r.readAsDataURL(file);
+      }
     } else {
       // Storage failed — fallback to dataUrl for this session only
-      const r = new FileReader();
-      r.onload = e => {
-        fileStore[key] = { type, dataUrl: e.target.result, url: null };
-        applyMediaToScreen(key.replace('-bg','').replace('-video',''), type, e.target.result);
-        if(label) label.textContent = '⚠ Upload falhou — vídeo só nesta sessão';
-        if(type === 'video') alert('O vídeo não pôde ser salvo no servidor. Ele aparecerá apenas nesta sessão e sumirá após recarregar.\n\nVerifique se o bucket "event-media" aceita vídeos no Supabase Storage Policies.');
-      };
-      r.readAsDataURL(file);
+      if (type === 'video') {
+        if(label) label.textContent = '⚠ Upload falhou';
+        alert('O vídeo não pôde ser salvo no servidor.\n\nCertifique-se de que o bucket "event-media" aceita vídeos:\n1. Supabase → Storage → event-media → Policies\n2. Execute o SQL de allowed_mime_types passado anteriormente.');
+      } else {
+        const r = new FileReader();
+        r.onload = e => {
+          fileStore[key] = { type, dataUrl: e.target.result, url: null };
+          applyMediaToScreen(key.replace(/-bg$/,'').replace(/-video$/,''), type, e.target.result);
+          if(label) label.textContent = '⚠ Local apenas';
+        };
+        r.readAsDataURL(file);
+      }
     }
   });
 }
