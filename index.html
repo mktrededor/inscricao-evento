@@ -1708,6 +1708,19 @@ async function uploadToStorage(file, key) {
   } catch(e) { console.warn('Storage upload failed:', e.message); return null; }
 }
 
+// Get a signed URL (valid 1hr) to bypass browser tracking prevention on cross-origin media
+async function getAccessUrl(publicUrl) {
+  if (!publicUrl) return null;
+  try {
+    const match = publicUrl.match(/\/object\/public\/event-media\/(.+)$/);
+    if (!match) return publicUrl;
+    const path = decodeURIComponent(match[1]);
+    const { data, error } = await sb.storage.from(STORAGE_BUCKET).createSignedUrl(path, 3600);
+    if (error || !data?.signedUrl) return publicUrl;
+    return data.signedUrl;
+  } catch(e) { return publicUrl; }
+}
+
 // Upload a partir de dataUrl (para fotos de palestrantes etc)
 async function uploadDataUrlToStorage(dataUrl, key) {
   try {
@@ -1871,18 +1884,32 @@ async function applySettingsToPage(s) {
     document.getElementById('sync-bg-all').checked=true;
     const lt=(s.mediaTypes&&s.mediaTypes.landing)||'image';
     const lf=s.files['landing-bg']||s.files['landing-video'];
-    ['landing','privacy','confirm','form'].forEach(sc=>applyMediaToScreen(sc,lt,lf));
+    if(lt==='video' && lf?.url){
+      getAccessUrl(lf.url).then(signedUrl=>{
+        const fd={...lf, url:signedUrl};
+        ['landing','privacy','confirm','form'].forEach(sc=>applyMediaToScreen(sc,lt,fd));
+      });
+    } else {
+      ['landing','privacy','confirm','form'].forEach(sc=>applyMediaToScreen(sc,lt,lf));
+    }
   } else {
     ['landing','privacy','confirm'].forEach(sc=>{
       const type=(s.mediaTypes&&s.mediaTypes[sc])||'image';
       const fk=type==='image'?(sc==='landing'?'landing-bg':sc+'-bg'):(sc==='landing'?'landing-video':sc+'-video');
-      if(s.files&&s.files[fk]) applyMediaToScreen(sc,type,s.files[fk]);
+      const fd=s.files&&s.files[fk];
+      if(!fd) return;
+      if(type==='video' && fd.url){
+        getAccessUrl(fd.url).then(signedUrl=>applyMediaToScreen(sc,type,{...fd,url:signedUrl}));
+      } else {
+        applyMediaToScreen(sc,type,fd);
+      }
     });
-    // Form screen — handle both image and video
+    // Form screen
     const formType=(s.mediaTypes&&s.mediaTypes.form)||'image';
-    if(formType==='video' && s.files&&s.files['form-video']) {
-      applyMediaToScreen('form','video',s.files['form-video']);
-    } else if(s.files&&s.files['form-bg']) {
+    if(formType==='video' && s.files&&s.files['form-video']){
+      const fd=s.files['form-video'];
+      getAccessUrl(fd.url).then(signedUrl=>applyMediaToScreen('form','video',{...fd,url:signedUrl}));
+    } else if(s.files&&s.files['form-bg']){
       applyMediaToScreen('form','image',s.files['form-bg']);
     }
   }
