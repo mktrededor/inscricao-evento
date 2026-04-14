@@ -96,8 +96,8 @@ body.admin-open.admin-collapsed{margin-right:110px;}
 .privacy-btn:not(:disabled):hover{filter:brightness(1.12);}
 
 /* ══════ FORM ══════ */
-#screen-form{background:var(--form-bg);}
-.form-card{max-width:640px;margin:0 auto;padding:24px 16px 56px;}
+#screen-form{background:var(--form-bg);position:relative;}
+.form-card{max-width:640px;margin:0 auto;padding:24px 16px 56px;position:relative;z-index:2;}
 .card{background:var(--card-bg);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;}
 .card-header{background:var(--header-bg);padding:28px 32px 24px;color:#fff;}
 .card-header .event-tag{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;opacity:.75;margin-bottom:6px;}
@@ -2006,20 +2006,32 @@ function applyMediaToScreen(screen, type, fileData) {
   const videoEl = document.getElementById(screen + '-video');
   if (type === 'video') {
     if (bgEl) { bgEl.style.backgroundImage = 'none'; bgEl.style.display = 'none'; }
-    if (videoEl) { videoEl.src = src; videoEl.style.display = 'block'; videoEl.load(); videoEl.play().catch(() => {}); }
-    // Extra: clear inline bg on screen-form
+    if (videoEl) {
+      videoEl.setAttribute('crossorigin','anonymous');
+      videoEl.src = src;
+      videoEl.style.display = 'block';
+      videoEl.load();
+      videoEl.play().catch(() => {});
+    }
     if (screen === 'form') {
       const sf = document.getElementById('screen-form');
-      sf.style.backgroundImage = '';
+      if(sf) sf.style.backgroundImage = '';
     }
   } else {
     if (videoEl) { videoEl.src = ''; videoEl.style.display = 'none'; }
-    if (bgEl) { bgEl.style.backgroundImage = "url('" + src + "')"; bgEl.style.display = ''; bgEl.style.backgroundSize = 'cover'; bgEl.style.backgroundPosition = 'center'; }
+    if (bgEl) {
+      bgEl.style.backgroundImage = "url('" + src + "')";
+      bgEl.style.backgroundSize = 'cover';
+      bgEl.style.backgroundPosition = 'center';
+      bgEl.style.display = '';
+    }
     if (screen === 'form') {
       const sf = document.getElementById('screen-form');
-      sf.style.backgroundImage = "url('" + src + "')";
-      sf.style.backgroundSize = 'cover';
-      sf.style.backgroundPosition = 'center';
+      if(sf) {
+        sf.style.backgroundImage = "url('" + src + "')";
+        sf.style.backgroundSize = 'cover';
+        sf.style.backgroundPosition = 'center';
+      }
     }
   }
 }
