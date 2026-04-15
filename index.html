@@ -1895,8 +1895,11 @@ async function applySettingsToPage(s) {
   if(s.syncBgAll && s.files) {
     document.getElementById('sync-bg-all').checked=true;
     const lt=(s.mediaTypes&&s.mediaTypes.landing)||'image';
-    const lf=s.files['landing-bg']||s.files['landing-video'];
-    if(lt==='video' && lf?.url){
+    // Pick correct file key based on type
+    const lfKey = lt==='video' ? 'landing-video' : 'landing-bg';
+    const lf = s.files[lfKey];
+    if(!lf) return;
+    if(lt==='video' && lf.url){
       getAccessUrl(lf.url).then(signedUrl=>{
         const fd={...lf, url:signedUrl};
         ['landing','privacy','confirm','form'].forEach(sc=>applyMediaToScreen(sc,lt,fd));
@@ -1907,7 +1910,9 @@ async function applySettingsToPage(s) {
   } else {
     ['landing','privacy','confirm'].forEach(sc=>{
       const type=(s.mediaTypes&&s.mediaTypes[sc])||'image';
-      const fk=type==='image'?(sc==='landing'?'landing-bg':sc+'-bg'):(sc==='landing'?'landing-video':sc+'-video');
+      const fk = type==='video'
+        ? (sc==='landing' ? 'landing-video' : sc+'-video')
+        : (sc==='landing' ? 'landing-bg'    : sc+'-bg');
       const fd=s.files&&s.files[fk];
       if(!fd) return;
       if(type==='video' && fd.url){
@@ -1918,11 +1923,14 @@ async function applySettingsToPage(s) {
     });
     // Form screen
     const formType=(s.mediaTypes&&s.mediaTypes.form)||'image';
-    if(formType==='video' && s.files&&s.files['form-video']){
-      const fd=s.files['form-video'];
-      getAccessUrl(fd.url).then(signedUrl=>applyMediaToScreen('form','video',{...fd,url:signedUrl}));
-    } else if(s.files&&s.files['form-bg']){
-      applyMediaToScreen('form','image',s.files['form-bg']);
+    const formKey = formType==='video' ? 'form-video' : 'form-bg';
+    const formFile = s.files&&s.files[formKey];
+    if(formFile){
+      if(formType==='video' && formFile.url){
+        getAccessUrl(formFile.url).then(signedUrl=>applyMediaToScreen('form','video',{...formFile,url:signedUrl}));
+      } else {
+        applyMediaToScreen('form',formType,formFile);
+      }
     }
   }
 
