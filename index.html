@@ -417,7 +417,8 @@ body.admin-open.admin-collapsed{margin-right:110px;}
 .prog-sessao-titulo{font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:1.5px;color:var(--prog-sessao-color,#fff);margin:18px 0 10px;opacity:.9;}
 .prog-download-btn{display:block;margin:32px auto 0;padding:14px 40px;background:var(--btn-bg);color:var(--btn-color);border:none;border-radius:50px;font-family:var(--font);font-size:15px;font-weight:800;cursor:pointer;letter-spacing:.5px;box-shadow:0 4px 20px rgba(0,0,0,.2);}
 a#prog-download-link{text-decoration:none !important;}
-.prog-back-btn{position:absolute;top:20px;left:20px;z-index:5;background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.3);color:#fff;border-radius:50px;padding:8px 18px;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer;backdrop-filter:blur(4px);}
+.prog-back-btn{position:absolute;top:20px;left:20px;z-index:5;background:var(--btn-bg,rgba(255,255,255,.15));color:var(--btn-color,#fff);border:2px solid var(--btn-border,rgba(255,255,255,.3));border-radius:50px;padding:8px 20px;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer;transition:filter .2s,transform .15s;}
+.prog-back-btn:hover{filter:brightness(1.1);transform:translateY(-2px);}
 /* Speaker card popup */
 .prog-speaker-card{position:fixed;inset:0;z-index:9000;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:opacity .35s ease;}
 .prog-speaker-card.active{opacity:1;pointer-events:all;}
@@ -1705,11 +1706,14 @@ const STORAGE_BUCKET = 'event-media';
 async function uploadToStorage(file, key) {
   try {
     const ext = file.name.split('.').pop().toLowerCase();
-    // Use timestamp in filename to avoid CDN caching issues
     const path = key + '_' + Date.now() + '.' + ext;
     const opts = { upsert: false, cacheControl: '0', contentType: file.type || 'application/octet-stream' };
     const { error } = await sb.storage.from(STORAGE_BUCKET).upload(path, file, opts);
-    if (error) { console.warn('Storage upload error:', error.message); return null; }
+    if (error) {
+      console.warn('Storage upload error:', error.message);
+      if(file.type.startsWith('video/')) alert('Erro Supabase ao enviar vídeo:\n\n' + error.message);
+      return null;
+    }
     const { data } = sb.storage.from(STORAGE_BUCKET).getPublicUrl(path);
     return data.publicUrl || null;
   } catch(e) { console.warn('Storage upload failed:', e.message); return null; }
