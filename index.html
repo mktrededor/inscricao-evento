@@ -64,8 +64,10 @@ body.admin-open.admin-collapsed{margin-right:110px;}
 #evento-img-wrap{max-width:min(560px,88vw);width:100%;margin-bottom:40px;}
 #evento-img{width:100%;display:block;background:transparent;}
 #btn-inscrever{background:var(--btn-bg);color:var(--btn-color);border:none;border-radius:50px;padding:18px 60px;font-family:var(--font);font-size:17px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;cursor:pointer;box-shadow:0 6px 28px rgba(0,92,169,.4);transition:filter .2s,transform .15s,box-shadow .2s;}
-#btn-inscrever:hover{filter:brightness(1.12);transform:translateY(-2px);}
-#btn-inscrever:active{transform:scale(.97);}
+#btn-inscrever:hover:not(:disabled){filter:brightness(1.12);transform:translateY(-2px);}
+#btn-inscrever:active:not(:disabled){transform:scale(.97);}
+#btn-inscrever:disabled{background:#b0b8c8 !important;color:#fff !important;cursor:not-allowed;box-shadow:none;transform:none !important;filter:none !important;}
+#btn-inscrever .em-breve-tag{display:block;font-size:10px;font-weight:600;letter-spacing:.5px;opacity:.85;margin-top:3px;text-transform:uppercase;}
 #landing-extra-text{margin-top:20px;font-size:13px;font-weight:500;text-align:center;max-width:400px;line-height:1.5;text-shadow:0 1px 4px rgba(0,0,0,.25);display:none;}
 
 /* Landing extra buttons */
@@ -981,6 +983,16 @@ a#prog-download-link{text-decoration:none !important;}
         <input type="file" id="up-evento-img" class="admin-file-input" accept="image/*" onchange="handleFile(this,'evento-img','image')">
       </div>
       <div class="admin-field"><label>Texto do botão inscreva-se</label><input type="text" id="ed-btn-label" value="Inscreva-se"></div>
+      <div class="admin-section" style="border:1.5px solid var(--gray2);border-radius:10px;padding:12px;margin-top:4px;margin-bottom:4px;">
+        <h3 style="margin-bottom:10px;">🎫 Botão Inscreva-se</h3>
+        <div class="toggle-row">
+          <span>Inscrições abertas</span>
+          <label class="toggle-switch"><input type="checkbox" id="toggle-inscrever" checked onchange="updateBtnInscrever()"><span class="toggle-slider"></span></label>
+        </div>
+        <div class="admin-field" id="inscrever-off-label-wrap" style="display:none;"><label>Texto quando desativado</label>
+          <input type="text" id="ed-inscrever-off-label" value="Em breve" placeholder="Ex: Em breve, Encerradas…" oninput="updateBtnInscrever()">
+        </div>
+      </div>
       <div class="admin-field"><label>Texto extra abaixo dos botões</label><input type="text" id="ed-landing-extra" placeholder="Ex: Vagas limitadas!"></div>
       <div class="admin-field"><label>Cor do texto extra</label>
         <div class="color-row"><input type="color" id="ed-extra-color" value="#ffffff"></div>
@@ -1795,6 +1807,8 @@ function gatherSettings() {
   // Build only what we can reliably read from DOM right now
   const fresh = {
     btnLabel: document.getElementById('ed-btn-label').value,
+    inscreverAtivo: document.getElementById('toggle-inscrever')?.checked !== false,
+    inscreverOffLabel: document.getElementById('ed-inscrever-off-label')?.value || 'Em breve',
     landingExtra: document.getElementById('ed-landing-extra').value,
     extraColor: document.getElementById('ed-extra-color').value,
     privacyText: document.getElementById('ed-privacy-text').value,
@@ -1942,7 +1956,19 @@ async function applySettingsToPage(s) {
   if(confirmSrc) document.getElementById('confirm-evento-img').src = confirmSrc;
   else if(eventoSrc) document.getElementById('confirm-evento-img').src = eventoSrc;
 
-  if(s.btnLabel){ document.getElementById('btn-inscrever').textContent=s.btnLabel+' →'; document.getElementById('ed-btn-label').value=s.btnLabel; }
+  if(s.btnLabel){ document.getElementById('ed-btn-label').value=s.btnLabel; }
+  if(s.inscreverAtivo !== undefined){
+    const tog = document.getElementById('toggle-inscrever');
+    if(tog) tog.checked = s.inscreverAtivo;
+    const offEl = document.getElementById('ed-inscrever-off-label');
+    if(offEl && s.inscreverOffLabel) offEl.value = s.inscreverOffLabel;
+    updateBtnInscrever();
+  } else {
+    // Default: ativo
+    const btn = document.getElementById('btn-inscrever');
+    const label = s.btnLabel || 'Inscreva-se';
+    if(btn){ btn.disabled=false; btn.onclick=goToPrivacy; btn.innerHTML=label+' →'; }
+  }
   if(s.landingExtra!==undefined){ const el=document.getElementById('landing-extra-text'); el.textContent=s.landingExtra; el.style.display=s.landingExtra?'block':'none'; if(s.extraColor)el.style.color=s.extraColor; document.getElementById('ed-landing-extra').value=s.landingExtra; }
   if(s.extraColor) document.getElementById('ed-extra-color').value=s.extraColor;
   if(s.privacyText){ document.getElementById('privacy-text-el').textContent=s.privacyText; document.getElementById('ed-privacy-text').value=s.privacyText; }
@@ -2177,6 +2203,25 @@ function updateCpfField(){
 // ═══════════════════════════════════════
 // PROGRAMAÇÃO & PALESTRANTES BUTTONS
 // ═══════════════════════════════════════
+function updateBtnInscrever(){
+  const ativo = document.getElementById('toggle-inscrever')?.checked !== false;
+  const offLabel = document.getElementById('ed-inscrever-off-label')?.value.trim() || 'Em breve';
+  const wrap = document.getElementById('inscrever-off-label-wrap');
+  if(wrap) wrap.style.display = ativo ? 'none' : '';
+  const btn = document.getElementById('btn-inscrever');
+  if(!btn) return;
+  const label = document.getElementById('ed-btn-label')?.value.trim() || 'Inscreva-se';
+  if(ativo){
+    btn.disabled = false;
+    btn.onclick = goToPrivacy;
+    btn.innerHTML = label + ' →';
+  } else {
+    btn.disabled = true;
+    btn.onclick = null;
+    btn.innerHTML = label + ' →<span class="em-breve-tag">' + offLabel + '</span>';
+  }
+}
+
 function updateBtnProgramacao(){
   programacaoActive=document.getElementById('toggle-programacao').checked;
   programacaoUrl=document.getElementById('ed-programacao-url').value.trim();
@@ -2875,6 +2920,7 @@ window.onload = async function(){
   renderSpeakersAdminList();
   updateBtnProgramacao();
   updateBtnPalestrantes();
+  updateBtnInscrever();
   updateCpfField();
   updateAuxBtnColors();
   updateBtnChegar();
