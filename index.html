@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>Inscrição – Evento Médico Científico</title>
+<link id="favicon-link" rel="icon" type="image/png" href="">
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -1181,6 +1182,12 @@ a#prog-download-link{text-decoration:none !important;}
         <input type="file" id="up-ev-logo" class="admin-file-input" accept="image/*" onchange="handleEvLogo(this)">
         <div id="ev-logo-preview" style="margin-top:6px;"></div>
       </div>
+      <div class="admin-field"><label>Favicon do site</label>
+        <label class="admin-file-btn" for="up-ev-favicon">📁 Escolher favicon</label>
+        <input type="file" id="up-ev-favicon" class="admin-file-input" accept="image/png,image/x-icon,image/svg+xml,image/jpeg" onchange="handleFavicon(this)">
+        <div style="font-size:10px;color:var(--text-light);margin-top:3px;">Aparece na aba do navegador. Recomendado: PNG quadrado 32×32px ou 64×64px.</div>
+        <div id="ev-favicon-preview" style="margin-top:6px;"></div>
+      </div>
       <div class="admin-field"><label>Data do evento</label>
         <input type="date" id="ev-data">
       </div>
@@ -1835,6 +1842,7 @@ function gatherSettings() {
     patrocinios: patrocinios.map(p=>({...p, imgDataUrl:null})),
     patAtivo,
     eventoData: currentSettings.eventoData || null,
+    faviconUrl: currentSettings.faviconUrl || null,
     progItems: progItems,
     progInternoAtivo: progInternoAtivo,
     progFileUrl: progFileUrl,
@@ -2006,6 +2014,13 @@ async function applySettingsToPage(s) {
     const el = document.getElementById('btn-programacao');
     if(el){ el.disabled=false; el.innerHTML='Programação'; el.onclick=openProgramacao; }
   }
+  // Restaurar favicon
+  if(s.faviconUrl){
+    applyFavicon(s.faviconUrl);
+    currentSettings.faviconUrl = s.faviconUrl;
+    const prev = document.getElementById('ev-favicon-preview');
+    if(prev) prev.innerHTML = `<img src="${s.faviconUrl}" style="width:32px;height:32px;object-fit:contain;border-radius:4px;border:1px solid var(--gray2);margin-top:4px;">`;
+  }
 }
 
 // ═══════════════════════════════════════
@@ -2034,11 +2049,33 @@ function applyMediaToScreen(screen, type, fileData) {
   if (type === 'video') {
     if (bgEl) { bgEl.style.backgroundImage = 'none'; bgEl.style.display = 'none'; }
     if (videoEl) {
-      videoEl.setAttribute('crossorigin','anonymous');
+      videoEl.removeAttribute('crossorigin');
+      videoEl.muted = true;
+      videoEl.loop = true;
+      videoEl.playsInline = true;
       videoEl.src = src;
       videoEl.style.display = 'block';
       videoEl.load();
-      videoEl.play().catch(() => {});
+      // Play when visible — browser blocks play on hidden/background elements
+      const tryPlay = () => {
+        const p = videoEl.play();
+        if(p) p.catch(e => {
+          // If blocked by power saving, retry when screen becomes visible
+          if(e.name === 'AbortError' || e.name === 'NotAllowedError') {
+            document.addEventListener('visibilitychange', function retry(){
+              if(!document.hidden){ videoEl.play().catch(()=>{}); document.removeEventListener('visibilitychange', retry); }
+            });
+          }
+        });
+      };
+      if(document.hidden || videoEl.closest('.screen:not(.active)')){
+        // Screen not visible yet — play when it becomes active
+        const obs = new MutationObserver(()=>{ if(videoEl.closest('.screen.active')){ tryPlay(); obs.disconnect(); } });
+        obs.observe(document.body, {attributes:true, subtree:true, attributeFilter:['class']});
+        setTimeout(tryPlay, 500); // fallback
+      } else {
+        tryPlay();
+      }
     }
     if (screen === 'form') {
       const sf = document.getElementById('screen-form');
@@ -4506,6 +4543,47 @@ function handleEvLogo(input){
       const {data}=sb.storage.from('event-media').getPublicUrl(path);
       evLogoPublicUrl=data.publicUrl;
     } catch(e){ evLogoPublicUrl=null; }
+  };
+  r.readAsDataURL(file);
+}
+
+function applyFavicon(src){
+  if(!src) return;
+  let link = document.getElementById('favicon-link');
+  if(!link){ link=document.createElement('link'); link.id='favicon-link'; link.rel='icon'; document.head.appendChild(link); }
+  link.href = src;
+  link.type = src.startsWith('data:image/svg') ? 'image/svg+xml' : src.endsWith('.ico') ? 'image/x-icon' : 'image/png';
+}
+
+async function handleFavicon(input){
+  if(!input.files[0]) return;
+  const file = input.files[0];
+  const label = input.previousElementSibling;
+  if(label) label.textContent = '⏳ Enviando…';
+  const r = new FileReader();
+  r.onload = async e => {
+    const dataUrl = e.target.result;
+    // Apply immediately for preview
+    applyFavicon(dataUrl);
+    document.getElementById('ev-favicon-preview').innerHTML =
+      `<img src="${dataUrl}" style="width:32px;height:32px;object-fit:contain;border-radius:4px;border:1px solid var(--gray2);margin-top:4px;">`;
+    // Upload to storage
+    try {
+      const ext = file.name.split('.').pop().toLowerCase();
+      const path = 'ev-favicon-' + Date.now() + '.' + ext;
+      const { error } = await sb.storage.from('event-media').upload(path, file, { upsert: true, cacheControl: '86400', contentType: file.type });
+      if(error) throw error;
+      const { data } = sb.storage.from('event-media').getPublicUrl(path);
+      if(label) label.textContent = '✔ ' + file.name.slice(0,20);
+      // Save to settings
+      currentSettings.faviconUrl = data.publicUrl;
+      saveSettings(gatherSettings());
+    } catch(err){
+      if(label) label.textContent = '⚠ Falha no upload';
+      // Keep dataUrl as fallback in settings
+      currentSettings.faviconUrl = dataUrl;
+      saveSettings(gatherSettings());
+    }
   };
   r.readAsDataURL(file);
 }
