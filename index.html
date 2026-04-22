@@ -3378,13 +3378,11 @@ function renderCustomQList(){
   container.innerHTML=customQuestions.map(q=>{
     const linkSection = q.options.length && q.linkBtnLabel ? `
       <div style="margin-top:8px;padding:8px;background:#f0f8ff;border-radius:6px;border:1px solid #cce0ff;">
-        <div style="font-size:9px;font-weight:700;color:var(--blue);text-transform:uppercase;margin-bottom:6px;">🔗 Links por resposta — botão: "${q.linkBtnLabel}"</div>
+        <div style="font-size:9px;font-weight:700;color:var(--blue);text-transform:uppercase;margin-bottom:6px;">🔗 Destino por resposta — botão: "${q.linkBtnLabel}"</div>
         ${q.options.map(o=>`
-          <div style="display:flex;gap:6px;align-items:center;margin-bottom:4px;">
-            <span style="font-size:10px;font-weight:600;min-width:90px;color:var(--text);">${o}:</span>
-            <input type="text" value="${(q.optionLinks&&q.optionLinks[o])||''}" placeholder="URL ou #programacao"
-              style="flex:1;padding:4px 6px;border:1px solid var(--gray2);border-radius:4px;font-size:10px;"
-              oninput="updateCqOptionLink('${q.id}','${o.replace(/'/g,'\\\'').replace(/"/g,'&quot;')}',this.value)">
+          <div style="margin-bottom:8px;">
+            <div style="font-size:10px;font-weight:700;color:var(--text);margin-bottom:3px;">${o}</div>
+            ${buildDestinationPicker(q.id, o, (q.optionLinks&&q.optionLinks[o])||'')}
           </div>`).join('')}
       </div>` : '';
     const linkMeta = q.linkBtnLabel ? ` · Botão: "${q.linkBtnLabel}"` : '';
@@ -3396,11 +3394,55 @@ function renderCustomQList(){
   }).join('');
 }
 
+function buildDestinationPicker(qId, optionValue, currentVal){
+  // Build options: telas internas + salas se existirem + URL externa
+  const screens = [
+    {value:'', label:'— Sem link —'},
+    {value:'#programacao', label:'📋 Tela de Programação (1ª sala)'},
+    ...progSalas.map((s,i)=>({value:'#programacao:'+s.id, label:`📋 Programação — ${s.nome}`})),
+    {value:'#palestrantes', label:'🎤 Tela de Palestrantes'},
+    {value:'#landing', label:'🏠 Tela Inicial'},
+    {value:'__url__', label:'🌐 URL externa…'},
+  ];
+  const isUrl = currentVal && !currentVal.startsWith('#') && currentVal !== '';
+  const selVal = isUrl ? '__url__' : (currentVal||'');
+  const urlExtra = isUrl ? `<input type="text" value="${currentVal}" placeholder="https://…"
+    style="margin-top:4px;width:100%;padding:4px 6px;border:1px solid var(--gray2);border-radius:4px;font-size:10px;"
+    oninput="updateCqOptionLink('${qId}','${optionValue.replace(/'/g,"\\'").replace(/"/g,'&quot;')}',this.value)">` : '';
+  return `<div>
+    <select onchange="cqPickerChange('${qId}','${optionValue.replace(/'/g,"\\'").replace(/"/g,'&quot;')}',this)"
+      style="width:100%;padding:4px 6px;border:1px solid var(--gray2);border-radius:4px;font-size:10px;">
+      ${screens.map(s=>`<option value="${s.value}"${s.value===selVal?' selected':''}>${s.label}</option>`).join('')}
+    </select>
+    ${urlExtra}
+  </div>`;
+}
+
+function cqPickerChange(qId, optionValue, sel){
+  const val = sel.value;
+  if(val==='__url__'){
+    let urlInput = sel.parentNode.querySelector('input[type=text]');
+    if(!urlInput){
+      urlInput = document.createElement('input');
+      urlInput.type='text'; urlInput.placeholder='https://…';
+      urlInput.style='margin-top:4px;width:100%;padding:4px 6px;border:1px solid var(--gray2);border-radius:4px;font-size:10px;';
+      urlInput.oninput = ()=>updateCqOptionLink(qId,optionValue,urlInput.value);
+      sel.parentNode.appendChild(urlInput);
+    }
+    urlInput.style.display='block';
+    updateCqOptionLink(qId,optionValue,'');
+  } else {
+    const urlInput = sel.parentNode.querySelector('input[type=text]');
+    if(urlInput) urlInput.style.display='none';
+    updateCqOptionLink(qId,optionValue,val);
+  }
+}
+
 function updateCqOptionLink(qId, optionValue, url){
   const q = customQuestions.find(x=>x.id===qId);
   if(!q) return;
   if(!q.optionLinks) q.optionLinks = {};
-  q.optionLinks[optionValue] = url.trim();
+  q.optionLinks[optionValue] = url.trim ? url.trim() : url;
 }
 function renderCustomQuestionsForm(){
   const container=document.getElementById('custom-questions-form');
@@ -3428,14 +3470,25 @@ function cqHandleLink(qId, value){
   const wrap = document.getElementById('cq-link-btn-'+qId);
   const anchor = document.getElementById('cq-link-btn-'+qId+'-a');
   if(!wrap||!anchor) return;
-  if(url){
-    // Internal navigation
+  if(url && url !== ''){
     if(url.startsWith('#')){
       anchor.removeAttribute('href');
       anchor.setAttribute('href','#');
-      anchor.onclick = e=>{ e.preventDefault(); const target=url.slice(1);
-        if(target==='programacao'){ renderProgScreen(); fadeToScreen('screen-programacao'); }
-        else if(target==='palestrantes') fadeToScreen('screen-palestrantes');
+      anchor.onclick = e=>{ e.preventDefault();
+        const target = url.slice(1); // e.g. "programacao" or "programacao:sala_123"
+        if(target.startsWith('programacao')){
+          renderProgScreen();
+          fadeToScreen('screen-programacao');
+          // If sala specified, switch to it after render
+          const parts = target.split(':');
+          if(parts[1]){
+            setTimeout(()=>{
+              const sala = progSalas.find(s=>s.id===parts[1]);
+              const salaBtn = document.querySelector(`#prog-salas-selector button[onclick*="${parts[1]}"]`);
+              if(sala && salaBtn) switchProgSalaPublic(parts[1], salaBtn);
+            }, 100);
+          }
+        } else if(target==='palestrantes') fadeToScreen('screen-palestrantes');
         else if(target==='landing') fadeToScreen('screen-landing');
         else fadeToScreen('screen-'+target);
       };
@@ -5660,11 +5713,22 @@ function renderProgSalasList(){
   if(!wrap) return;
   if(!progSalas.length){ wrap.innerHTML=''; return; }
   wrap.innerHTML = progSalas.map((s,i)=>`
-    <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:#fff;border-radius:7px;margin-bottom:5px;border:1.5px solid ${s.id===progSalaAtualId?'var(--blue)':'var(--gray2)'};">
-      <span style="flex:1;font-size:12px;font-weight:700;color:${s.id===progSalaAtualId?'var(--blue)':'var(--text)'};">${i===0?'★ ':''}"${s.nome}"</span>
-      <button onclick="selectProgSala('${s.id}')" style="padding:3px 8px;background:var(--blue);color:#fff;border:none;border-radius:5px;font-size:10px;font-weight:700;cursor:pointer;">Editar</button>
-      ${i>0?`<button onclick="removeProgSala('${s.id}')" style="padding:3px 8px;background:#fde8e8;color:#c0392b;border:none;border-radius:5px;font-size:10px;cursor:pointer;">✕</button>`:''}
+    <div style="display:flex;align-items:center;gap:6px;padding:7px 10px;background:#fff;border-radius:7px;margin-bottom:5px;border:1.5px solid ${s.id===progSalaAtualId?'var(--blue)':'var(--gray2)'};">
+      <span style="font-size:10px;color:var(--text-light);flex-shrink:0;">${i===0?'★':i+1+'.'}</span>
+      <input type="text" value="${s.nome}"
+        onchange="renameProgSala('${s.id}',this.value)"
+        style="flex:1;padding:4px 7px;border:1.5px solid var(--gray2);border-radius:5px;font-size:12px;font-weight:700;color:${s.id===progSalaAtualId?'var(--blue)':'var(--text)'};">
+      <button onclick="selectProgSala('${s.id}')" style="padding:3px 8px;background:var(--blue);color:#fff;border:none;border-radius:5px;font-size:10px;font-weight:700;cursor:pointer;flex-shrink:0;">Editar conteúdo</button>
+      ${i>0?`<button onclick="removeProgSala('${s.id}')" style="padding:3px 8px;background:#fde8e8;color:#c0392b;border:none;border-radius:5px;font-size:10px;cursor:pointer;flex-shrink:0;">✕</button>`:''}
     </div>`).join('');
+}
+
+function renameProgSala(id, novoNome){
+  const sala = progSalas.find(s=>s.id===id);
+  if(sala && novoNome.trim()) {
+    sala.nome = novoNome.trim();
+    renderProgSalasSelector();
+  }
 }
 
 function renderProgSalasSelector(){
