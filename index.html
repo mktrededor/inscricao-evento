@@ -645,6 +645,7 @@ a#prog-download-link{text-decoration:none !important;}
   <div class="bg-layer" id="privacy-bg"></div>
   <video class="bg-video" id="privacy-video" autoplay muted loop playsinline style="display:none"></video>
   <div class="bg-overlay" id="privacy-overlay"></div>
+  <button class="prog-back-btn" onclick="fadeToScreen('screen-landing')" style="position:absolute;top:16px;left:16px;z-index:5;">← Voltar</button>
   <div class="privacy-card">
     <div class="privacy-header">
       <div class="shield"><svg viewBox="0 0 24 24"><path d="M12 2L3 7v5c0 5.25 3.75 10.15 9 11.25C17.25 22.15 21 17.25 21 12V7L12 2z"/></svg></div>
@@ -666,6 +667,7 @@ a#prog-download-link{text-decoration:none !important;}
   <div class="bg-layer" id="form-bg" style="background-size:cover;background-position:center;background-repeat:no-repeat;"></div>
   <video class="bg-video" id="form-video" autoplay muted loop playsinline style="display:none"></video>
   <div class="bg-overlay" id="form-overlay"></div>
+  <button class="prog-back-btn" onclick="fadeToScreen('screen-privacy')" style="position:absolute;top:16px;left:16px;z-index:5;">← Voltar</button>
   <div class="form-card">
     <div class="card">
       <div class="card-header">
@@ -746,6 +748,10 @@ a#prog-download-link{text-decoration:none !important;}
       <div class="palestrantes-section-title">Coordenadores</div>
       <div class="palestrantes-grid" id="coordenadores-grid"></div>
     </div>
+    <div id="moderadores-section" style="display:none">
+      <div class="palestrantes-section-title">Moderadores</div>
+      <div class="palestrantes-grid" id="moderadores-grid"></div>
+    </div>
     <div id="palestrantes-section">
       <div class="palestrantes-section-title">Palestrantes</div>
       <div class="palestrantes-grid" id="palestrantes-grid"></div>
@@ -773,6 +779,7 @@ a#prog-download-link{text-decoration:none !important;}
     <div class="prog-header">
       <img id="prog-logo" class="prog-logo" src="" alt="" style="display:none;">
       <div id="prog-event-name" class="prog-event-name"></div>
+      <div id="prog-salas-selector" style="display:none;margin-top:16px;display:none;gap:8px;flex-wrap:wrap;justify-content:center;"></div>
     </div>
     <div id="prog-lista"></div>
     <a id="prog-download-link" href="#" download style="display:none;">
@@ -1127,6 +1134,12 @@ a#prog-download-link{text-decoration:none !important;}
             <span style="font-size:12px;color:var(--text);font-weight:600;">Resposta obrigatória</span>
           </label>
         </div>
+        <div class="aq-field" style="background:#f0f8ff;border-radius:8px;padding:10px;border:1px solid #cce0ff;">
+          <label style="color:var(--blue);text-transform:uppercase;font-size:9px;letter-spacing:.5px;font-weight:700;margin-bottom:6px;display:block;">🔗 Link por resposta (opcional)</label>
+          <div style="font-size:10px;color:var(--text-light);margin-bottom:8px;line-height:1.5;">Ao selecionar uma resposta, pode aparecer um botão com link. Configure após adicionar a pergunta.</div>
+          <div style="font-size:10px;font-weight:700;color:var(--text-light);margin-bottom:4px;">Texto do botão de link</div>
+          <input type="text" id="aq-link-btn-label" placeholder="Ex: Ver programação, Acessar site…" style="width:100%;padding:6px 8px;border:1.5px solid var(--gray2);border-radius:6px;font-size:12px;">
+        </div>
         <button class="aq-add-btn" onclick="addCustomQuestion()">+ Adicionar Pergunta</button>
       </div>
     </div>
@@ -1279,6 +1292,7 @@ a#prog-download-link{text-decoration:none !important;}
           <select id="sp-type">
             <option value="coordenador">Coordenador(a)</option>
             <option value="palestrante">Palestrante</option>
+            <option value="moderador">Moderador(a)</option>
           </select>
         </div>
         <div class="sp-field"><label>Nome completo</label><input type="text" id="sp-name" placeholder="Dr. João Silva"></div>
@@ -1288,6 +1302,7 @@ a#prog-download-link{text-decoration:none !important;}
           <label class="admin-file-btn" for="up-sp-photo">📁 Escolher foto</label>
           <input type="file" id="up-sp-photo" class="admin-file-input" accept="image/*" onchange="handleSpeakerPhoto(this)">
           <div id="sp-photo-preview" style="margin-top:6px;"></div>
+          <button id="sp-remove-photo-btn" onclick="removeSpeakerPhoto()" style="display:none;margin-top:6px;width:100%;padding:7px;background:#fde8e8;color:#c0392b;border:1.5px solid #f5c0c0;border-radius:8px;font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer;">🗑 Remover foto</button>
         </div>
         <!-- Photo position adjuster (shown only when photo exists) -->
         <div class="photo-adjuster" id="photo-adjuster" style="display:none">
@@ -1639,6 +1654,25 @@ Nos vemos lá! Não esqueça de trazer seu QR Code. 🎟</div>
         <div style="font-size:10px;color:var(--text-light);margin-top:4px;">Quando ativo, o botão abre a tela de Programação do próprio app. Desative para usar URL externa.</div>
       </div>
 
+      <!-- Múltiplas salas -->
+      <div class="admin-field" style="background:#f8faff;border-radius:8px;padding:10px;margin-bottom:14px;">
+        <div style="font-size:10px;font-weight:700;color:var(--blue);text-transform:uppercase;margin-bottom:8px;">📋 Múltiplas Programações (Salas)</div>
+        <div class="toggle-row" style="margin-bottom:8px;">
+          <span>Ativar seletor de salas</span>
+          <label class="toggle-switch"><input type="checkbox" id="toggle-prog-salas" onchange="toggleProgSalas()"><span class="toggle-slider"></span></label>
+        </div>
+        <div id="prog-salas-admin" style="display:none;">
+          <div id="prog-salas-list" style="margin-bottom:8px;"></div>
+          <div style="display:flex;gap:8px;margin-bottom:6px;">
+            <input type="text" id="prog-nova-sala" placeholder="Ex: Sala 01, Auditório A…" style="flex:1;padding:7px 10px;border:1.5px solid var(--gray2);border-radius:6px;font-size:12px;">
+            <button onclick="addProgSala()" style="padding:7px 14px;background:var(--blue);color:#fff;border:none;border-radius:6px;font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer;">+ Sala</button>
+          </div>
+          <div style="font-size:10px;color:var(--text-light);margin-bottom:8px;">A programação atual vira automaticamente a primeira sala. Selecione uma sala para editar.</div>
+          <div id="prog-sala-selector" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;"></div>
+          <div id="prog-sala-ativa-label" style="font-size:10px;font-weight:700;color:var(--blue);"></div>
+        </div>
+      </div>
+
       <!-- Upload PDF download -->
       <div class="admin-field">
         <label>Arquivo para download (PDF, DOCX, etc.)</label>
@@ -1864,6 +1898,8 @@ function gatherSettings() {
     progItems: progItems,
     progInternoAtivo: progInternoAtivo,
     progFileUrl: progFileUrl,
+    progSalas: progSalas,
+    progSalasAtivo: progSalasAtivo,
     progOverlayColor:   document.getElementById('ed-prog-overlay-color')?.value||'#005ca9',
     progOverlayOpacity: document.getElementById('ed-prog-overlay-opacity')?.value||'60',
     progTextColor:   document.getElementById('ed-prog-text-color')?.value||'#ffffff',
@@ -2522,6 +2558,8 @@ function showPhotoAdjuster(src, adj){
   document.getElementById('adj-x-val').textContent = adj.x||0;
   document.getElementById('adj-y-val').textContent = adj.y||0;
   document.getElementById('sp-photo-preview').innerHTML = `<img src="${src}" style="width:60px;height:60px;border-radius:50%;object-fit:cover;border:3px solid var(--blue);margin-top:4px;transform:scale(${(adj.zoom||100)/100}) translate(${adj.x||0}px,${adj.y||0}px);">`;
+  const removeBtn = document.getElementById('sp-remove-photo-btn');
+  if(removeBtn) removeBtn.style.display = 'block';
   updatePhotoAdjust();
 }
 
@@ -2591,9 +2629,29 @@ function resetSpeakerForm(){
   document.getElementById('sp-bio').value='';
   document.getElementById('sp-photo-preview').innerHTML='';
   document.getElementById('photo-adjuster').style.display='none';
+  const removeBtn = document.getElementById('sp-remove-photo-btn');
+  if(removeBtn) removeBtn.style.display='none';
   spPhotoTemp=null;
   spPhotoUrl=null;
   spPhotoAdjust={zoom:100,x:0,y:0};
+}
+
+function removeSpeakerPhoto(){
+  if(!confirm('Remover a foto deste palestrante?')) return;
+  spPhotoTemp=null;
+  spPhotoUrl=null;
+  spPhotoAdjust={zoom:100,x:0,y:0};
+  document.getElementById('sp-photo-preview').innerHTML='';
+  document.getElementById('photo-adjuster').style.display='none';
+  const removeBtn = document.getElementById('sp-remove-photo-btn');
+  if(removeBtn) removeBtn.style.display='none';
+  // If editing existing speaker, clear photo immediately
+  const editId = document.getElementById('sp-edit-id').value;
+  if(editId){
+    const sp = speakers.find(s=>s.id===editId);
+    if(sp){ sp.photo=null; sp.photoUrl=null; sp.photoAdjust=null; sp.photoDataUrl=null;
+      renderSpeakersAdminList(); renderPalestrantesPage(); }
+  }
 }
 
 let _originalSpeakerState = null;
@@ -2664,7 +2722,7 @@ function renderSpeakersAdminList(){
     container.innerHTML='<div class="empty-state" style="font-size:12px;padding:10px 0;">Nenhum palestrante neste evento. Use o formulário abaixo ou busque no banco.</div>';
     return;
   }
-  const typeLabel={coordenador:'Coordenador(a)',palestrante:'Palestrante'};
+  const typeLabel={coordenador:'Coordenador(a)',palestrante:'Palestrante',moderador:'Moderador(a)'};
   // Group: coordenadores first, then palestrantes
   const sorted = [
     ...speakers.filter(s=>s.type==='coordenador'),
@@ -2792,12 +2850,16 @@ function addFromDBToEvent(dbId){
 
 function renderPalestrantesPage(){
   const borderData = getSpeakerBorderCSS();
-  const coords=speakers.filter(s=>s.type==='coordenador');
-  const pales=speakers.filter(s=>s.type==='palestrante');
-  const coordSection=document.getElementById('coordenadores-section');
-  coordSection.style.display=coords.length?'':'none';
-  document.getElementById('coordenadores-grid').innerHTML=coords.map(sp=>speakerCardHTML(sp,borderData)).join('');
-  document.getElementById('palestrantes-grid').innerHTML=pales.length
+  const coords = speakers.filter(s=>s.type==='coordenador');
+  const mods   = speakers.filter(s=>s.type==='moderador');
+  const pales  = speakers.filter(s=>s.type==='palestrante');
+  const coordSection = document.getElementById('coordenadores-section');
+  const modSection   = document.getElementById('moderadores-section');
+  coordSection.style.display = coords.length ? '' : 'none';
+  modSection.style.display   = mods.length   ? '' : 'none';
+  document.getElementById('coordenadores-grid').innerHTML = coords.map(sp=>speakerCardHTML(sp,borderData)).join('');
+  document.getElementById('moderadores-grid').innerHTML   = mods.map(sp=>speakerCardHTML(sp,borderData)).join('');
+  document.getElementById('palestrantes-grid').innerHTML  = pales.length
     ? pales.map(sp=>speakerCardHTML(sp,borderData)).join('')
     : '<div class="empty-state">Nenhum palestrante cadastrado ainda.</div>';
 }
@@ -2832,7 +2894,7 @@ function speakerCardHTML(sp, borderData){
 function openSpeakerModal(id){
   const sp=speakers.find(s=>s.id===id); if(!sp)return;
   const borderData=getSpeakerBorderCSS();
-  const typeLabel={coordenador:'Coordenador(a)',palestrante:'Palestrante'};
+  const typeLabel={coordenador:'Coordenador(a)',palestrante:'Palestrante',moderador:'Moderador(a)'};
   const typeClass={coordenador:'coord',palestrante:'pales'};
   const bw=borderData.width; const size=100; const inset=bw; const innerSize=size-inset*2;
   const adj=sp.photoAdjust||{zoom:100,x:0,y:0};
@@ -3298,11 +3360,14 @@ document.getElementById('aq-type').addEventListener('change',function(){ documen
 function addCustomQuestion(){
   const text=document.getElementById('aq-text').value.trim(); const type=document.getElementById('aq-type').value;
   const optionsRaw=document.getElementById('aq-options').value; const required=document.getElementById('aq-required').checked;
+  const linkBtnLabel=document.getElementById('aq-link-btn-label').value.trim();
   if(!text){alert('Insira o texto da pergunta.');return;}
   const options=optionsRaw.split('\n').map(s=>s.trim()).filter(Boolean);
   if(['radio','checkbox','dropdown'].includes(type)&&options.length<1){alert('Adicione pelo menos uma opção.');return;}
-  customQuestions.push({id:'cq_'+Date.now(),text,type,options,required});
-  document.getElementById('aq-text').value=''; document.getElementById('aq-options').value=''; document.getElementById('aq-required').checked=false;
+  // optionLinks: {optionValue: url} — configured after adding
+  customQuestions.push({id:'cq_'+Date.now(),text,type,options,required,linkBtnLabel,optionLinks:{}});
+  document.getElementById('aq-text').value=''; document.getElementById('aq-options').value='';
+  document.getElementById('aq-required').checked=false; document.getElementById('aq-link-btn-label').value='';
   renderCustomQList(); renderCustomQuestionsForm();
 }
 function removeCustomQuestion(id){ customQuestions=customQuestions.filter(q=>q.id!==id); renderCustomQList(); renderCustomQuestionsForm(); }
@@ -3310,20 +3375,79 @@ function renderCustomQList(){
   const typeLabels={radio:'Escolha única',checkbox:'Múltipla escolha',dropdown:'Dropdown',text:'Texto livre'};
   const container=document.getElementById('custom-q-list');
   if(!customQuestions.length){container.innerHTML='<div class="empty-state" style="padding:10px 0;font-size:12px;">Nenhuma pergunta adicionada.</div>';return;}
-  container.innerHTML=customQuestions.map(q=>'<div class="custom-q-item"><div class="custom-q-header"><span>'+q.text+'</span><button onclick="removeCustomQuestion(\''+q.id+'\')">✕</button></div><div class="custom-q-meta">'+typeLabels[q.type]+(q.required?' · Obrigatória':' · Opcional')+(q.options.length?' · '+q.options.length+' opções':'')+'</div></div>').join('');
+  container.innerHTML=customQuestions.map(q=>{
+    const linkSection = q.options.length && q.linkBtnLabel ? `
+      <div style="margin-top:8px;padding:8px;background:#f0f8ff;border-radius:6px;border:1px solid #cce0ff;">
+        <div style="font-size:9px;font-weight:700;color:var(--blue);text-transform:uppercase;margin-bottom:6px;">🔗 Links por resposta — botão: "${q.linkBtnLabel}"</div>
+        ${q.options.map(o=>`
+          <div style="display:flex;gap:6px;align-items:center;margin-bottom:4px;">
+            <span style="font-size:10px;font-weight:600;min-width:90px;color:var(--text);">${o}:</span>
+            <input type="text" value="${(q.optionLinks&&q.optionLinks[o])||''}" placeholder="URL ou #programacao"
+              style="flex:1;padding:4px 6px;border:1px solid var(--gray2);border-radius:4px;font-size:10px;"
+              oninput="updateCqOptionLink('${q.id}','${o.replace(/'/g,'\\\'').replace(/"/g,'&quot;')}',this.value)">
+          </div>`).join('')}
+      </div>` : '';
+    const linkMeta = q.linkBtnLabel ? ` · Botão: "${q.linkBtnLabel}"` : '';
+    return `<div class="custom-q-item">
+      <div class="custom-q-header"><span>${q.text}</span><button onclick="removeCustomQuestion('${q.id}')">✕</button></div>
+      <div class="custom-q-meta">${typeLabels[q.type]}${q.required?' · Obrigatória':' · Opcional'}${q.options.length?' · '+q.options.length+' opções':''}${linkMeta}</div>
+      ${linkSection}
+    </div>`;
+  }).join('');
+}
+
+function updateCqOptionLink(qId, optionValue, url){
+  const q = customQuestions.find(x=>x.id===qId);
+  if(!q) return;
+  if(!q.optionLinks) q.optionLinks = {};
+  q.optionLinks[optionValue] = url.trim();
 }
 function renderCustomQuestionsForm(){
   const container=document.getElementById('custom-questions-form');
   container.innerHTML=customQuestions.map(q=>{
     const reqMark=q.required?'<span class="req"> *</span>':'';
     const safeName='cq_'+q.id.replace(/[^a-z0-9_]/gi,'_');
+    const hasLinks = q.linkBtnLabel && q.optionLinks && Object.keys(q.optionLinks).some(k=>q.optionLinks[k]);
+    const linkBtnId = 'cq-link-btn-'+q.id;
+    const onChange = hasLinks ? `onchange="cqHandleLink('${q.id}',this.value)"` : '';
+    const onRadio  = hasLinks ? `onclick="cqHandleLink('${q.id}',this.value)"` : '';
     let inner='';
     if(q.type==='text') inner='<input type="text" name="'+safeName+'" id="cq_'+q.id+'" placeholder="Sua resposta…">';
-    else if(q.type==='dropdown') inner='<div class="select-wrap"><select name="'+safeName+'" id="cq_'+q.id+'"><option value="">Selecione…</option>'+q.options.map(o=>'<option value="'+o+'">'+o+'</option>').join('')+'</select></div>';
-    else if(q.type==='radio') inner='<div class="radio-group">'+q.options.map((o,oi)=>{ const uid='cq_'+q.id+'_'+oi; return '<div class="radio-option"><input type="radio" name="'+safeName+'" id="'+uid+'" value="'+o+'"><label for="'+uid+'">'+o+'</label></div>'; }).join('')+'</div>';
+    else if(q.type==='dropdown') inner='<div class="select-wrap"><select name="'+safeName+'" id="cq_'+q.id+'" '+onChange+'><option value="">Selecione…</option>'+q.options.map(o=>'<option value="'+o+'">'+o+'</option>').join('')+'</select></div>';
+    else if(q.type==='radio') inner='<div class="radio-group">'+q.options.map((o,oi)=>{ const uid='cq_'+q.id+'_'+oi; return '<div class="radio-option"><input type="radio" name="'+safeName+'" id="'+uid+'" value="'+o+'" '+onRadio+'><label for="'+uid+'">'+o+'</label></div>'; }).join('')+'</div>';
     else if(q.type==='checkbox') inner='<div class="checkbox-group">'+q.options.map((o,oi)=>{ const uid='cq_'+q.id+'_'+oi; return '<div class="checkbox-option"><input type="checkbox" name="'+safeName+'" id="'+uid+'" value="'+o+'"><label for="'+uid+'">'+o+'</label></div>'; }).join('')+'</div>';
-    return '<div class="field-group" data-cqid="'+q.id+'" data-cqtype="'+q.type+'" data-cqreq="'+q.required+'"><label class="fg-label">'+q.text+reqMark+'</label>'+inner+'</div>';
+    const linkBtn = hasLinks ? `<div id="${linkBtnId}" style="display:none;margin-top:10px;"><a id="${linkBtnId}-a" href="#" target="_blank" style="display:inline-block;padding:10px 24px;background:var(--btn-bg);color:var(--btn-color);border-radius:50px;font-family:var(--font);font-size:13px;font-weight:700;text-decoration:none;cursor:pointer;">${q.linkBtnLabel}</a></div>` : '';
+    return '<div class="field-group" data-cqid="'+q.id+'" data-cqtype="'+q.type+'" data-cqreq="'+q.required+'"><label class="fg-label">'+q.text+reqMark+'</label>'+inner+linkBtn+'</div>';
   }).join('');
+}
+
+function cqHandleLink(qId, value){
+  const q = customQuestions.find(x=>x.id===qId);
+  if(!q||!q.optionLinks||!q.linkBtnLabel) return;
+  const url = q.optionLinks[value];
+  const wrap = document.getElementById('cq-link-btn-'+qId);
+  const anchor = document.getElementById('cq-link-btn-'+qId+'-a');
+  if(!wrap||!anchor) return;
+  if(url){
+    // Internal navigation
+    if(url.startsWith('#')){
+      anchor.removeAttribute('href');
+      anchor.setAttribute('href','#');
+      anchor.onclick = e=>{ e.preventDefault(); const target=url.slice(1);
+        if(target==='programacao'){ renderProgScreen(); fadeToScreen('screen-programacao'); }
+        else if(target==='palestrantes') fadeToScreen('screen-palestrantes');
+        else if(target==='landing') fadeToScreen('screen-landing');
+        else fadeToScreen('screen-'+target);
+      };
+    } else {
+      anchor.onclick = null;
+      anchor.href = url;
+      anchor.target = '_blank';
+    }
+    wrap.style.display='block';
+  } else {
+    wrap.style.display='none';
+  }
 }
 
 // ═══════════════════════════════════════
@@ -5212,6 +5336,12 @@ function moveProgItem(id, dir){
 function renderProgAdmin(){
   const wrap = document.getElementById('prog-admin-lista');
   if(!wrap) return;
+  // Show which sala is being edited
+  if(progSalasAtivo && progSalaAtualId){
+    const sala = progSalas.find(s=>s.id===progSalaAtualId);
+    const lbl = document.getElementById('prog-sala-ativa-label');
+    if(lbl && sala) lbl.textContent = '✏️ Editando: "' + sala.nome + '"';
+  }
   if(!progItems.length){ wrap.innerHTML='<div class="empty-state" style="font-size:12px;padding:12px 0;">Nenhum item ainda. Use os botões abaixo para adicionar.</div>'; return; }
 
   // Build speaker options
@@ -5308,9 +5438,13 @@ function renderProgAdmin(){
 
 async function saveProgData(){
   progInternoAtivo = document.getElementById('toggle-prog-interno')?.checked || false;
+  progSalasAtivo   = document.getElementById('toggle-prog-salas')?.checked || false;
+  if(progSalasAtivo) getProgSalasForSave(); // sync current sala
   currentSettings.progItems = progItems;
   currentSettings.progInternoAtivo = progInternoAtivo;
   currentSettings.progFileUrl = progFileUrl;
+  currentSettings.progSalas = progSalas;
+  currentSettings.progSalasAtivo = progSalasAtivo;
   const saved = await saveSettings(gatherSettings());
   showSaveIndicator(saved, '✔ Programação salva!');
 }
@@ -5321,6 +5455,18 @@ function restoreProgData(s){
     progInternoAtivo = s.progInternoAtivo;
     const el = document.getElementById('toggle-prog-interno');
     if(el) el.checked = progInternoAtivo;
+  }
+  if(s.progSalas && s.progSalas.length){
+    progSalas = s.progSalas;
+    progSalaAtualId = progSalas[0].id;
+  }
+  if(s.progSalasAtivo !== undefined){
+    progSalasAtivo = s.progSalasAtivo;
+    const el = document.getElementById('toggle-prog-salas');
+    if(el) el.checked = progSalasAtivo;
+    const wrap = document.getElementById('prog-salas-admin');
+    if(wrap) wrap.style.display = progSalasAtivo ? '' : 'none';
+    if(progSalasAtivo){ renderProgSalasList(); renderProgSalasSelector(); }
   }
   if(s.progFileUrl){ progFileUrl = s.progFileUrl; }
   if(s.progOverlayColor){
@@ -5374,33 +5520,14 @@ function renderProgScreen(){
   // Apply overlay
   updateProgOverlay();
 
-  // Build list
+  // Build list — use first sala if salas active, else progItems
   const lista = document.getElementById('prog-lista');
   if(!lista) return;
-  if(!progItems.length){ lista.innerHTML='<p style="text-align:center;color:rgba(255,255,255,.6);padding:40px 0;">Programação em breve.</p>'; return; }
+  const itemsToShow = (progSalasAtivo && progSalas.length > 0) ? progSalas[0].items : progItems;
+  renderProgItems(itemsToShow, lista);
 
-  lista.innerHTML = progItems.map(item=>{
-    if(item.type==='separador') return `<hr class="prog-separador">`;
-    if(item.type==='sessao') return `<div class="prog-sessao-titulo">${item.titulo||''}</div>`;
-    if(item.type==='subtexto'){
-      const sp = speakers.find(s=>s.name===item.palestrante);
-      const clickAttr = sp ? `onclick="openProgSpeaker('${item.palestrante.replace(/'/g,"\\'")}')"` : '';
-      return `<div class="prog-subtexto">
-        <div class="prog-subtexto-inner">
-          ${item.tipoPalestra?`<span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;opacity:.7;">${item.tipoPalestra}:</span>`:''}
-          <span class="${sp?'sp-link':''}" ${clickAttr}>${item.palestrante||''}</span>
-        </div>
-      </div>`;
-    }
-    // linha
-    return `<div class="prog-item">
-      <div class="prog-hora">${item.hora||''}</div>
-      <div class="prog-body">
-        ${item.tipoPalestra?`<div class="prog-tipo">${item.tipoPalestra}</div>`:''}
-        <div class="prog-titulo">${item.titulo||''}</div>
-      </div>
-    </div>`;
-  }).join('');
+  // Sala selector buttons
+  renderProgSalasPublic();
 
   // Download button
   renderProgDownloadBtn();
@@ -5461,6 +5588,165 @@ function closeProgSpeaker(e){
 function closeProgSpeakerBtn(){
   document.getElementById('prog-speaker-popup').classList.remove('active');
 }
+
+// ═══════════════════════════════════════
+// PROGRAMAÇÃO — MÚLTIPLAS SALAS
+// ═══════════════════════════════════════
+let progSalas = [];        // [{id, nome, items:[]}]
+let progSalasAtivo = false;
+let progSalaAtualId = null; // qual sala está sendo editada no admin
+
+function toggleProgSalas(){
+  progSalasAtivo = document.getElementById('toggle-prog-salas')?.checked || false;
+  const wrap = document.getElementById('prog-salas-admin');
+  if(wrap) wrap.style.display = progSalasAtivo ? '' : 'none';
+  if(progSalasAtivo && progSalas.length === 0){
+    // Migrar progItems atual como primeira sala
+    const defaultName = 'Programação Principal';
+    progSalas = [{id:'sala_'+Date.now(), nome:defaultName, items: JSON.parse(JSON.stringify(progItems))}];
+    progSalaAtualId = progSalas[0].id;
+  }
+  renderProgSalasList();
+  renderProgSalasSelector();
+}
+
+function addProgSala(){
+  const input = document.getElementById('prog-nova-sala');
+  const nome = input.value.trim();
+  if(!nome){ alert('Insira o nome da sala.'); return; }
+  if(progSalas.length === 0){
+    progSalas = [{id:'sala_'+Date.now(), nome:'Programação Principal', items: JSON.parse(JSON.stringify(progItems))}];
+  }
+  const newSala = {id:'sala_'+Date.now(), nome, items:[]};
+  progSalas.push(newSala);
+  input.value = '';
+  renderProgSalasList();
+  renderProgSalasSelector();
+  selectProgSala(newSala.id);
+}
+
+function selectProgSala(id){
+  // Save current progItems back to active sala
+  if(progSalaAtualId){
+    const cur = progSalas.find(s=>s.id===progSalaAtualId);
+    if(cur) cur.items = JSON.parse(JSON.stringify(progItems));
+  }
+  progSalaAtualId = id;
+  const sala = progSalas.find(s=>s.id===id);
+  if(sala){
+    progItems = JSON.parse(JSON.stringify(sala.items));
+    renderProgAdmin();
+    const lbl = document.getElementById('prog-sala-ativa-label');
+    if(lbl) lbl.textContent = 'Editando: ' + sala.nome;
+  }
+  renderProgSalasSelector();
+}
+
+function removeProgSala(id){
+  if(progSalas.length <= 1){ alert('Deve haver pelo menos uma sala.'); return; }
+  if(!confirm('Remover esta sala e sua programação?')) return;
+  progSalas = progSalas.filter(s=>s.id!==id);
+  if(progSalaAtualId === id){
+    progSalaAtualId = progSalas[0].id;
+    progItems = JSON.parse(JSON.stringify(progSalas[0].items));
+    renderProgAdmin();
+  }
+  renderProgSalasList();
+  renderProgSalasSelector();
+}
+
+function renderProgSalasList(){
+  const wrap = document.getElementById('prog-salas-list');
+  if(!wrap) return;
+  if(!progSalas.length){ wrap.innerHTML=''; return; }
+  wrap.innerHTML = progSalas.map((s,i)=>`
+    <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:#fff;border-radius:7px;margin-bottom:5px;border:1.5px solid ${s.id===progSalaAtualId?'var(--blue)':'var(--gray2)'};">
+      <span style="flex:1;font-size:12px;font-weight:700;color:${s.id===progSalaAtualId?'var(--blue)':'var(--text)'};">${i===0?'★ ':''}"${s.nome}"</span>
+      <button onclick="selectProgSala('${s.id}')" style="padding:3px 8px;background:var(--blue);color:#fff;border:none;border-radius:5px;font-size:10px;font-weight:700;cursor:pointer;">Editar</button>
+      ${i>0?`<button onclick="removeProgSala('${s.id}')" style="padding:3px 8px;background:#fde8e8;color:#c0392b;border:none;border-radius:5px;font-size:10px;cursor:pointer;">✕</button>`:''}
+    </div>`).join('');
+}
+
+function renderProgSalasSelector(){
+  // Admin selector
+  const sel = document.getElementById('prog-sala-selector');
+  if(sel){
+    sel.innerHTML = progSalas.map(s=>`
+      <button onclick="selectProgSala('${s.id}')"
+        style="padding:6px 14px;border-radius:50px;font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer;border:1.5px solid var(--blue);
+          background:${s.id===progSalaAtualId?'var(--blue)':'#fff'};color:${s.id===progSalaAtualId?'#fff':'var(--blue)'};">
+        ${s.nome}
+      </button>`).join('');
+  }
+}
+
+// Save salas — called inside saveProgData
+function getProgSalasForSave(){
+  // Sync current sala before saving
+  if(progSalaAtualId){
+    const cur = progSalas.find(s=>s.id===progSalaAtualId);
+    if(cur) cur.items = JSON.parse(JSON.stringify(progItems));
+  }
+  return progSalas;
+}
+
+// Render sala buttons on the public prog screen
+function renderProgSalasPublic(){
+  const wrap = document.getElementById('prog-salas-selector');
+  if(!wrap) return;
+  if(!progSalasAtivo || progSalas.length < 2){ wrap.style.display='none'; return; }
+  wrap.style.display = 'flex';
+  wrap.innerHTML = progSalas.map((s,i)=>`
+    <button onclick="switchProgSalaPublic('${s.id}',this)"
+      style="padding:8px 20px;border-radius:50px;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer;
+        border:2px solid var(--btn-bg,#fff);transition:all .2s;
+        background:${i===0?'var(--btn-bg,#fff)':'transparent'};
+        color:${i===0?'var(--btn-color,#005ca9)':'var(--btn-bg,#fff)'};">
+      ${s.nome}
+    </button>`).join('');
+}
+
+function switchProgSalaPublic(salaId, btn){
+  const sala = progSalas.find(s=>s.id===salaId);
+  if(!sala) return;
+  // Render that sala's items
+  const lista = document.getElementById('prog-lista');
+  if(lista) renderProgItems(sala.items, lista);
+  // Update button styles
+  const wrap = document.getElementById('prog-salas-selector');
+  wrap.querySelectorAll('button').forEach(b=>{
+    b.style.background='transparent';
+    b.style.color='var(--btn-bg,#fff)';
+  });
+  btn.style.background='var(--btn-bg,#fff)';
+  btn.style.color='var(--btn-color,#005ca9)';
+}
+
+function renderProgItems(items, container){
+  if(!items||!items.length){ container.innerHTML='<p style="text-align:center;color:rgba(255,255,255,.6);padding:40px 0;">Programação em breve.</p>'; return; }
+  container.innerHTML = items.map(item=>{
+    if(item.type==='separador') return `<hr class="prog-separador">`;
+    if(item.type==='sessao') return `<div class="prog-sessao-titulo">${item.titulo||''}</div>`;
+    if(item.type==='subtexto'){
+      const sp = speakers.find(s=>s.name===item.palestrante);
+      const clickAttr = sp ? `onclick="openProgSpeaker('${item.palestrante.replace(/'/g,"\\'")}')"` : '';
+      return `<div class="prog-subtexto">
+        <div class="prog-subtexto-inner">
+          ${item.tipoPalestra?`<span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;opacity:.7;">${item.tipoPalestra}:</span>`:''}
+          <span class="${sp?'sp-link':''}" ${clickAttr}>${item.palestrante||''}</span>
+        </div>
+      </div>`;
+    }
+    return `<div class="prog-item">
+      <div class="prog-hora">${item.hora||''}</div>
+      <div class="prog-body">
+        ${item.tipoPalestra?`<div class="prog-tipo">${item.tipoPalestra}</div>`:''}
+        <div class="prog-titulo">${item.titulo||''}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
 
 
 </script>
