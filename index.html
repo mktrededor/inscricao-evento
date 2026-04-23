@@ -112,8 +112,8 @@ body.admin-open.admin-collapsed{margin-right:110px;}
 .field-group{margin-bottom:20px;}
 .field-group>.fg-label{display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-light);margin-bottom:7px;}
 .field-group .req{color:var(--blue);}
-.field-group input,.field-group select,.field-group textarea{width:100%;padding:12px 14px;border:1.5px solid var(--gray2);border-radius:10px;font-family:var(--font);font-size:14px;color:var(--text);background:#fff;transition:border .2s,box-shadow .2s;appearance:none;-webkit-appearance:none;resize:vertical;}
-.field-group input:focus,.field-group select:focus,.field-group textarea:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(0,92,169,.12);}
+.field-group input:not([type=checkbox]):not([type=radio]),.field-group select,.field-group textarea{width:100%;padding:12px 14px;border:1.5px solid var(--gray2);border-radius:10px;font-family:var(--font);font-size:14px;color:var(--text);background:#fff;transition:border .2s,box-shadow .2s;appearance:none;-webkit-appearance:none;resize:vertical;}
+.field-group input:not([type=checkbox]):not([type=radio]):focus,.field-group select:focus,.field-group textarea:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(0,92,169,.12);}
 .field-group input::placeholder,.field-group textarea::placeholder{color:#aab4c2;}
 .select-wrap{position:relative;}
 .select-wrap::after{content:'';position:absolute;right:14px;top:50%;transform:translateY(-50%);border-left:5px solid transparent;border-right:5px solid transparent;border-top:6px solid var(--blue);pointer-events:none;}
@@ -140,7 +140,7 @@ body.admin-open.admin-collapsed{margin-right:110px;}
 .submit-btn:hover{filter:brightness(1.12);}
 .submit-btn:active{transform:scale(.98);}
 .required-note{font-size:11px;color:var(--text-light);margin-top:14px;text-align:center;}
-.field-group input.error,.field-group select.error,.field-group textarea.error{border-color:#e74c3c;box-shadow:0 0 0 3px rgba(231,76,60,.10);}
+.field-group input:not([type=checkbox]):not([type=radio]).error,.field-group select.error,.field-group textarea.error{border-color:#e74c3c;box-shadow:0 0 0 3px rgba(231,76,60,.10);}
 .error-msg{font-size:11px;color:#e74c3c;margin-top:4px;font-weight:600;}
 .footer{text-align:center;padding:20px;font-size:11px;color:var(--text-light);}
 
@@ -2674,21 +2674,26 @@ function handleSpeakerPhoto(input){
   const file = input.files[0];
   const label = input.previousElementSibling;
   if(label) label.textContent = '⏳ Enviando…';
-  // Read for immediate preview
   const r = new FileReader();
   r.onload = async e => {
-    spPhotoTemp = e.target.result; // dataUrl for preview
+    spPhotoTemp = e.target.result; // keep dataUrl for fallback
     spPhotoAdjust = {zoom:100, x:0, y:0};
     showPhotoAdjuster(spPhotoTemp, spPhotoAdjust);
-    // Upload to Storage
+    // Try upload — retry once on failure (handles transient 502)
     const tempKey = 'speaker-photo-' + Date.now();
-    const url = await uploadDataUrlToStorage(spPhotoTemp, tempKey);
-    if(url) {
-      spPhotoUrl = url; // store public URL separately
+    let url = await uploadDataUrlToStorage(spPhotoTemp, tempKey);
+    if(!url){
+      // Wait 2s and retry once
+      await new Promise(r=>setTimeout(r,2000));
+      url = await uploadDataUrlToStorage(spPhotoTemp, tempKey+'-r');
+    }
+    if(url){
+      spPhotoUrl = url;
       if(label) label.textContent = '✔ Foto enviada';
     } else {
       spPhotoUrl = null;
-      if(label) label.textContent = '⚠ Usando local (Storage indisponível)';
+      // Keep spPhotoTemp (dataUrl) as session fallback — will save to DB stripped
+      if(label) label.textContent = '⚠ Upload falhou — foto visível apenas nesta sessão. Tente salvar novamente.';
     }
   };
   r.readAsDataURL(file);
