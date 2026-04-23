@@ -1905,6 +1905,14 @@ async function saveSettings(obj) {
     if (slim.speakers) {
       slim.speakers = slim.speakers.map(sp => {
         const s = Object.assign({}, sp);
+        // Try to find photo in speakersDB if not already set
+        if (!s.photoUrl && !s.photoDataUrl) {
+          const dbEntry = speakersDB.find(d => d.name && d.name.toLowerCase() === (s.name||'').toLowerCase());
+          if (dbEntry && dbEntry.photo_data_url && dbEntry.photo_data_url.startsWith('http')) {
+            s.photoUrl = dbEntry.photo_data_url;
+            s.photoDataUrl = dbEntry.photo_data_url;
+          }
+        }
         const bestUrl = (s.photoUrl && s.photoUrl.startsWith('http')) ? s.photoUrl
           : (s.photoDataUrl && s.photoDataUrl.startsWith('http')) ? s.photoDataUrl
           : null;
@@ -1912,7 +1920,6 @@ async function saveSettings(obj) {
           s.photoDataUrl = bestUrl;
         }
         s.photoUrl = bestUrl;
-        console.log('[saveSpeaker]', s.name, '→ photoUrl:', s.photoUrl, 'photoDataUrl:', s.photoDataUrl);
         return s;
       });
     }
@@ -3515,12 +3522,12 @@ function removeProfile(i){ profiles.splice(i,1); renderProfiles(); renderSelectO
 // ═══════════════════════════════════════
 // CUSTOM QUESTIONS
 // ═══════════════════════════════════════
-document.getElementById('aq-type').addEventListener('change',function(){ document.getElementById('aq-options-wrap').style.display=['radio','checkbox','dropdown'].includes(this.value)?'block':'none'; });
+// aq-type change handled by toggleAqOptions() inline onchange
 
 function toggleAqOptions(){
-  const type = document.getElementById('aq-type').value;
+  const type = document.getElementById('aq-type')?.value;
   const wrap = document.getElementById('aq-options-wrap');
-  if(wrap) wrap.style.display = type==='text' ? 'none' : '';
+  if(wrap) wrap.style.display = type === 'text' ? 'none' : 'block';
 }
 
 function addCustomQuestion(){
@@ -3530,7 +3537,7 @@ function addCustomQuestion(){
   const required=document.getElementById('aq-required').checked;
   if(!text){alert('Insira o texto da pergunta.');return;}
   const options=optionsRaw.split('\n').map(s=>s.trim()).filter(Boolean);
-  if(type!=='text'&&options.length<1){alert('Adicione pelo menos uma opção.');return;}
+  if(type!=='text' && options.length < 1){ alert('Adicione pelo menos uma opção.'); return; }
   customQuestions.push({id:'cq_'+Date.now(),text,type,options,required,optionLinks:{}});
   document.getElementById('aq-text').value='';
   document.getElementById('aq-options').value='';
@@ -3672,16 +3679,24 @@ function renderCustomLinkBtns(){
         oninput="clbSetUrl('${b.id}',this.value)"
         style="width:100%;padding:7px 10px;border:1.5px solid var(--gray2);border-radius:6px;font-size:12px;display:${isUrl?'block':'none'};">
       <div style="margin-top:10px;text-align:center;">
-        <span style="display:inline-block;padding:8px 20px;background:${b.bgColor||'#005ca9'};color:${b.textColor||'#ffffff'};border-radius:50px;font-size:12px;font-weight:700;">
+        <span data-clb-preview="${b.id}" style="display:inline-block;padding:8px 20px;background:${b.bgColor||'#005ca9'};color:${b.textColor||'#ffffff'};border-radius:50px;font-size:12px;font-weight:700;">
           ${b.label||'Texto do botão'}
         </span>
       </div>
     </div>`}).join('');
 }
 
+let _clbDebounce = null;
 function clbUpdateLabel(id, val){
   const b = customLinkBtns.find(x=>x.id===id);
-  if(b){ b.label=val; renderCustomLinkBtns(); renderCustomQuestionsForm(); }
+  if(!b) return;
+  b.label = val;
+  // Debounce re-render so typing isn't interrupted
+  clearTimeout(_clbDebounce);
+  _clbDebounce = setTimeout(()=>{ renderCustomQuestionsForm(); }, 600);
+  // Update preview span without full re-render
+  const preview = document.querySelector(`[data-clb-preview="${id}"]`);
+  if(preview) preview.textContent = val||'Texto do botão';
 }
 
 function clbUpdateColor(id, field, val){
