@@ -1131,9 +1131,9 @@ a#prog-download-link{text-decoration:none !important;}
       <h3>➕ Perguntas Adicionais</h3>
       <div id="custom-q-list"></div>
 
-      <!-- Botões de link autônomos -->
+      <!-- Botões adicionais -->
       <div id="custom-link-btns-list" style="margin-bottom:10px;"></div>
-      <button onclick="addCustomLinkBtn()" style="width:100%;padding:9px;background:#f0f8ff;color:var(--blue);border:1.5px dashed var(--blue);border-radius:8px;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer;margin-bottom:12px;">+ Adicionar botão de link</button>
+      <button onclick="addCustomLinkBtn()" style="width:100%;padding:9px;background:#f0f8ff;color:var(--blue);border:1.5px dashed var(--blue);border-radius:8px;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer;margin-bottom:12px;">+ Adicionar botão</button>
 
       <div class="add-q-form">
         <h4>Nova pergunta</h4>
@@ -1893,9 +1893,16 @@ async function saveSettings(obj) {
     if (slim.speakers) {
       slim.speakers = slim.speakers.map(sp => {
         const s = Object.assign({}, sp);
+        // Determine the best public URL
+        const bestUrl = (s.photoUrl && s.photoUrl.startsWith('http')) ? s.photoUrl
+          : (s.photoDataUrl && s.photoDataUrl.startsWith('http')) ? s.photoDataUrl
+          : null;
+        // Strip base64 blobs — they are too large for the DB
         if (s.photoDataUrl && s.photoDataUrl.startsWith('data:')) {
-          s.photoDataUrl = s.photoUrl || null; // usa URL pública se existir
+          s.photoDataUrl = bestUrl;
         }
+        // Always keep photoUrl pointing to the public URL
+        s.photoUrl = bestUrl;
         return s;
       });
     }
@@ -2944,20 +2951,23 @@ function editSpeakerFromDB(dbId){
   document.getElementById('add-speaker-form').scrollIntoView({behavior:'smooth'});
 }
 
-function addFromDBToEvent(dbId){
+async function addFromDBToEvent(dbId){
   const s = speakersDB.find(x=>String(x.id)===String(dbId));
   if(!s) return;
   const adj = s.photo_adjust ? JSON.parse(s.photo_adjust) : {zoom:100,x:0,y:0};
+  const photoUrl = (s.photo_data_url && s.photo_data_url.startsWith('http')) ? s.photo_data_url : null;
   speakers.push({
     id:'sp_'+Date.now(), type:'palestrante',
     name:s.name, role:s.role||'', bio:s.bio||'',
-    photoUrl: s.photo_data_url && s.photo_data_url.startsWith('http') ? s.photo_data_url : null,
-    photoDataUrl: s.photo_data_url||null,
+    photoUrl: photoUrl,
+    photoDataUrl: photoUrl, // store URL (not base64) so it persists
     photoAdjust: adj
   });
   renderSpeakersAdminList();
   renderPalestrantesPage();
   renderDBBankList(document.getElementById('db-bank-search').value);
+  const saved = await saveSettings(gatherSettings());
+  showSaveIndicator(saved, saved ? '✔ Palestrante adicionado!' : '⚠ Falha ao salvar');
 }
 
 function renderPalestrantesPage(){
@@ -3610,30 +3620,54 @@ function renderCustomLinkBtns(){
   const wrap = document.getElementById('custom-link-btns-list');
   if(!wrap) return;
   if(!customLinkBtns.length){ wrap.innerHTML=''; return; }
-  wrap.innerHTML = customLinkBtns.map((b,i)=>`
-    <div style="background:#f0f8ff;border:1px solid #cce0ff;border-radius:8px;padding:10px;margin-bottom:8px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-        <span style="font-size:10px;font-weight:700;color:var(--blue);text-transform:uppercase;">Botão de link ${i+1}</span>
+  const internalScreens = [
+    {value:'#landing', label:'🏠 Tela Inicial'},
+    {value:'#programacao', label:'📋 Programação'},
+    ...progSalas.map(s=>({value:'#programacao:'+s.id, label:`📋 Programação — ${s.nome}`})),
+    {value:'#palestrantes', label:'🎤 Palestrantes'},
+    {value:'__url__', label:'🌐 URL externa…'},
+  ];
+  wrap.innerHTML = customLinkBtns.map((b,i)=>{
+    const isUrl = b.url && !b.url.startsWith('#');
+    const selVal = isUrl ? '__url__' : (b.url||'');
+    return `
+    <div style="background:#f0f8ff;border:1px solid #cce0ff;border-radius:8px;padding:12px;margin-bottom:8px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <span style="font-size:10px;font-weight:700;color:var(--blue);text-transform:uppercase;">Botão ${i+1}</span>
         <button onclick="removeCustomLinkBtn('${b.id}')" style="background:#fde8e8;color:#c0392b;border:none;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:10px;">✕</button>
       </div>
       <div style="font-size:10px;font-weight:600;color:var(--text-light);margin-bottom:3px;">TEXTO DO BOTÃO</div>
-      <input type="text" value="${b.label}" placeholder="Ex: Ver programação"
-        data-id="${b.id}" data-field="label"
-        onchange="updateCustomLinkBtn(this)"
-        style="width:100%;padding:6px 8px;border:1.5px solid var(--gray2);border-radius:6px;font-size:12px;margin-bottom:6px;">
-      <div style="font-size:10px;font-weight:600;color:var(--text-light);margin-bottom:3px;">LINK (URL ou tela interna)</div>
-      <input type="text" value="${b.url}" placeholder="https://... ou #programacao"
-        data-id="${b.id}" data-field="url"
-        onchange="updateCustomLinkBtn(this)"
-        style="width:100%;padding:6px 8px;border:1.5px solid var(--gray2);border-radius:6px;font-size:12px;">
-      <div style="font-size:9px;color:var(--text-light);margin-top:4px;">Use #programacao, #palestrantes ou uma URL completa.</div>
-    </div>`).join('');
+      <input type="text" value="${b.label||''}" placeholder="Ex: Ver programação"
+        data-id="${b.id}" data-field="label" onchange="updateCustomLinkBtn(this)"
+        style="width:100%;padding:7px 10px;border:1.5px solid var(--gray2);border-radius:6px;font-size:12px;margin-bottom:8px;">
+      <div style="font-size:10px;font-weight:600;color:var(--text-light);margin-bottom:3px;">DESTINO</div>
+      <select onchange="clbPickerChange('${b.id}',this)"
+        style="width:100%;padding:7px 10px;border:1.5px solid var(--gray2);border-radius:6px;font-size:12px;margin-bottom:6px;">
+        ${internalScreens.map(s=>`<option value="${s.value}"${s.value===selVal?' selected':''}>${s.label}</option>`).join('')}
+      </select>
+      <input type="text" id="clb-url-${b.id}" value="${isUrl?b.url:''}" placeholder="https://…"
+        onchange="clbSetUrl('${b.id}',this.value)"
+        style="width:100%;padding:7px 10px;border:1.5px solid var(--gray2);border-radius:6px;font-size:12px;display:${isUrl?'block':'none'};">
+    </div>`}).join('');
 }
 
-function updateCustomLinkBtn(el){
-  const b = customLinkBtns.find(x=>x.id===el.dataset.id);
-  if(b) b[el.dataset.field] = el.value.trim();
-  renderCustomQuestionsForm();
+function clbPickerChange(id, sel){
+  const b = customLinkBtns.find(x=>x.id===id);
+  if(!b) return;
+  const urlInput = document.getElementById('clb-url-'+id);
+  if(sel.value==='__url__'){
+    if(urlInput) urlInput.style.display='block';
+    b.url = '';
+  } else {
+    if(urlInput) urlInput.style.display='none';
+    b.url = sel.value;
+    renderCustomQuestionsForm();
+  }
+}
+
+function clbSetUrl(id, url){
+  const b = customLinkBtns.find(x=>x.id===id);
+  if(b){ b.url=url.trim(); renderCustomQuestionsForm(); }
 }
 
 function renderCustomLinkBtnsInForm(container){
