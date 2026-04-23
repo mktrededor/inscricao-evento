@@ -1130,12 +1130,18 @@ a#prog-download-link{text-decoration:none !important;}
     <div class="admin-section">
       <h3>➕ Perguntas Adicionais</h3>
       <div id="custom-q-list"></div>
+
+      <!-- Botões de link autônomos -->
+      <div id="custom-link-btns-list" style="margin-bottom:10px;"></div>
+      <button onclick="addCustomLinkBtn()" style="width:100%;padding:9px;background:#f0f8ff;color:var(--blue);border:1.5px dashed var(--blue);border-radius:8px;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer;margin-bottom:12px;">+ Adicionar botão de link</button>
+
       <div class="add-q-form">
         <h4>Nova pergunta</h4>
         <div class="aq-field"><label>Texto da pergunta</label><input type="text" id="aq-text" placeholder="Ex: Como ficou sabendo do evento?"></div>
         <div class="aq-field"><label>Tipo de resposta</label>
-          <select id="aq-type">
-            <option value="radio">Escolha única (radio)</option>
+          <select id="aq-type" onchange="toggleAqOptions()">
+            <option value="radio">Escolha única (botões)</option>
+            <option value="checkbox_single">Escolha única (checkbox)</option>
             <option value="checkbox">Múltipla escolha (checkbox)</option>
             <option value="dropdown">Menu suspenso (dropdown)</option>
             <option value="text">Texto livre</option>
@@ -1150,12 +1156,6 @@ a#prog-download-link{text-decoration:none !important;}
             <input type="checkbox" id="aq-required" style="width:16px;height:16px;accent-color:var(--blue);">
             <span style="font-size:12px;color:var(--text);font-weight:600;">Resposta obrigatória</span>
           </label>
-        </div>
-        <div class="aq-field" style="background:#f0f8ff;border-radius:8px;padding:10px;border:1px solid #cce0ff;">
-          <label style="color:var(--blue);text-transform:uppercase;font-size:9px;letter-spacing:.5px;font-weight:700;margin-bottom:6px;display:block;">🔗 Link por resposta (opcional)</label>
-          <div style="font-size:10px;color:var(--text-light);margin-bottom:8px;line-height:1.5;">Ao selecionar uma resposta, pode aparecer um botão com link. Configure após adicionar a pergunta.</div>
-          <div style="font-size:10px;font-weight:700;color:var(--text-light);margin-bottom:4px;">Texto do botão de link</div>
-          <input type="text" id="aq-link-btn-label" placeholder="Ex: Ver programação, Acessar site…" style="width:100%;padding:6px 8px;border:1.5px solid var(--gray2);border-radius:6px;font-size:12px;">
         </div>
         <button class="aq-add-btn" onclick="addCustomQuestion()">+ Adicionar Pergunta</button>
       </div>
@@ -1951,6 +1951,7 @@ function gatherSettings() {
     syncBgAll: document.getElementById('sync-bg-all').checked,
     profiles,
     customQuestions,
+    customLinkBtns,
     colorStates,
     speakers,
     cpfEnabled,
@@ -2106,6 +2107,7 @@ async function applySettingsToPage(s) {
 
   if(s.profiles&&s.profiles.length){ profiles=s.profiles; renderProfiles(); renderSelectOptions(); }
   if(s.customQuestions){ customQuestions=s.customQuestions; renderCustomQList(); renderCustomQuestionsForm(); }
+  if(s.customLinkBtns){ customLinkBtns=s.customLinkBtns; renderCustomLinkBtns(); }
   if(s.colorStates){ Object.assign(colorStates,s.colorStates); colorTargets.forEach(ct=>document.documentElement.style.setProperty(ct.cssProp,buildCssValue(ct.id))); }
 
   if(s.speakers) { speakers=s.speakers; renderPalestrantesPage(); renderSpeakersAdminList(); }
@@ -2678,7 +2680,7 @@ function updatePhotoAdjust(){
 // ═══════════════════════════════════════
 // SPEAKERS CRUD
 // ═══════════════════════════════════════
-function saveSpeaker(){
+async function saveSpeaker(){
   const editId=document.getElementById('sp-edit-id').value;
   const name=document.getElementById('sp-name').value.trim();
   const type=document.getElementById('sp-type').value;
@@ -2688,39 +2690,45 @@ function saveSpeaker(){
   const photoAdjust = {...spPhotoAdjust};
   const photoUrl = spPhotoUrl || null;
   const photoDataUrl = spPhotoTemp || null;
+  // Always use photoUrl if available (public URL persists after reload)
+  const bestPhoto = photoUrl || photoDataUrl || null;
 
   if(editId && editId.startsWith('db_')){
-    // Editing an entry from the global DB bank (not yet in event list)
-    const dbId = editId.replace('db_','');
-    upsertSpeakerDB({name,role,bio,photoDataUrl:photoUrl||photoDataUrl,photoAdjust});
-    // Also update in event list if present
+    upsertSpeakerDB({name,role,bio,photoDataUrl:bestPhoto,photoAdjust});
     const idx = speakers.findIndex(s=>s.name.toLowerCase()===name.toLowerCase());
-    if(idx>-1){ speakers[idx]={...speakers[idx],name,role,bio,photoAdjust}; if(photoUrl) speakers[idx].photoUrl=photoUrl; if(photoDataUrl) speakers[idx].photoDataUrl=photoDataUrl; }
+    if(idx>-1){
+      speakers[idx]={...speakers[idx],name,role,bio,photoAdjust};
+      speakers[idx].photoUrl = photoUrl;
+      speakers[idx].photoDataUrl = bestPhoto;
+    }
     document.getElementById('sp-edit-id').value='';
     document.getElementById('add-speaker-form-title').textContent='Adicionar Pessoa';
     document.getElementById('sp-cancel-btn').style.display='none';
   } else if(editId){
-    // Editing existing event speaker
     const idx=speakers.findIndex(s=>s.id===editId);
     if(idx>-1){
       speakers[idx]={...speakers[idx],name,type,role,bio,photoAdjust};
-      if(photoUrl) speakers[idx].photoUrl=photoUrl;
-      if(photoDataUrl) speakers[idx].photoDataUrl=photoDataUrl;
+      // Always update photo fields — even if null (to clear a removed photo)
+      speakers[idx].photoUrl = photoUrl;
+      speakers[idx].photoDataUrl = bestPhoto;
     }
-    upsertSpeakerDB({name,role,bio,photoDataUrl:photoUrl||photoDataUrl,photoAdjust});
+    upsertSpeakerDB({name,role,bio,photoDataUrl:bestPhoto,photoAdjust});
     document.getElementById('sp-edit-id').value='';
     document.getElementById('add-speaker-form-title').textContent='Adicionar Pessoa';
     document.getElementById('sp-cancel-btn').style.display='none';
   } else {
-    // New speaker
-    speakers.push({id:'sp_'+Date.now(),type,name,role,bio,photoUrl,photoDataUrl,photoAdjust});
-    upsertSpeakerDB({name,role,bio,photoDataUrl:photoUrl||photoDataUrl,photoAdjust});
+    speakers.push({id:'sp_'+Date.now(),type,name,role,bio,photoUrl,photoDataUrl:bestPhoto,photoAdjust});
+    upsertSpeakerDB({name,role,bio,photoDataUrl:bestPhoto,photoAdjust});
   }
 
+  _originalSpeakerState = null;
   resetSpeakerForm();
   renderSpeakersAdminList();
   renderPalestrantesPage();
   renderDBBankList(document.getElementById('db-bank-search').value);
+  // Always persist to Supabase after any speaker change
+  const saved = await saveSettings(gatherSettings());
+  showSaveIndicator(saved, saved ? '✔ Palestrante salvo!' : '⚠ Falha ao salvar');
 }
 
 function resetSpeakerForm(){
@@ -3489,17 +3497,24 @@ function removeProfile(i){ profiles.splice(i,1); renderProfiles(); renderSelectO
 // ═══════════════════════════════════════
 document.getElementById('aq-type').addEventListener('change',function(){ document.getElementById('aq-options-wrap').style.display=['radio','checkbox','dropdown'].includes(this.value)?'block':'none'; });
 
+function toggleAqOptions(){
+  const type = document.getElementById('aq-type').value;
+  const wrap = document.getElementById('aq-options-wrap');
+  if(wrap) wrap.style.display = type==='text' ? 'none' : '';
+}
+
 function addCustomQuestion(){
-  const text=document.getElementById('aq-text').value.trim(); const type=document.getElementById('aq-type').value;
-  const optionsRaw=document.getElementById('aq-options').value; const required=document.getElementById('aq-required').checked;
-  const linkBtnLabel=document.getElementById('aq-link-btn-label').value.trim();
+  const text=document.getElementById('aq-text').value.trim();
+  const type=document.getElementById('aq-type').value;
+  const optionsRaw=document.getElementById('aq-options').value;
+  const required=document.getElementById('aq-required').checked;
   if(!text){alert('Insira o texto da pergunta.');return;}
   const options=optionsRaw.split('\n').map(s=>s.trim()).filter(Boolean);
-  if(['radio','checkbox','dropdown'].includes(type)&&options.length<1){alert('Adicione pelo menos uma opção.');return;}
-  // optionLinks: {optionValue: url} — configured after adding
-  customQuestions.push({id:'cq_'+Date.now(),text,type,options,required,linkBtnLabel,optionLinks:{}});
-  document.getElementById('aq-text').value=''; document.getElementById('aq-options').value='';
-  document.getElementById('aq-required').checked=false; document.getElementById('aq-link-btn-label').value='';
+  if(type!=='text'&&options.length<1){alert('Adicione pelo menos uma opção.');return;}
+  customQuestions.push({id:'cq_'+Date.now(),text,type,options,required,optionLinks:{}});
+  document.getElementById('aq-text').value='';
+  document.getElementById('aq-options').value='';
+  document.getElementById('aq-required').checked=false;
   renderCustomQList(); renderCustomQuestionsForm();
 }
 function removeCustomQuestion(id){ customQuestions=customQuestions.filter(q=>q.id!==id); renderCustomQList(); renderCustomQuestionsForm(); }
@@ -3576,23 +3591,100 @@ function updateCqOptionLink(qId, optionValue, url){
   if(!q.optionLinks) q.optionLinks = {};
   q.optionLinks[optionValue] = url.trim ? url.trim() : url;
 }
+// ══ Standalone link buttons in form ══
+let customLinkBtns = []; // [{id, label, url}]
+
+function addCustomLinkBtn(){
+  const id = 'clb_'+Date.now();
+  customLinkBtns.push({id, label:'Ver mais', url:''});
+  renderCustomLinkBtns();
+}
+
+function removeCustomLinkBtn(id){
+  customLinkBtns = customLinkBtns.filter(b=>b.id!==id);
+  renderCustomLinkBtns();
+  renderCustomQuestionsForm();
+}
+
+function renderCustomLinkBtns(){
+  const wrap = document.getElementById('custom-link-btns-list');
+  if(!wrap) return;
+  if(!customLinkBtns.length){ wrap.innerHTML=''; return; }
+  wrap.innerHTML = customLinkBtns.map((b,i)=>`
+    <div style="background:#f0f8ff;border:1px solid #cce0ff;border-radius:8px;padding:10px;margin-bottom:8px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <span style="font-size:10px;font-weight:700;color:var(--blue);text-transform:uppercase;">Botão de link ${i+1}</span>
+        <button onclick="removeCustomLinkBtn('${b.id}')" style="background:#fde8e8;color:#c0392b;border:none;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:10px;">✕</button>
+      </div>
+      <div style="font-size:10px;font-weight:600;color:var(--text-light);margin-bottom:3px;">TEXTO DO BOTÃO</div>
+      <input type="text" value="${b.label}" placeholder="Ex: Ver programação"
+        data-id="${b.id}" data-field="label"
+        onchange="updateCustomLinkBtn(this)"
+        style="width:100%;padding:6px 8px;border:1.5px solid var(--gray2);border-radius:6px;font-size:12px;margin-bottom:6px;">
+      <div style="font-size:10px;font-weight:600;color:var(--text-light);margin-bottom:3px;">LINK (URL ou tela interna)</div>
+      <input type="text" value="${b.url}" placeholder="https://... ou #programacao"
+        data-id="${b.id}" data-field="url"
+        onchange="updateCustomLinkBtn(this)"
+        style="width:100%;padding:6px 8px;border:1.5px solid var(--gray2);border-radius:6px;font-size:12px;">
+      <div style="font-size:9px;color:var(--text-light);margin-top:4px;">Use #programacao, #palestrantes ou uma URL completa.</div>
+    </div>`).join('');
+}
+
+function updateCustomLinkBtn(el){
+  const b = customLinkBtns.find(x=>x.id===el.dataset.id);
+  if(b) b[el.dataset.field] = el.value.trim();
+  renderCustomQuestionsForm();
+}
+
+function renderCustomLinkBtnsInForm(container){
+  if(!customLinkBtns.length) return;
+  const div = document.createElement('div');
+  div.style.cssText='margin-top:12px;display:flex;gap:10px;flex-wrap:wrap;';
+  customLinkBtns.forEach(b=>{
+    if(!b.label||!b.url) return;
+    const btn = document.createElement('a');
+    btn.textContent = b.label;
+    btn.href = '#';
+    btn.style.cssText='display:inline-block;padding:10px 22px;background:var(--btn-bg);color:var(--btn-color);border-radius:50px;font-family:var(--font);font-size:13px;font-weight:700;text-decoration:none;cursor:pointer;';
+    btn.onclick = e=>{
+      e.preventDefault();
+      const url = b.url;
+      if(url.startsWith('#')){
+        const target=url.slice(1);
+        if(target.startsWith('programacao')){ renderProgScreen(); fadeToScreen('screen-programacao'); }
+        else if(target==='palestrantes') fadeToScreen('screen-palestrantes');
+        else if(target==='landing') fadeToScreen('screen-landing');
+        else fadeToScreen('screen-'+target);
+      } else { window.open(url,'_blank'); }
+    };
+    div.appendChild(btn);
+  });
+  if(div.children.length) container.appendChild(div);
+}
+
 function renderCustomQuestionsForm(){
   const container=document.getElementById('custom-questions-form');
   container.innerHTML=customQuestions.map(q=>{
     const reqMark=q.required?'<span class="req"> *</span>':'';
     const safeName='cq_'+q.id.replace(/[^a-z0-9_]/gi,'_');
-    const hasLinks = q.linkBtnLabel && q.optionLinks && Object.keys(q.optionLinks).some(k=>q.optionLinks[k]);
-    const linkBtnId = 'cq-link-btn-'+q.id;
-    const onChange = hasLinks ? `onchange="cqHandleLink('${q.id}',this.value)"` : '';
-    const onRadio  = hasLinks ? `onclick="cqHandleLink('${q.id}',this.value)"` : '';
     let inner='';
     if(q.type==='text') inner='<input type="text" name="'+safeName+'" id="cq_'+q.id+'" placeholder="Sua resposta…">';
-    else if(q.type==='dropdown') inner='<div class="select-wrap"><select name="'+safeName+'" id="cq_'+q.id+'" '+onChange+'><option value="">Selecione…</option>'+q.options.map(o=>'<option value="'+o+'">'+o+'</option>').join('')+'</select></div>';
-    else if(q.type==='radio') inner='<div class="radio-group">'+q.options.map((o,oi)=>{ const uid='cq_'+q.id+'_'+oi; return '<div class="radio-option"><input type="radio" name="'+safeName+'" id="'+uid+'" value="'+o+'" '+onRadio+'><label for="'+uid+'">'+o+'</label></div>'; }).join('')+'</div>';
+    else if(q.type==='dropdown') inner='<div class="select-wrap"><select name="'+safeName+'" id="cq_'+q.id+'"><option value="">Selecione…</option>'+q.options.map(o=>'<option value="'+o+'">'+o+'</option>').join('')+'</select></div>';
+    else if(q.type==='radio') inner='<div class="radio-group">'+q.options.map((o,oi)=>{ const uid='cq_'+q.id+'_'+oi; return '<div class="radio-option"><input type="radio" name="'+safeName+'" id="'+uid+'" value="'+o+'"><label for="'+uid+'">'+o+'</label></div>'; }).join('')+'</div>';
+    else if(q.type==='checkbox_single') inner='<div class="checkbox-group">'+q.options.map((o,oi)=>{ const uid='cq_'+q.id+'_'+oi; return '<div class="checkbox-option"><input type="checkbox" name="'+safeName+'_single" id="'+uid+'" value="'+o+'" onchange="uncheckOthers(this,\''+safeName+'_single\')"><label for="'+uid+'">'+o+'</label></div>'; }).join('')+'</div>';
     else if(q.type==='checkbox') inner='<div class="checkbox-group">'+q.options.map((o,oi)=>{ const uid='cq_'+q.id+'_'+oi; return '<div class="checkbox-option"><input type="checkbox" name="'+safeName+'" id="'+uid+'" value="'+o+'"><label for="'+uid+'">'+o+'</label></div>'; }).join('')+'</div>';
-    const linkBtn = hasLinks ? `<div id="${linkBtnId}" style="display:none;margin-top:10px;"><a id="${linkBtnId}-a" href="#" target="_blank" style="display:inline-block;padding:10px 24px;background:var(--btn-bg);color:var(--btn-color);border-radius:50px;font-family:var(--font);font-size:13px;font-weight:700;text-decoration:none;cursor:pointer;">${q.linkBtnLabel}</a></div>` : '';
-    return '<div class="field-group" data-cqid="'+q.id+'" data-cqtype="'+q.type+'" data-cqreq="'+q.required+'"><label class="fg-label">'+q.text+reqMark+'</label>'+inner+linkBtn+'</div>';
+    return '<div class="field-group" data-cqid="'+q.id+'" data-cqtype="'+q.type+'" data-cqreq="'+q.required+'"><label class="fg-label">'+q.text+reqMark+'</label>'+inner+'</div>';
   }).join('');
+  // Append standalone link buttons
+  const formWrap = document.getElementById('custom-questions-form');
+  if(formWrap) renderCustomLinkBtnsInForm(formWrap);
+}
+
+function uncheckOthers(el, name){
+  // Checkbox única — uncheck siblings
+  document.querySelectorAll('input[name="'+name+'"]').forEach(cb=>{
+    if(cb!==el) cb.checked=false;
+  });
 }
 
 function cqHandleLink(qId, value){
@@ -5551,9 +5643,20 @@ function renderProgAdmin(){
             <button onclick="removeProgItem('${item.id}')" style="padding:2px 6px;border:none;background:#fde8e8;color:#c0392b;border-radius:4px;cursor:pointer;font-size:10px;">✕</button>
           </div>
         </div>
-        <input type="text" value="${item.titulo||''}" placeholder="Ex: Sessão da Manhã, Mesa Redonda…"
-          data-id="${item.id}" data-field="titulo" onchange="updateProgField(this)"
-          style="width:100%;padding:7px 10px;border:1.5px solid #f0c040;border-radius:6px;font-size:13px;font-weight:700;">
+        <div style="display:grid;grid-template-columns:1fr 2fr;gap:8px;">
+          <div>
+            <div style="font-size:10px;font-weight:600;color:#7a6000;margin-bottom:3px;">HORÁRIO (opcional)</div>
+            <input type="text" value="${item.hora||''}" placeholder="Ex: 8h"
+              data-id="${item.id}" data-field="hora" onchange="updateProgField(this)"
+              style="width:100%;padding:6px 8px;border:1.5px solid #f0c040;border-radius:6px;font-size:12px;">
+          </div>
+          <div>
+            <div style="font-size:10px;font-weight:600;color:#7a6000;margin-bottom:3px;">TÍTULO DA SESSÃO</div>
+            <input type="text" value="${item.titulo||''}" placeholder="Ex: Sessão da Manhã…"
+              data-id="${item.id}" data-field="titulo" onchange="updateProgField(this)"
+              style="width:100%;padding:6px 10px;border:1.5px solid #f0c040;border-radius:6px;font-size:13px;font-weight:700;">
+          </div>
+        </div>
       </div>`;
 
     if(item.type==='subtexto') return `
@@ -5567,14 +5670,24 @@ function renderProgAdmin(){
           </div>
         </div>
         <div style="font-size:10px;font-weight:600;color:var(--text-light);margin-bottom:3px;">TIPO DE PALESTRANTE</div>
-        <input type="text" value="${item.tipoPalestra||''}" placeholder="Ex: Palestrante, Mediador…"
-          data-id="${item.id}" data-field="tipoPalestra"
-          onchange="updateProgField(this)"
-          style="width:100%;padding:6px 8px;border:1px solid #ddd;border-radius:6px;font-size:12px;margin-bottom:6px;">
-        <div style="font-size:10px;font-weight:600;color:var(--text-light);margin-bottom:3px;">PALESTRANTE</div>
+        <select data-id="${item.id}" data-field="tipoPalestra" onchange="updateProgTipoSelect(this)"
+          style="width:100%;padding:6px 8px;border:1px solid #ddd;border-radius:6px;font-size:12px;margin-bottom:4px;">
+          <option value="">Selecione…</option>
+          <option value="Palestrante"${item.tipoPalestra==='Palestrante'?' selected':''}>Palestrante</option>
+          <option value="Moderador(a)"${item.tipoPalestra==='Moderador(a)'?' selected':''}>Moderador(a)</option>
+          <option value="Mediador(a)"${item.tipoPalestra==='Mediador(a)'?' selected':''}>Mediador(a)</option>
+          <option value="__custom__"${(item.tipoPalestra&&!['','Palestrante','Moderador(a)','Mediador(a)'].includes(item.tipoPalestra))?' selected':''}>Outro…</option>
+        </select>
+        <input type="text" value="${(item.tipoPalestra&&!['','Palestrante','Moderador(a)','Mediador(a)'].includes(item.tipoPalestra))?item.tipoPalestra:''}"
+          placeholder="Digite o tipo…" data-id="${item.id}" data-field="tipoPalestra" onchange="updateProgField(this)"
+          style="width:100%;padding:6px 8px;border:1px solid #ddd;border-radius:6px;font-size:12px;margin-bottom:6px;display:${(item.tipoPalestra&&!['','Palestrante','Moderador(a)','Mediador(a)'].includes(item.tipoPalestra))?'block':'none'};"
+          id="prog-tipo-custom-${item.id}">
+        <div style="font-size:10px;font-weight:600;color:var(--text-light);margin-bottom:3px;">BUSCAR PALESTRANTE</div>
+        <input type="text" placeholder="🔍 Digite o nome…" oninput="filterProgSpeakers(this, '${item.id}')"
+          style="width:100%;padding:6px 8px;border:1px solid #ddd;border-radius:6px;font-size:12px;margin-bottom:4px;">
         <select data-id="${item.id}" data-field="palestrante"
           onchange="updateProgField(this)"
-          style="width:100%;padding:6px 8px;border:1px solid #ddd;border-radius:6px;font-size:12px;">
+          style="width:100%;padding:6px 8px;border:1px solid #ddd;border-radius:6px;font-size:12px;" id="prog-sp-sel-${item.id}">
           <option value="">Selecione…</option>
           ${speakers.map(s=>`<option value="${s.name}"${s.name===item.palestrante?' selected':''}>${s.name}</option>`).join('')}
         </select>
@@ -5768,6 +5881,27 @@ function updateProgField(el){
   if(item) item[field] = el.value;
 }
 
+function updateProgTipoSelect(sel){
+  const id = sel.dataset.id;
+  const val = sel.value;
+  const customInput = document.getElementById('prog-tipo-custom-'+id);
+  if(customInput){
+    customInput.style.display = val==='__custom__' ? 'block' : 'none';
+  }
+  if(val !== '__custom__') updateProgField(sel);
+}
+
+function filterProgSpeakers(input, itemId){
+  const q = input.value.toLowerCase();
+  const sel = document.getElementById('prog-sp-sel-'+itemId);
+  if(!sel) return;
+  const options = sel.querySelectorAll('option');
+  options.forEach(opt=>{
+    if(!opt.value) return; // keep "Selecione…"
+    opt.style.display = opt.text.toLowerCase().includes(q) ? '' : 'none';
+  });
+}
+
 function updateProgColors(){
   const tc  = document.getElementById('ed-prog-text-color')?.value||'#ffffff';
   const hc  = document.getElementById('ed-prog-hora-color')?.value||'#aaccee';
@@ -5952,7 +6086,7 @@ function renderProgItems(items, container){
   if(!items||!items.length){ container.innerHTML='<p style="text-align:center;color:rgba(255,255,255,.6);padding:40px 0;">Programação em breve.</p>'; return; }
   container.innerHTML = items.map(item=>{
     if(item.type==='separador') return `<hr class="prog-separador">`;
-    if(item.type==='sessao') return `<div class="prog-sessao-titulo">${item.titulo||''}</div>`;
+    if(item.type==='sessao') return `<div class="prog-sessao-titulo">${item.hora?`<span style="font-weight:600;opacity:.8;margin-right:10px;">${item.hora}</span>`:''}${item.titulo||''}</div>`;
     if(item.type==='subtexto'){
       const sp = speakers.find(s=>s.name===item.palestrante);
       const clickAttr = sp ? `onclick="openProgSpeaker('${item.palestrante.replace(/'/g,"\\'")}')"` : '';
