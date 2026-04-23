@@ -117,13 +117,25 @@ body.admin-open.admin-collapsed{margin-right:110px;}
 .field-group input::placeholder,.field-group textarea::placeholder{color:#aab4c2;}
 .select-wrap{position:relative;}
 .select-wrap::after{content:'';position:absolute;right:14px;top:50%;transform:translateY(-50%);border-left:5px solid transparent;border-right:5px solid transparent;border-top:6px solid var(--blue);pointer-events:none;}
+/* Radio/Checkbox — button style (radio, checkbox_single, dropdown options) */
 .radio-group{display:flex;gap:10px;flex-wrap:wrap;}
-.checkbox-group{display:flex;gap:10px;flex-wrap:wrap;}
-.radio-option,.checkbox-option{flex:1;min-width:120px;position:relative;}
-.radio-option input[type=radio],.checkbox-option input[type=checkbox]{position:absolute;opacity:0;width:0;height:0;}
-.radio-option label,.checkbox-option label{display:flex;align-items:center;justify-content:center;padding:11px 10px;border:1.5px solid var(--gray2);border-radius:10px;cursor:pointer;font-size:13px!important;font-weight:600!important;text-transform:none!important;letter-spacing:0!important;color:var(--text-light)!important;background:#fff;transition:all .2s;text-align:center;}
-.radio-option input[type=radio]:checked+label,.checkbox-option input[type=checkbox]:checked+label{border-color:var(--blue);background:var(--blue-light);color:var(--blue)!important;}
-.radio-option label:hover,.checkbox-option label:hover{border-color:var(--blue);background:var(--blue-light);}
+.radio-option{flex:1;min-width:120px;position:relative;}
+.radio-option input[type=radio]{position:absolute;opacity:0;width:0;height:0;}
+.radio-option label{display:flex;align-items:center;justify-content:center;padding:11px 10px;border:1.5px solid var(--gray2);border-radius:10px;cursor:pointer;font-size:13px!important;font-weight:600!important;text-transform:none!important;letter-spacing:0!important;color:var(--text-light)!important;background:#fff;transition:all .2s;text-align:center;}
+.radio-option input[type=radio]:checked+label{border-color:var(--blue);background:var(--blue-light);color:var(--blue)!important;}
+.radio-option label:hover{border-color:var(--blue);background:var(--blue-light);}
+/* Checkbox única — button style but mutually exclusive */
+.checkbox-single-group{display:flex;gap:10px;flex-wrap:wrap;}
+.checkbox-single-option{flex:1;min-width:120px;position:relative;}
+.checkbox-single-option input[type=checkbox]{position:absolute;opacity:0;width:0;height:0;}
+.checkbox-single-option label{display:flex;align-items:center;justify-content:center;padding:11px 10px;border:1.5px solid var(--gray2);border-radius:10px;cursor:pointer;font-size:13px!important;font-weight:600!important;text-transform:none!important;letter-spacing:0!important;color:var(--text-light)!important;background:#fff;transition:all .2s;text-align:center;}
+.checkbox-single-option input[type=checkbox]:checked+label{border-color:var(--blue);background:var(--blue-light);color:var(--blue)!important;}
+.checkbox-single-option label:hover{border-color:var(--blue);background:var(--blue-light);}
+/* Checkbox múltipla — real checkbox visual */
+.checkbox-group{display:flex;flex-direction:column;gap:8px;}
+.checkbox-option{display:flex;align-items:center;gap:10px;cursor:pointer;}
+.checkbox-option input[type=checkbox]{width:18px;height:18px;accent-color:var(--blue);cursor:pointer;flex-shrink:0;}
+.checkbox-option label{font-size:13px;font-weight:500;color:var(--text);cursor:pointer;margin:0;}
 .submit-btn{width:100%;padding:15px;background:var(--btn-bg);color:var(--btn-color);border:none;border-radius:10px;font-family:var(--font);font-size:15px;font-weight:700;letter-spacing:.5px;cursor:pointer;box-shadow:0 4px 16px rgba(0,92,169,.25);transition:filter .2s,transform .1s;margin-top:8px;}
 .submit-btn:hover{filter:brightness(1.12);}
 .submit-btn:active{transform:scale(.98);}
@@ -1893,16 +1905,14 @@ async function saveSettings(obj) {
     if (slim.speakers) {
       slim.speakers = slim.speakers.map(sp => {
         const s = Object.assign({}, sp);
-        // Determine the best public URL
         const bestUrl = (s.photoUrl && s.photoUrl.startsWith('http')) ? s.photoUrl
           : (s.photoDataUrl && s.photoDataUrl.startsWith('http')) ? s.photoDataUrl
           : null;
-        // Strip base64 blobs — they are too large for the DB
         if (s.photoDataUrl && s.photoDataUrl.startsWith('data:')) {
           s.photoDataUrl = bestUrl;
         }
-        // Always keep photoUrl pointing to the public URL
         s.photoUrl = bestUrl;
+        console.log('[saveSpeaker]', s.name, '→ photoUrl:', s.photoUrl, 'photoDataUrl:', s.photoDataUrl);
         return s;
       });
     }
@@ -3606,7 +3616,7 @@ let customLinkBtns = []; // [{id, label, url}]
 
 function addCustomLinkBtn(){
   const id = 'clb_'+Date.now();
-  customLinkBtns.push({id, label:'Ver mais', url:''});
+  customLinkBtns.push({id, label:'', url:'', bgColor:'#005ca9', textColor:'#ffffff'});
   renderCustomLinkBtns();
 }
 
@@ -3621,6 +3631,7 @@ function renderCustomLinkBtns(){
   if(!wrap) return;
   if(!customLinkBtns.length){ wrap.innerHTML=''; return; }
   const internalScreens = [
+    {value:'', label:'— Escolher destino —'},
     {value:'#landing', label:'🏠 Tela Inicial'},
     {value:'#programacao', label:'📋 Programação'},
     ...progSalas.map(s=>({value:'#programacao:'+s.id, label:`📋 Programação — ${s.nome}`})),
@@ -3638,17 +3649,50 @@ function renderCustomLinkBtns(){
       </div>
       <div style="font-size:10px;font-weight:600;color:var(--text-light);margin-bottom:3px;">TEXTO DO BOTÃO</div>
       <input type="text" value="${b.label||''}" placeholder="Ex: Ver programação"
-        data-id="${b.id}" data-field="label" onchange="updateCustomLinkBtn(this)"
+        oninput="clbUpdateLabel('${b.id}',this.value)"
         style="width:100%;padding:7px 10px;border:1.5px solid var(--gray2);border-radius:6px;font-size:12px;margin-bottom:8px;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+        <div>
+          <div style="font-size:10px;font-weight:600;color:var(--text-light);margin-bottom:3px;">COR DE FUNDO</div>
+          <input type="color" value="${b.bgColor||'#005ca9'}" oninput="clbUpdateColor('${b.id}','bgColor',this.value)"
+            style="width:100%;height:34px;border:1.5px solid var(--gray2);border-radius:6px;cursor:pointer;">
+        </div>
+        <div>
+          <div style="font-size:10px;font-weight:600;color:var(--text-light);margin-bottom:3px;">COR DO TEXTO</div>
+          <input type="color" value="${b.textColor||'#ffffff'}" oninput="clbUpdateColor('${b.id}','textColor',this.value)"
+            style="width:100%;height:34px;border:1.5px solid var(--gray2);border-radius:6px;cursor:pointer;">
+        </div>
+      </div>
       <div style="font-size:10px;font-weight:600;color:var(--text-light);margin-bottom:3px;">DESTINO</div>
       <select onchange="clbPickerChange('${b.id}',this)"
         style="width:100%;padding:7px 10px;border:1.5px solid var(--gray2);border-radius:6px;font-size:12px;margin-bottom:6px;">
         ${internalScreens.map(s=>`<option value="${s.value}"${s.value===selVal?' selected':''}>${s.label}</option>`).join('')}
       </select>
       <input type="text" id="clb-url-${b.id}" value="${isUrl?b.url:''}" placeholder="https://…"
-        onchange="clbSetUrl('${b.id}',this.value)"
+        oninput="clbSetUrl('${b.id}',this.value)"
         style="width:100%;padding:7px 10px;border:1.5px solid var(--gray2);border-radius:6px;font-size:12px;display:${isUrl?'block':'none'};">
+      <div style="margin-top:10px;text-align:center;">
+        <span style="display:inline-block;padding:8px 20px;background:${b.bgColor||'#005ca9'};color:${b.textColor||'#ffffff'};border-radius:50px;font-size:12px;font-weight:700;">
+          ${b.label||'Texto do botão'}
+        </span>
+      </div>
     </div>`}).join('');
+}
+
+function clbUpdateLabel(id, val){
+  const b = customLinkBtns.find(x=>x.id===id);
+  if(b){ b.label=val; renderCustomLinkBtns(); renderCustomQuestionsForm(); }
+}
+
+function clbUpdateColor(id, field, val){
+  const b = customLinkBtns.find(x=>x.id===id);
+  if(b){ b[field]=val; renderCustomLinkBtns(); renderCustomQuestionsForm(); }
+}
+
+function updateCustomLinkBtn(el){
+  const b = customLinkBtns.find(x=>x.id===el.dataset.id);
+  if(b) b[el.dataset.field] = el.value.trim();
+  renderCustomQuestionsForm();
 }
 
 function clbPickerChange(id, sel){
@@ -3673,24 +3717,25 @@ function clbSetUrl(id, url){
 function renderCustomLinkBtnsInForm(container){
   if(!customLinkBtns.length) return;
   const div = document.createElement('div');
-  div.style.cssText='margin-top:12px;display:flex;gap:10px;flex-wrap:wrap;';
+  div.style.cssText='margin-top:16px;display:flex;gap:10px;flex-wrap:wrap;justify-content:center;';
   customLinkBtns.forEach(b=>{
-    if(!b.label||!b.url) return;
+    if(!b.label) return;
     const btn = document.createElement('a');
     btn.textContent = b.label;
-    btn.href = '#';
-    btn.style.cssText='display:inline-block;padding:10px 22px;background:var(--btn-bg);color:var(--btn-color);border-radius:50px;font-family:var(--font);font-size:13px;font-weight:700;text-decoration:none;cursor:pointer;';
-    btn.onclick = e=>{
-      e.preventDefault();
-      const url = b.url;
-      if(url.startsWith('#')){
-        const target=url.slice(1);
-        if(target.startsWith('programacao')){ renderProgScreen(); fadeToScreen('screen-programacao'); }
-        else if(target==='palestrantes') fadeToScreen('screen-palestrantes');
-        else if(target==='landing') fadeToScreen('screen-landing');
-        else fadeToScreen('screen-'+target);
-      } else { window.open(url,'_blank'); }
-    };
+    // Build the full URL for internal screens so they open in a new tab correctly
+    let href = '#';
+    if(b.url){
+      if(b.url.startsWith('#')){
+        // Convert internal hash to full URL so new tab works
+        href = window.location.href.split('#')[0] + b.url;
+      } else {
+        href = b.url;
+      }
+    }
+    btn.href = href;
+    btn.target = '_blank';
+    btn.rel = 'noopener';
+    btn.style.cssText=`display:inline-block;padding:12px 28px;background:${b.bgColor||'#005ca9'};color:${b.textColor||'#ffffff'};border-radius:50px;font-family:var(--font);font-size:13px;font-weight:700;text-decoration:none;cursor:pointer;`;
     div.appendChild(btn);
   });
   if(div.children.length) container.appendChild(div);
@@ -3705,7 +3750,7 @@ function renderCustomQuestionsForm(){
     if(q.type==='text') inner='<input type="text" name="'+safeName+'" id="cq_'+q.id+'" placeholder="Sua resposta…">';
     else if(q.type==='dropdown') inner='<div class="select-wrap"><select name="'+safeName+'" id="cq_'+q.id+'"><option value="">Selecione…</option>'+q.options.map(o=>'<option value="'+o+'">'+o+'</option>').join('')+'</select></div>';
     else if(q.type==='radio') inner='<div class="radio-group">'+q.options.map((o,oi)=>{ const uid='cq_'+q.id+'_'+oi; return '<div class="radio-option"><input type="radio" name="'+safeName+'" id="'+uid+'" value="'+o+'"><label for="'+uid+'">'+o+'</label></div>'; }).join('')+'</div>';
-    else if(q.type==='checkbox_single') inner='<div class="checkbox-group">'+q.options.map((o,oi)=>{ const uid='cq_'+q.id+'_'+oi; return '<div class="checkbox-option"><input type="checkbox" name="'+safeName+'_single" id="'+uid+'" value="'+o+'" onchange="uncheckOthers(this,\''+safeName+'_single\')"><label for="'+uid+'">'+o+'</label></div>'; }).join('')+'</div>';
+    else if(q.type==='checkbox_single') inner='<div class="checkbox-single-group">'+q.options.map((o,oi)=>{ const uid='cq_'+q.id+'_'+oi; return '<div class="checkbox-single-option"><input type="checkbox" name="'+safeName+'_single" id="'+uid+'" value="'+o+'" onchange="uncheckOthers(this,\''+safeName+'_single\')"><label for="'+uid+'">'+o+'</label></div>'; }).join('')+'</div>';
     else if(q.type==='checkbox') inner='<div class="checkbox-group">'+q.options.map((o,oi)=>{ const uid='cq_'+q.id+'_'+oi; return '<div class="checkbox-option"><input type="checkbox" name="'+safeName+'" id="'+uid+'" value="'+o+'"><label for="'+uid+'">'+o+'</label></div>'; }).join('')+'</div>';
     return '<div class="field-group" data-cqid="'+q.id+'" data-cqtype="'+q.type+'" data-cqreq="'+q.required+'"><label class="fg-label">'+q.text+reqMark+'</label>'+inner+'</div>';
   }).join('');
