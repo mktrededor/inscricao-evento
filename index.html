@@ -33,6 +33,8 @@
   --aux-pales-color:#ffffff;
   --aux-pales-border:#005ca9;
   --speaker-name-color:#ffffff;
+  --speaker-role-color:rgba(255,255,255,.65);
+  --speaker-hint-color:rgba(255,255,255,.4);
   --prog-subtexto-color:rgba(255,255,255,.75);
   --prog-hora-color:rgba(255,255,255,.75);
   --prog-tipo-color:rgba(255,255,255,.6);
@@ -168,14 +170,15 @@ body.admin-open.admin-collapsed{margin-right:110px;}
 .palestrantes-section-title{font-size:11px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--text-light);margin-bottom:20px;padding-left:4px;display:flex;align-items:center;gap:10px;}
 .palestrantes-section-title::after{content:'';flex:1;height:2px;background:var(--gray2);}
 /* Coordenadores/Moderadores — grid de cards maiores */
-#coordenadores-grid,#moderadores-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:20px;margin-bottom:32px;justify-items:center;}
+#coordenadores-grid,#moderadores-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:28px;margin-bottom:40px;justify-items:center;}
 #coordenadores-grid .speaker-card,#moderadores-grid .speaker-card{flex-direction:column;text-align:center;background:transparent;border:none;padding:0;gap:0;width:auto;}
-#coordenadores-grid .speaker-card:hover,#moderadores-grid .speaker-card:hover{background:transparent;transform:translateY(-4px);}
-#coordenadores-grid .speaker-photo-wrap,#moderadores-grid .speaker-photo-wrap{width:110px;height:110px;margin:0 auto 10px;}
+#coordenadores-grid .speaker-card:hover,#moderadores-grid .speaker-card:hover{background:transparent;transform:translateY(-5px);}
+#coordenadores-grid .speaker-photo-wrap,#moderadores-grid .speaker-photo-wrap{width:150px;height:150px;margin:0 auto 14px;}
 #coordenadores-grid .speaker-info-wrap,#moderadores-grid .speaker-info-wrap{width:100%;}
-#coordenadores-grid .speaker-name,#moderadores-grid .speaker-name{white-space:normal;text-align:center;}
-#coordenadores-grid .speaker-role,#moderadores-grid .speaker-role{white-space:normal;text-align:center;}
-#coordenadores-grid .speaker-arrow,#moderadores-grid .speaker-arrow{display:none;}
+#coordenadores-grid .speaker-name,#moderadores-grid .speaker-name{white-space:normal;text-align:center;font-size:15px;font-weight:800;}
+#coordenadores-grid .speaker-role,#moderadores-grid .speaker-role{white-space:normal;text-align:center;font-size:12px;}
+#coordenadores-grid .speaker-click-hint,#moderadores-grid .speaker-click-hint{text-align:center;}
+#coordenadores-grid svg,#moderadores-grid svg{display:none;}
 /* Palestrantes — 2 colunas de cards compactos */
 #palestrantes-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:32px;max-width:760px;margin-left:auto;margin-right:auto;}
 /* All grids wrapper */
@@ -190,8 +193,8 @@ body.admin-open.admin-collapsed{margin-right:110px;}
 .speaker-border-svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;}
 .speaker-info-wrap{flex:1;min-width:0;}
 .speaker-name{font-size:13px;font-weight:700;color:var(--speaker-name-color,#fff);line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.speaker-role{font-size:11px;color:rgba(255,255,255,.6);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.speaker-click-hint{font-size:9px;color:rgba(255,255,255,.35);margin-top:2px;letter-spacing:.3px;}
+.speaker-role{font-size:11px;color:var(--speaker-role-color,rgba(255,255,255,.65));margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.speaker-click-hint{font-size:9px;color:var(--speaker-hint-color,rgba(255,255,255,.4));margin-top:2px;letter-spacing:.3px;}
 
 /* Speaker modal */
 .speaker-modal-overlay{position:fixed;inset:0;z-index:8000;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:opacity .35s ease;}
@@ -356,7 +359,8 @@ body.admin-open.admin-collapsed{margin-right:110px;}
 /* Speaker admin */
 .speaker-admin-item{background:var(--blue-light);border-radius:10px;padding:10px 12px;margin-bottom:8px;border:1.5px solid rgba(0,92,169,.15);}
 .speaker-admin-header{display:flex;align-items:center;gap:10px;}
-.speaker-admin-thumb{width:38px;height:38px;min-width:38px;border-radius:50%;object-fit:cover;border:2px solid var(--blue);flex-shrink:0;overflow:hidden;display:block;}
+.speaker-admin-thumb-wrap{width:38px;height:38px;min-width:38px;border-radius:50%;overflow:hidden;flex-shrink:0;border:2px solid var(--blue);}
+.speaker-admin-thumb{width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;}
 .speaker-admin-thumb-placeholder{width:38px;height:38px;min-width:38px;border-radius:50%;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;flex-shrink:0;}
 .speaker-admin-info{flex:1;min-width:0;overflow:hidden;}
 .speaker-admin-info .sp-name{font-size:12px;font-weight:700;color:var(--blue);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
@@ -1207,7 +1211,19 @@ a#prog-download-link{text-decoration:none !important;}
       <div class="admin-field"><label>Cor dos nomes dos palestrantes</label>
         <div class="color-row">
           <input type="color" id="ed-speaker-name-color" value="#ffffff" oninput="updateSpeakerNameColor()">
-          <span style="font-size:10px;color:var(--text-light);">Nome e cargo na tela</span>
+          <span style="font-size:10px;color:var(--text-light);">Nome</span>
+        </div>
+      </div>
+      <div class="admin-field"><label>Cor da especialidade</label>
+        <div class="color-row">
+          <input type="color" id="ed-speaker-role-color" value="#ccddee" oninput="updateSpeakerNameColor()">
+          <span style="font-size:10px;color:var(--text-light);">Especialidade / cargo</span>
+        </div>
+      </div>
+      <div class="admin-field"><label>Cor de "Ver currículo"</label>
+        <div class="color-row">
+          <input type="color" id="ed-speaker-hint-color" value="#aabbcc" oninput="updateSpeakerNameColor()">
+          <span style="font-size:10px;color:var(--text-light);">Texto de dica</span>
         </div>
       </div>
     </div>
@@ -1446,10 +1462,10 @@ a#prog-download-link{text-decoration:none !important;}
     <!-- BANCO GLOBAL -->
     <div class="admin-section" style="margin-top:24px;">
       <h3>🗄 Banco Global de Palestrantes</h3>
-      <p style="font-size:11px;color:var(--text-light);margin-bottom:10px;line-height:1.5;">Todos os palestrantes já cadastrados em qualquer evento. Edite, exclua permanentemente ou adicione ao evento atual.</p>
-      <input type="text" id="db-bank-search" placeholder="🔍 Filtrar por nome…" oninput="renderDBBankList(this.value)"
+      <p style="font-size:11px;color:var(--text-light);margin-bottom:10px;line-height:1.5;">Digite o nome para buscar palestrantes já cadastrados e adicioná-los ao evento ou editar.</p>
+      <input type="text" id="db-bank-search" placeholder="🔍 Buscar por nome…" oninput="renderDBBankList(this.value)"
         style="width:100%;padding:8px 10px;border:1.5px solid var(--gray2);border-radius:8px;font-family:var(--font);font-size:12px;margin-bottom:10px;">
-      <div id="db-bank-list"><div class="empty-state">Carregando…</div></div>
+      <div id="db-bank-list" style="display:none;"></div>
     </div>
   </div>
 
@@ -1962,6 +1978,8 @@ function gatherSettings() {
     eventoData: currentSettings.eventoData || null,
     faviconUrl: currentSettings.faviconUrl || null,
     speakerNameColor: document.getElementById('ed-speaker-name-color')?.value||'#ffffff',
+    speakerRoleColor: document.getElementById('ed-speaker-role-color')?.value||'#ccddee',
+    speakerHintColor: document.getElementById('ed-speaker-hint-color')?.value||'#aabbcc',
     progItems: progItems,
     progInternoAtivo: progInternoAtivo,
     progFileUrl: progFileUrl,
@@ -2167,8 +2185,15 @@ async function applySettingsToPage(s) {
   // Restaurar cor dos nomes dos palestrantes
   if(s.speakerNameColor){
     document.documentElement.style.setProperty('--speaker-name-color', s.speakerNameColor);
-    const el = document.getElementById('ed-speaker-name-color');
-    if(el) el.value = s.speakerNameColor;
+    const el = document.getElementById('ed-speaker-name-color'); if(el) el.value = s.speakerNameColor;
+  }
+  if(s.speakerRoleColor){
+    document.documentElement.style.setProperty('--speaker-role-color', s.speakerRoleColor);
+    const el = document.getElementById('ed-speaker-role-color'); if(el) el.value = s.speakerRoleColor;
+  }
+  if(s.speakerHintColor){
+    document.documentElement.style.setProperty('--speaker-hint-color', s.speakerHintColor);
+    const el = document.getElementById('ed-speaker-hint-color'); if(el) el.value = s.speakerHintColor;
   }
 }
 
@@ -2807,7 +2832,7 @@ function renderSpeakersAdminList(){
     const src = speakerPhotoSrc(sp);
     const adj = sp.photoAdjust||{zoom:100,x:0,y:0};
     const thumb = src
-      ? `<img class="speaker-admin-thumb" src="${src}" style="object-fit:cover;transform:scale(${adj.zoom/100}) translate(${adj.x}px,${adj.y}px);" alt="">`
+      ? `<div class="speaker-admin-thumb-wrap"><img class="speaker-admin-thumb" src="${src}" style="transform:scale(${adj.zoom/100}) translate(${adj.x}px,${adj.y}px);" alt=""></div>`
       : `<div class="speaker-admin-thumb-placeholder">${sp.name.charAt(0)}</div>`;
     const badge = sp.type==='coordenador'
       ? `<span style="font-size:9px;background:#fff3cd;color:#856404;padding:2px 6px;border-radius:10px;font-weight:700;">Coord.</span>`
@@ -2854,14 +2879,16 @@ async function deleteSpeakerFromDB(dbId){
 function renderDBBankList(filter){
   const wrap = document.getElementById('db-bank-list');
   if(!wrap) return;
+  const q = (filter||'').trim().toLowerCase();
+  if(!q){ wrap.style.display='none'; wrap.innerHTML=''; return; }
+  wrap.style.display='block';
   if(!speakersDB.length){ wrap.innerHTML='<div class="empty-state">Nenhum palestrante no banco ainda.</div>'; return; }
-  const q = (filter||'').toLowerCase();
-  const list = q ? speakersDB.filter(s=>s.name.toLowerCase().includes(q)) : speakersDB;
-  if(!list.length){ wrap.innerHTML='<div class="empty-state">Nenhum resultado.</div>'; return; }
+  const list = speakersDB.filter(s=>s.name.toLowerCase().includes(q));
+  if(!list.length){ wrap.innerHTML=`<div class="empty-state">Nenhum resultado para "${filter}".</div>`; return; }
   wrap.innerHTML = list.map(s=>{
     const src = s.photo_data_url || null;
     const thumb = src
-      ? `<img class="speaker-admin-thumb" src="${src}" style="object-fit:cover;" alt="">`
+      ? `<div class="speaker-admin-thumb-wrap"><img class="speaker-admin-thumb" src="${src}" alt=""></div>`
       : `<div class="speaker-admin-thumb-placeholder">${s.name.charAt(0)}</div>`;
     const inEvent = speakers.some(sp=>sp.name.toLowerCase()===s.name.toLowerCase());
     return `<div class="speaker-admin-item">
@@ -5692,8 +5719,12 @@ function renderProgScreen(){
 }
 
 function updateSpeakerNameColor(){
-  const c = document.getElementById('ed-speaker-name-color')?.value||'#ffffff';
-  document.documentElement.style.setProperty('--speaker-name-color', c);
+  const name = document.getElementById('ed-speaker-name-color')?.value||'#ffffff';
+  const role = document.getElementById('ed-speaker-role-color')?.value||'#ccddee';
+  const hint = document.getElementById('ed-speaker-hint-color')?.value||'#aabbcc';
+  document.documentElement.style.setProperty('--speaker-name-color', name);
+  document.documentElement.style.setProperty('--speaker-role-color', role);
+  document.documentElement.style.setProperty('--speaker-hint-color', hint);
 }
 
 function updateProgOverlay(){
