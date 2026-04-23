@@ -167,27 +167,18 @@ body.admin-open.admin-collapsed{margin-right:110px;}
 .palestrantes-header-title p{font-size:13px;color:var(--text-light);margin-top:4px;}
 .palestrantes-section-title{font-size:11px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--text-light);margin-bottom:20px;padding-left:4px;display:flex;align-items:center;gap:10px;}
 .palestrantes-section-title::after{content:'';flex:1;height:2px;background:var(--gray2);}
-.palestrantes-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:24px;margin-bottom:40px;}
-.speaker-card{cursor:pointer;text-align:center;transition:transform .2s;}
-.speaker-card:hover{transform:translateY(-4px);}
-/* Speaker photo — gradient border via SVG foreignObject technique */
-.speaker-photo-wrap{
-  position:relative;width:140px;height:140px;margin:0 auto 14px;
-  border-radius:50%;
-  box-shadow:0 4px 18px rgba(0,92,169,.18);transition:box-shadow .2s;
-  /* gradient border rendered by JS into inline SVG */
-}
-.speaker-card:hover .speaker-photo-wrap{box-shadow:0 8px 28px rgba(0,92,169,.3);}
-.speaker-photo-inner{
-  position:absolute;border-radius:50%;overflow:hidden;
-  /* inset calculated from border width in JS */
-}
-.speaker-photo{width:100%;height:100%;display:block;}
-.speaker-photo-placeholder{width:100%;height:100%;background:linear-gradient(135deg,var(--blue-light),#c8d8f0);display:flex;align-items:center;justify-content:center;font-size:42px;font-weight:900;color:var(--blue);}
+.palestrantes-grid{display:flex;flex-direction:column;gap:8px;width:100%;max-width:640px;margin:0 auto 28px;}
+.speaker-card{display:flex;align-items:center;gap:14px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:12px 16px;cursor:pointer;transition:background .2s,transform .15s;text-align:left;width:100%;}
+.speaker-card:hover{background:rgba(255,255,255,.13);transform:translateX(3px);}
+.speaker-photo-wrap{width:52px;height:52px;border-radius:50%;overflow:hidden;flex-shrink:0;position:relative;box-shadow:0 2px 10px rgba(0,0,0,.2);}
+.speaker-photo-inner{position:absolute;inset:0;border-radius:50%;overflow:hidden;}
+.speaker-photo{width:100%;height:100%;object-fit:cover;display:block;}
+.speaker-photo-placeholder{width:100%;height:100%;background:linear-gradient(135deg,var(--blue-light),#c8d8f0);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:900;color:var(--blue);}
 .speaker-border-svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;}
-.speaker-name{font-size:14px;font-weight:800;color:var(--text);line-height:1.3;margin-bottom:4px;}
-.speaker-role{font-size:11px;color:var(--text-light);font-weight:600;}
-.speaker-click-hint{font-size:10px;color:var(--blue);margin-top:5px;opacity:.7;}
+.speaker-info-wrap{flex:1;min-width:0;}
+.speaker-name{font-size:13px;font-weight:700;color:#fff;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.speaker-role{font-size:11px;color:rgba(255,255,255,.6);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.speaker-click-hint{font-size:9px;color:rgba(255,255,255,.35);margin-top:2px;letter-spacing:.3px;}
 
 /* Speaker modal */
 .speaker-modal-overlay{position:fixed;inset:0;z-index:8000;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:opacity .35s ease;}
@@ -611,8 +602,6 @@ a#prog-download-link{text-decoration:none !important;}
   .privacy-body{padding:22px 18px;}
   #admin-panel{width:100vw;}
   .admin-nav-item .nav-label{display:none;}
-  .palestrantes-grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:16px;}
-  .speaker-photo-wrap{width:110px;height:110px;}
   .landing-extra-btns{gap:8px;}
   .landing-aux-btn{padding:10px 18px;font-size:12px;}
 }
@@ -907,31 +896,40 @@ a#prog-download-link{text-decoration:none !important;}
       <button id="admin-close-btn" onclick="toggleAdmin()">✕</button>
     </div>
     <button class="admin-nav-item active" onclick="showAdminTab('edit')">
-      <span class="nav-icon">✏️</span><span class="nav-label">Edição</span>
+      <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></span>
+      <span class="nav-label">Edição</span>
     </button>
     <button class="admin-nav-item" onclick="showAdminTab('evento')">
-      <span class="nav-icon">📅</span><span class="nav-label">Evento</span>
+      <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span>
+      <span class="nav-label">Evento</span>
     </button>
     <button class="admin-nav-item" onclick="showAdminTab('colors')">
-      <span class="nav-icon">🎨</span><span class="nav-label">Cores</span>
+      <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 1 0 20 5 5 0 0 1 0-10 5 5 0 0 0 0-10"/></svg></span>
+      <span class="nav-label">Cores</span>
     </button>
     <button class="admin-nav-item" onclick="showAdminTab('speakers')">
-      <span class="nav-icon">🎤</span><span class="nav-label">Palestr.</span>
+      <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
+      <span class="nav-label">Palestr.</span>
     </button>
     <button class="admin-nav-item" onclick="showAdminTab('patrocinio')">
-      <span class="nav-icon">🏷</span><span class="nav-label">Patroc.</span>
+      <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg></span>
+      <span class="nav-label">Patroc.</span>
     </button>
     <button class="admin-nav-item" onclick="showAdminTab('rsvp')">
-      <span class="nav-icon">📲</span><span class="nav-label">RSVP</span>
+      <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.62 3.38 2 2 0 0 1 3.6 1.22h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.96a16 16 0 0 0 6.13 6.13l.95-.95a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg></span>
+      <span class="nav-label">RSVP</span>
     </button>
     <button class="admin-nav-item" onclick="showAdminTab('dash')">
-      <span class="nav-icon">📊</span><span class="nav-label">Dash</span>
+      <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span>
+      <span class="nav-label">Dash</span>
     </button>
     <button class="admin-nav-item" onclick="showAdminTab('data')">
-      <span class="nav-icon">📋</span><span class="nav-label">Dados</span>
+      <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg></span>
+      <span class="nav-label">Dados</span>
     </button>
     <button class="admin-nav-item" onclick="showAdminTab('programacao')">
-      <span class="nav-icon">🗓</span><span class="nav-label">Prog.</span>
+      <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="14" x2="16" y2="14"/><line x1="8" y1="18" x2="13" y2="18"/></svg></span>
+      <span class="nav-label">Prog.</span>
     </button>
     <button id="admin-collapse-btn" onclick="toggleAdminCollapse()">⟨⟨ Recolher</button>
     <button onclick="window.location.reload()" style="width:100%;padding:8px 0;background:rgba(255,255,255,.08);border:none;border-top:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.6);font-family:var(--font);font-size:9px;font-weight:700;cursor:pointer;letter-spacing:.3px;text-transform:uppercase;">🔄 Recarregar</button>
@@ -1793,6 +1791,7 @@ async function uploadDataUrlToStorage(dataUrl, key) {
 }
 
 async function saveSettings(obj) {
+  showSavingIndicator();
   try {
     // Construir versão limpa: sem dataUrls — só URLs públicas do Storage
     const slim = JSON.parse(JSON.stringify(obj));
@@ -2755,11 +2754,13 @@ function renderSpeakersAdminList(){
 }
 
 // Remove from current event only (does NOT delete from speakers_db)
-function removeSpeakerFromEvent(id){
+async function removeSpeakerFromEvent(id){
   if(!confirm('Remover este palestrante do evento atual?\n(Ele continuará no banco de dados global.)')) return;
   speakers = speakers.filter(s=>s.id!==id);
   renderSpeakersAdminList();
   renderPalestrantesPage();
+  const saved = await saveSettings(gatherSettings());
+  showSaveIndicator(saved, saved ? '✔ Palestrante removido!' : '⚠ Falha ao salvar');
 }
 
 // Hard delete from speakers_db global bank
@@ -2864,12 +2865,15 @@ function renderPalestrantesPage(){
     : '<div class="empty-state">Nenhum palestrante cadastrado ainda.</div>';
 }
 
-function speakerPhotoSrc(sp){ return sp.photoUrl || sp.photoDataUrl || null; }
+function speakerPhotoSrc(sp){
+  // Prefer public URL (persists after reload), fall back to dataUrl (session only)
+  return sp.photoUrl || sp.photoDataUrl || sp.photo || null;
+}
 
 function speakerCardHTML(sp, borderData){
   if(!borderData) borderData=getSpeakerBorderCSS();
-  const bw = borderData.width;
-  const size = 140;
+  const size = 52;
+  const bw = Math.max(1, Math.round((borderData.width||3) * 52/140));
   const inset = bw;
   const innerSize = size - inset*2;
   const adj = sp.photoAdjust||{zoom:100,x:0,y:0};
@@ -2878,16 +2882,19 @@ function speakerCardHTML(sp, borderData){
   const src = speakerPhotoSrc(sp);
   const photoContent = src
     ? `<img style="${imgStyle}" src="${src}" alt="${sp.name}">`
-    : `<div style="width:100%;height:100%;background:linear-gradient(135deg,var(--blue-light),#c8d8f0);display:flex;align-items:center;justify-content:center;font-size:42px;font-weight:900;color:var(--blue);">${sp.name.charAt(0)}</div>`;
+    : `<div class="speaker-photo-placeholder" style="font-size:18px;">${sp.name.charAt(0)}</div>`;
   const borderSVG = buildSpeakerBorderSVG(size, borderData);
   return `<div class="speaker-card" onclick="openSpeakerModal('${sp.id}')">
     <div class="speaker-photo-wrap" style="width:${size}px;height:${size}px;">
       <div style="${innerStyle}">${photoContent}</div>
       ${borderSVG}
     </div>
-    <div class="speaker-name">${sp.name}</div>
-    ${sp.role?`<div class="speaker-role">${sp.role}</div>`:''}
-    <div class="speaker-click-hint">Toque para ver currículo</div>
+    <div class="speaker-info-wrap">
+      <div class="speaker-name">${sp.name}</div>
+      ${sp.role?`<div class="speaker-role">${sp.role}</div>`:''}
+      <div class="speaker-click-hint">Ver currículo</div>
+    </div>
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.3)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
   </div>`;
 }
 
@@ -3263,11 +3270,21 @@ async function applyAll(){
   setTimeout(()=>{ btn.textContent='✔ Aplicar e Salvar para Todos'; btn.classList.remove('success'); },2500);
 }
 
+function showSavingIndicator(){
+  const el=document.getElementById('save-indicator');
+  if(!el) return;
+  el.textContent='Salvando…';
+  el.style.background='rgba(100,110,140,.95)';
+  el.style.display='block';
+}
+
 function showSaveIndicator(saved, msg){
   const el=document.getElementById('save-indicator');
-  el.textContent=msg||(saved?'✔ Configurações salvas para todos!':'✔ Salvo localmente');
+  if(!el) return;
+  el.textContent=msg||(saved?'✔ Configurações salvas!':'⚠ Falha ao salvar');
+  el.style.background=saved?'rgba(25,135,84,.95)':'rgba(200,50,50,.95)';
   el.style.display='block';
-  setTimeout(()=>{ el.style.display='none'; },3000);
+  setTimeout(()=>{ el.style.display='none'; el.style.background=''; },3500);
 }
 
 // ═══════════════════════════════════════
