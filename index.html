@@ -131,11 +131,11 @@ body.admin-open.admin-collapsed{margin-right:110px;}
 .checkbox-single-option label{display:flex;align-items:center;justify-content:center;padding:11px 10px;border:1.5px solid var(--gray2);border-radius:10px;cursor:pointer;font-size:13px!important;font-weight:600!important;text-transform:none!important;letter-spacing:0!important;color:var(--text-light)!important;background:#fff;transition:all .2s;text-align:center;}
 .checkbox-single-option input[type=checkbox]:checked+label{border-color:var(--blue);background:var(--blue-light);color:var(--blue)!important;}
 .checkbox-single-option label:hover{border-color:var(--blue);background:var(--blue-light);}
-/* Checkbox múltipla — real checkbox visual */
+/* Checkbox múltipla — real checkbox, never button-style */
 .checkbox-group{display:flex;flex-direction:column;gap:8px;}
 .checkbox-option{display:flex;align-items:center;gap:10px;cursor:pointer;}
-.checkbox-option input[type=checkbox]{width:18px;height:18px;accent-color:var(--blue);cursor:pointer;flex-shrink:0;}
-.checkbox-option label{font-size:13px;font-weight:500;color:var(--text);cursor:pointer;margin:0;}
+.checkbox-option input[type=checkbox]{width:18px;height:18px;accent-color:var(--blue);cursor:pointer;flex-shrink:0;position:static!important;opacity:1!important;}
+.checkbox-option label{font-size:13px!important;font-weight:500!important;color:var(--text)!important;cursor:pointer;margin:0;padding:0!important;border:none!important;background:none!important;border-radius:0!important;display:inline!important;text-align:left!important;}
 .submit-btn{width:100%;padding:15px;background:var(--btn-bg);color:var(--btn-color);border:none;border-radius:10px;font-family:var(--font);font-size:15px;font-weight:700;letter-spacing:.5px;cursor:pointer;box-shadow:0 4px 16px rgba(0,92,169,.25);transition:filter .2s,transform .1s;margin-top:8px;}
 .submit-btn:hover{filter:brightness(1.12);}
 .submit-btn:active{transform:scale(.98);}
@@ -2024,6 +2024,14 @@ function gatherSettings() {
   return currentSettings;
 }
 
+function waitForSettings(maxMs=4000){
+  return new Promise(resolve=>{
+    const start=Date.now();
+    const check=()=>{ if(Object.keys(currentSettings).length>0||Date.now()-start>maxMs) resolve(); else setTimeout(check,100); };
+    check();
+  });
+}
+
 async function applySettingsToPage(s) {
   if(!s) return;
 
@@ -2131,10 +2139,23 @@ async function applySettingsToPage(s) {
 
   if(s.profiles&&s.profiles.length){ profiles=s.profiles; renderProfiles(); renderSelectOptions(); }
   if(s.customQuestions){ customQuestions=s.customQuestions; renderCustomQList(); renderCustomQuestionsForm(); }
-  if(s.customLinkBtns){ customLinkBtns=s.customLinkBtns; renderCustomLinkBtns(); }
+  if(s.customLinkBtns){ customLinkBtns=s.customLinkBtns; renderCustomLinkBtns(); renderCustomQuestionsForm(); }
   if(s.colorStates){ Object.assign(colorStates,s.colorStates); colorTargets.forEach(ct=>document.documentElement.style.setProperty(ct.cssProp,buildCssValue(ct.id))); }
 
-  if(s.speakers) { speakers=s.speakers; renderPalestrantesPage(); renderSpeakersAdminList(); }
+  if(s.speakers) {
+    // Enrich speakers with photos from speakersDB where missing
+    speakers = s.speakers.map(sp => {
+      if(!sp.photoUrl && !sp.photoDataUrl && speakersDB.length) {
+        const db = speakersDB.find(d => d.name && d.name.toLowerCase() === (sp.name||'').toLowerCase());
+        if(db && db.photo_data_url && db.photo_data_url.startsWith('http')) {
+          return {...sp, photoUrl: db.photo_data_url, photoDataUrl: db.photo_data_url};
+        }
+      }
+      return sp;
+    });
+    renderPalestrantesPage();
+    renderSpeakersAdminList();
+  }
 
   if(s.cpfEnabled!==undefined){ cpfEnabled=s.cpfEnabled; document.getElementById('toggle-cpf').checked=cpfEnabled; updateCpfField(); }
   if(s.programacaoActive!==undefined){ programacaoActive=s.programacaoActive; document.getElementById('toggle-programacao').checked=programacaoActive; }
@@ -3133,9 +3154,10 @@ window.onload = async function(){
   updateBtnChegar();
   initHourSelects();
 
-  // Load global speakers DB for search
-  loadSpeakersDB().then(data => { speakersDB = data; renderDBBankList(); });
-  // Load locais DB
+  // Load speakersDB FIRST so photo enrichment works during settings restore
+  speakersDB = await loadSpeakersDB();
+  renderDBBankList();
+  // Load locais DB in parallel
   loadLocaisDB().then(data => { locaisDB = data; renderLocalSelect(); });
 
   const settingsPromise=loadSettings();
@@ -3156,6 +3178,29 @@ window.onload = async function(){
   if(urlParams.get('rsvp') && urlParams.get('t')){
     // Não mostrar landing — ir direto para o handler
     handleRsvpResponse();
+  } else if(urlParams.get('tela')){
+    // Abrir tela específica (usado por botões de link em nova aba)
+    const tela = urlParams.get('tela');
+    const sala = urlParams.get('sala');
+    setTimeout(async ()=>{
+      if(tela==='programacao'){
+        await waitForSettings();
+        renderProgScreen();
+        fadeToScreen('screen-programacao');
+        if(sala){
+          setTimeout(()=>{
+            const btn = document.querySelector(`#prog-salas-selector button[onclick*="${sala}"]`);
+            if(btn) btn.click();
+          }, 300);
+        }
+      } else if(tela==='palestrantes'){
+        fadeToScreen('screen-palestrantes');
+      } else {
+        const el = document.getElementById('screen-'+tela);
+        if(el) fadeToScreen('screen-'+tela);
+      }
+    }, 800);
+    setTimeout(()=>document.getElementById('screen-landing').classList.add('visible'),100);
   } else {
     setTimeout(()=>document.getElementById('screen-landing').classList.add('visible'),100);
   }
@@ -3733,24 +3778,29 @@ function renderCustomLinkBtnsInForm(container){
   if(!customLinkBtns.length) return;
   const div = document.createElement('div');
   div.style.cssText='margin-top:16px;display:flex;gap:10px;flex-wrap:wrap;justify-content:center;';
+  const base = window.location.href.split('?')[0].split('#')[0];
   customLinkBtns.forEach(b=>{
     if(!b.label) return;
     const btn = document.createElement('a');
     btn.textContent = b.label;
-    // Build the full URL for internal screens so they open in a new tab correctly
-    let href = '#';
-    if(b.url){
-      if(b.url.startsWith('#')){
-        // Convert internal hash to full URL so new tab works
-        href = window.location.href.split('#')[0] + b.url;
-      } else {
-        href = b.url;
-      }
-    }
-    btn.href = href;
     btn.target = '_blank';
     btn.rel = 'noopener';
     btn.style.cssText=`display:inline-block;padding:12px 28px;background:${b.bgColor||'#005ca9'};color:${b.textColor||'#ffffff'};border-radius:50px;font-family:var(--font);font-size:13px;font-weight:700;text-decoration:none;cursor:pointer;`;
+    if(!b.url){ btn.href='#'; div.appendChild(btn); return; }
+    if(b.url.startsWith('#')){
+      // Build ?tela= URL so new tab loads the correct screen
+      const hash = b.url.slice(1); // e.g. "programacao" or "programacao:sala_xxx"
+      if(hash.startsWith('programacao')){
+        const parts = hash.split(':');
+        let url = base + '?tela=programacao';
+        if(parts[1]) url += '&sala=' + encodeURIComponent(parts[1]);
+        btn.href = url;
+      } else {
+        btn.href = base + '?tela=' + encodeURIComponent(hash);
+      }
+    } else {
+      btn.href = b.url;
+    }
     div.appendChild(btn);
   });
   if(div.children.length) container.appendChild(div);
