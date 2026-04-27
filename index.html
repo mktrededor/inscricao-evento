@@ -2591,12 +2591,15 @@ async function loadSpeakersDB(){
 }
 
 async function upsertSpeakerDB(sp){
-  // sp.photoDataUrl here should already be a public URL (uploaded before calling this)
+  // Never save base64 dataUrls to DB — only public Storage URLs
+  const photoUrl = (sp.photoDataUrl && sp.photoDataUrl.startsWith('http')) ? sp.photoDataUrl
+    : (sp.photoUrl && sp.photoUrl.startsWith('http')) ? sp.photoUrl
+    : null;
   const payload = {
     name: sp.name,
     role: sp.role||'',
     bio: sp.bio||'',
-    photo_data_url: sp.photoDataUrl||null, // stores public URL from Storage
+    photo_data_url: photoUrl,
     photo_adjust: JSON.stringify(sp.photoAdjust||{zoom:100,x:0,y:0}),
     updated_at: new Date().toISOString()
   };
@@ -3935,10 +3938,23 @@ async function handleSubmit(e){
 
   const customAnswers={};
   customQuestions.forEach(q=>{
-    if(q.type==='text'){const el=document.getElementById('cq_'+q.id);customAnswers[q.text]=el?el.value.trim():'';}
-    else if(q.type==='dropdown'){const el=document.getElementById('cq_'+q.id);customAnswers[q.text]=el?el.value:'';}
-    else if(q.type==='radio'){const sel=document.querySelector('[data-cqid="'+q.id+'"] input[type=radio]:checked');customAnswers[q.text]=sel?sel.value:'';}
-    else if(q.type==='checkbox'){const sels=document.querySelectorAll('[data-cqid="'+q.id+'"] input[type=checkbox]:checked');customAnswers[q.text]=Array.from(sels).map(s=>s.value).join(', ');}
+    const safeName='cq_'+q.id.replace(/[^a-z0-9_]/gi,'_');
+    if(q.type==='text'){
+      const el=document.getElementById('cq_'+q.id);
+      customAnswers[q.text]=el?el.value.trim():'';
+    } else if(q.type==='dropdown'){
+      const el=document.getElementById('cq_'+q.id);
+      customAnswers[q.text]=el?el.value:'';
+    } else if(q.type==='radio'){
+      const sel=document.querySelector('[data-cqid="'+q.id+'"] input[type=radio]:checked');
+      customAnswers[q.text]=sel?sel.value:'';
+    } else if(q.type==='checkbox_single'){
+      const sel=document.querySelector('[data-cqid="'+q.id+'"] input[type=checkbox]:checked');
+      customAnswers[q.text]=sel?sel.value:'';
+    } else if(q.type==='checkbox'){
+      const sels=document.querySelectorAll('[data-cqid="'+q.id+'"] input[type=checkbox]:checked');
+      customAnswers[q.text]=Array.from(sels).map(s=>s.value).join(', ');
+    }
   });
 
   const now=new Date();
