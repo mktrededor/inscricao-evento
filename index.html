@@ -964,6 +964,7 @@ a#prog-download-link{text-decoration:none !important;}
     </button>
     <button id="admin-collapse-btn" onclick="toggleAdminCollapse()">⟨⟨ Recolher</button>
     <button onclick="window.location.reload()" style="width:100%;padding:8px 0;background:rgba(255,255,255,.08);border:none;border-top:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.6);font-family:var(--font);font-size:9px;font-weight:700;cursor:pointer;letter-spacing:.3px;text-transform:uppercase;">🔄 Recarregar</button>
+    <button onclick="adminSaveAll()" style="width:100%;padding:10px 0;background:rgba(255,255,255,.15);border:none;border-top:1px solid rgba(255,255,255,.15);color:#fff;font-family:var(--font);font-size:10px;font-weight:800;cursor:pointer;letter-spacing:.3px;text-transform:uppercase;">💾 Salvar alterações</button>
   </div>
 
   <!-- CONTENT AREA -->
@@ -1660,6 +1661,7 @@ Nos vemos lá! Não esqueça de trazer seu QR Code. 🎟</div>
       <h3>Trabalha na Rede D'Or?</h3>
       <div class="chart-wrap"><canvas id="chart-redor"></canvas></div>
     </div>
+    <div id="dash-custom-charts"></div>
     <div class="admin-section">
       <h3>📲 RSVP em Tempo Real</h3>
       <div class="stat-grid">
@@ -2213,6 +2215,10 @@ async function applySettingsToPage(s) {
     restoreEventoData(s.eventoData);
     checkEventoTime();
     setTimeout(updateBtnChegar, 500);
+    // Update browser title with event name
+    if(s.eventoData.nome){
+      document.title = s.eventoData.nome + ' – Inscrição';
+    }
   }
   // Restaurar programação
   restoreProgData(s);
@@ -3324,10 +3330,24 @@ function toggleAdmin(){
     return;
   }
   if(adminUnlocked){ openAdminPanel(); return; }
+  askAdminPassword();
+}
+
+function askAdminPassword(){
   const senha=prompt('🔒 Digite a senha do painel Admin:');
   if(senha===null) return;
   if(senha===ADMIN_PASSWORD){ adminUnlocked=true; openAdminPanel(); }
-  else alert('❌ Senha incorreta.');
+  else { alert('❌ Senha incorreta. Tente novamente.'); askAdminPassword(); }
+}
+
+async function adminSaveAll(){
+  // Collect current tab's fields before saving
+  if(_currentAdminTab==='edit') applyAll();
+  else if(_currentAdminTab==='colors') applyAllColors();
+  else {
+    const saved = await saveSettings(gatherSettings());
+    showSaveIndicator(saved, saved?'✔ Alterações salvas!':'⚠ Falha ao salvar');
+  }
 }
 
 function openAdminPanel(){
@@ -4045,6 +4065,38 @@ async function updateDashboard(){
   if(pL.length) chartPerfis=new Chart(document.getElementById('chart-perfis').getContext('2d'),{type:'pie',data:{labels:pL,datasets:[{data:pD,backgroundColor:PALETTE.slice(0,pL.length),borderWidth:2,borderColor:'#fff'}]},options:{responsive:true,plugins:{legend:{position:'bottom',labels:{font:{family:'Montserrat',size:10},padding:6}}}}});
   if(chartRedor)chartRedor.destroy();
   if(total) chartRedor=new Chart(document.getElementById('chart-redor').getContext('2d'),{type:'pie',data:{labels:['Sim','Não'],datasets:[{data:[sim,total-sim],backgroundColor:['#005ca9','#aee2f8'],borderWidth:2,borderColor:'#fff'}]},options:{responsive:true,plugins:{legend:{position:'bottom',labels:{font:{family:'Montserrat',size:11},padding:8}}}}});
+
+  // Charts for custom questions (radio, checkbox_single, dropdown, checkbox)
+  const chartable = customQuestions.filter(q=>['radio','checkbox_single','dropdown','checkbox'].includes(q.type));
+  const ccWrap = document.getElementById('dash-custom-charts');
+  if(ccWrap){
+    ccWrap.innerHTML = '';
+    chartable.forEach((q,qi)=>{
+      const counts = {};
+      q.options.forEach(o=>counts[o]=0);
+      inscricoes.forEach(r=>{
+        const val = r.extras && r.extras[q.text];
+        if(!val) return;
+        // Could be comma-separated (checkbox multiple)
+        val.split(', ').forEach(v=>{ if(counts[v]!==undefined) counts[v]++; });
+      });
+      const labels=Object.keys(counts); const values=labels.map(l=>counts[l]);
+      if(!values.some(v=>v>0)) return; // skip if no answers yet
+      const canvasId = 'chart-cq-'+q.id;
+      const section = document.createElement('div');
+      section.className = 'admin-section';
+      section.innerHTML = `<h3>${q.text}</h3><div class="chart-wrap"><canvas id="${canvasId}"></canvas></div>`;
+      ccWrap.appendChild(section);
+      new Chart(document.getElementById(canvasId).getContext('2d'),{
+        type:'bar',
+        data:{labels,datasets:[{data:values,backgroundColor:PALETTE.slice(0,labels.length),borderRadius:6,borderWidth:0}]},
+        options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{stepSize:1,font:{family:'Montserrat',size:10}}}}}
+      });
+    });
+    if(chartable.length && ccWrap.childElementCount===0){
+      ccWrap.innerHTML='<div class="admin-section"><div class="empty-state" style="font-size:12px;">Nenhuma resposta registrada ainda para as perguntas adicionais.</div></div>';
+    }
+  }
 }
 
 async function renderInscricoesList(skipFetch){
@@ -5319,6 +5371,7 @@ async function saveEventoData(){
   currentSettings.eventoData=evData;
   document.getElementById('ed-title').value=nome||document.getElementById('ed-title').value;
   syncEventoToForm();
+  if(nome) document.title = nome + ' – Inscrição';
 
   const saved=await saveSettings(gatherSettings());
   showSaveIndicator(saved,'✔ Dados do evento salvos!');
