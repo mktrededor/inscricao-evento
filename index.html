@@ -1656,10 +1656,12 @@ Nos vemos lá! Não esqueça de trazer seu QR Code. 🎟</div>
     <div class="admin-section">
       <h3>Perfis</h3>
       <div class="chart-wrap"><canvas id="chart-perfis"></canvas></div>
+      <div id="dash-perfis-nums" style="margin-top:8px;"></div>
     </div>
     <div class="admin-section">
       <h3>Trabalha na Rede D'Or?</h3>
       <div class="chart-wrap"><canvas id="chart-redor"></canvas></div>
+      <div id="dash-redor-nums" style="margin-top:8px;"></div>
     </div>
     <div id="dash-custom-charts"></div>
     <div class="admin-section">
@@ -4069,6 +4071,31 @@ async function updateDashboard(){
   // Charts
   const pc={}; inscricoes.forEach(r=>{ pc[r.perfil]=(pc[r.perfil]||0)+1; });
   const pL=Object.keys(pc),pD=pL.map(k=>pc[k]);
+
+  // Numeric summary for perfis
+  const perfisNumEl = document.getElementById('dash-perfis-nums');
+  if(perfisNumEl){
+    perfisNumEl.innerHTML = pL.length ? pL.sort((a,b)=>pc[b]-pc[a]).map(k=>
+      `<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--gray2);font-size:12px;">
+        <span style="font-weight:600;">${k}</span>
+        <span><strong>${pc[k]}</strong> <span style="color:var(--text-light);font-size:11px;">(${total?Math.round(pc[k]/total*100):0}%)</span></span>
+      </div>`).join('') : '<div style="font-size:11px;color:var(--text-light);">Sem dados</div>';
+  }
+
+  // Numeric summary for redor
+  const redorNumEl = document.getElementById('dash-redor-nums');
+  if(redorNumEl){
+    redorNumEl.innerHTML = `
+      <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--gray2);font-size:12px;">
+        <span style="font-weight:600;">Sim</span>
+        <span><strong>${sim}</strong> <span style="color:var(--text-light);font-size:11px;">(${total?Math.round(sim/total*100):0}%)</span></span>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:5px 0;font-size:12px;">
+        <span style="font-weight:600;">Não</span>
+        <span><strong>${total-sim}</strong> <span style="color:var(--text-light);font-size:11px;">(${total?Math.round((total-sim)/total*100):0}%)</span></span>
+      </div>`;
+  }
+
   if(chartPerfis)chartPerfis.destroy();
   if(pL.length) chartPerfis=new Chart(document.getElementById('chart-perfis').getContext('2d'),{type:'pie',data:{labels:pL,datasets:[{data:pD,backgroundColor:PALETTE.slice(0,pL.length),borderWidth:2,borderColor:'#fff'}]},options:{responsive:true,plugins:{legend:{position:'bottom',labels:{font:{family:'Montserrat',size:10},padding:6}}}}});
   if(chartRedor)chartRedor.destroy();
@@ -4090,10 +4117,16 @@ async function updateDashboard(){
       });
       const labels=Object.keys(counts); const values=labels.map(l=>counts[l]);
       if(!values.some(v=>v>0)) return; // skip if no answers yet
+      const total_q = values.reduce((a,b)=>a+b,0);
+      const numsHtml = labels.sort((a,b)=>counts[b]-counts[a]).map(l=>
+        `<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--gray2);font-size:12px;">
+          <span style="font-weight:600;">${l}</span>
+          <span><strong>${counts[l]}</strong> <span style="color:var(--text-light);font-size:11px;">(${total_q?Math.round(counts[l]/total_q*100):0}%)</span></span>
+        </div>`).join('');
       const canvasId = 'chart-cq-'+q.id;
       const section = document.createElement('div');
       section.className = 'admin-section';
-      section.innerHTML = `<h3>${q.text}</h3><div class="chart-wrap"><canvas id="${canvasId}"></canvas></div>`;
+      section.innerHTML = `<h3>${q.text}</h3><div class="chart-wrap"><canvas id="${canvasId}"></canvas></div><div style="margin-top:8px;">${numsHtml}</div>`;
       ccWrap.appendChild(section);
       new Chart(document.getElementById(canvasId).getContext('2d'),{
         type:'bar',
@@ -5462,6 +5495,28 @@ async function gerarRelatorioPDF(){
 
   const logoHtml=evData.logoUrl?`<img src="${evData.logoUrl}" style="max-height:60px;max-width:180px;object-fit:contain;display:block;margin:0 auto 10px;">`:'' ;
 
+  // Custom questions tabulation
+  const chartableQ = customQuestions.filter(q=>['radio','checkbox_single','dropdown','checkbox'].includes(q.type));
+  const customQSections = chartableQ.map(q=>{
+    const counts = {};
+    q.options.forEach(o=>counts[o]=0);
+    inscricoes.forEach(r=>{
+      const val = r.extras && r.extras[q.text];
+      if(!val) return;
+      val.split(', ').forEach(v=>{ if(counts[v]!==undefined) counts[v]++; });
+    });
+    const total_q = Object.values(counts).reduce((a,b)=>a+b,0);
+    const rows = Object.entries(counts).sort((a,b)=>b[1]-a[1])
+      .map(([opt,n])=>`<tr><td>${opt}</td><td style="text-align:center;font-weight:700;">${n}</td><td style="text-align:center;">${total_q?Math.round(n/total_q*100):0}%</td></tr>`).join('');
+    return `<div class="section">
+      <h2>${q.text}</h2>
+      <table>
+        <thead><tr><th>Resposta</th><th style="text-align:center;">Qtd</th><th style="text-align:center;">%</th></tr></thead>
+        <tbody>${rows||'<tr><td colspan="3" style="text-align:center;">Sem respostas</td></tr>'}</tbody>
+      </table>
+    </div>`;
+  }).join('');
+
   const win=window.open('','_blank');
   win.document.write(`<!DOCTYPE html><html><head>
   <meta charset="UTF-8"><title>Relatório — ${eventoNome}</title>
@@ -5536,6 +5591,8 @@ async function gerarRelatorioPDF(){
       <tbody>${bannersRows}</tbody>
     </table>
   </div>
+
+  ${customQSections}
 
   <div class="footer">${rodape}</div>
   <script>window.onload=()=>{setTimeout(()=>window.print(),600);}<\/script>
