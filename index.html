@@ -799,7 +799,7 @@ a#prog-download-link{text-decoration:none !important;}
     <div class="prog-header">
       <img id="prog-logo" class="prog-logo" src="" alt="" style="display:none;">
       <div id="prog-event-name" class="prog-event-name"></div>
-      <div id="prog-salas-selector" style="display:none;margin-top:16px;display:none;gap:8px;flex-wrap:wrap;justify-content:center;"></div>
+      <div id="prog-salas-selector" style="display:none;margin-top:16px;gap:8px;flex-wrap:wrap;justify-content:center;"></div>
     </div>
     <div id="prog-lista"></div>
     <a id="prog-download-link" href="#" download style="display:none;">
@@ -1769,11 +1769,17 @@ Nos vemos lá! Não esqueça de trazer seu QR Code. 🎟</div>
       </div>
 
       <!-- Upload PDF download -->
-      <div class="admin-field">
-        <label>Arquivo para download (PDF, DOCX, etc.)</label>
-        <label class="admin-file-btn" for="up-prog-file">📁 Escolher arquivo</label>
-        <input type="file" id="up-prog-file" class="admin-file-input" accept=".pdf,.doc,.docx,.ppt,.pptx" onchange="handleProgFile(this)">
-        <div id="prog-file-status" style="font-size:10px;color:var(--text-light);margin-top:4px;">Nenhum arquivo carregado.</div>
+      <div class="admin-field" style="background:#f8faff;border-radius:8px;padding:10px;margin-bottom:14px;">
+        <div style="font-size:10px;font-weight:700;color:var(--blue);text-transform:uppercase;margin-bottom:8px;">📥 Botão de Download</div>
+        <div class="toggle-row" style="margin-bottom:8px;">
+          <span>Mostrar botão "Download da Programação"</span>
+          <label class="toggle-switch"><input type="checkbox" id="toggle-prog-download" checked onchange="updateProgDownloadBtn()"><span class="toggle-slider"></span></label>
+        </div>
+        <div id="prog-download-upload-wrap">
+          <label class="admin-file-btn" for="up-prog-file">📁 Escolher arquivo</label>
+          <input type="file" id="up-prog-file" class="admin-file-input" accept=".pdf,.doc,.docx,.ppt,.pptx" onchange="handleProgFile(this)">
+          <div id="prog-file-status" style="font-size:10px;color:var(--text-light);margin-top:4px;">Nenhum arquivo carregado.</div>
+        </div>
       </div>
 
       <!-- Lista de itens -->
@@ -2010,6 +2016,8 @@ function gatherSettings() {
     progItems: progItems,
     progInternoAtivo: progInternoAtivo,
     progFileUrl: progFileUrl,
+    progDownloadAtivo: document.getElementById('toggle-prog-download')?.checked !== false,
+    progDownloadAtivo: document.getElementById('toggle-prog-download')?.checked !== false,
     progSalas: progSalas,
     progSalasAtivo: progSalasAtivo,
     progOverlayColor:   document.getElementById('ed-prog-overlay-color')?.value||'#005ca9',
@@ -5806,8 +5814,21 @@ async function handleProgFile(input){
 function renderProgDownloadBtn(){
   const link = document.getElementById('prog-download-link');
   if(!link) return;
-  if(progFileUrl){ link.href = progFileUrl; link.style.display = 'block'; }
-  else { link.style.display = 'none'; }
+  const toggleEl = document.getElementById('toggle-prog-download');
+  const ativo = toggleEl ? toggleEl.checked : true;
+  if(ativo && progFileUrl){
+    link.href = progFileUrl;
+    link.style.display = 'block';
+  } else {
+    link.style.display = 'none';
+  }
+}
+
+function updateProgDownloadBtn(){
+  const enabled = document.getElementById('toggle-prog-download')?.checked;
+  const uploadWrap = document.getElementById('prog-download-upload-wrap');
+  if(uploadWrap) uploadWrap.style.display = enabled ? '' : 'none';
+  renderProgDownloadBtn();
 }
 
 function addProgItem(type){
@@ -5985,6 +6006,16 @@ function restoreProgData(s){
     if(progSalasAtivo){ renderProgSalasList(); renderProgSalasSelector(); }
   }
   if(s.progFileUrl){ progFileUrl = s.progFileUrl; }
+  if(s.progDownloadAtivo !== undefined){
+    const el = document.getElementById('toggle-prog-download');
+    if(el) el.checked = s.progDownloadAtivo;
+    const wrap = document.getElementById('prog-download-upload-wrap');
+    if(wrap) wrap.style.display = s.progDownloadAtivo ? '' : 'none';
+  }
+  if(s.progDownloadAtivo !== undefined){
+    const el = document.getElementById('toggle-prog-download');
+    if(el) el.checked = s.progDownloadAtivo;
+  }
   if(s.progOverlayColor){
     const el = document.getElementById('ed-prog-overlay-color'); if(el) el.value=s.progOverlayColor;
   }
@@ -6039,6 +6070,7 @@ function renderProgScreen(){
   // Build list — use first sala if salas active, else progItems
   const lista = document.getElementById('prog-lista');
   if(!lista) return;
+  lista.innerHTML = ''; // Clear before rendering
   const itemsToShow = (progSalasAtivo && progSalas.length > 0) ? progSalas[0].items : progItems;
   renderProgItems(itemsToShow, lista);
 
@@ -6272,6 +6304,7 @@ function getProgSalasForSave(){
 function renderProgSalasPublic(){
   const wrap = document.getElementById('prog-salas-selector');
   if(!wrap) return;
+  wrap.innerHTML = ''; // Always clear first to prevent duplicates
   if(!progSalasAtivo || progSalas.length < 2){ wrap.style.display='none'; return; }
   wrap.style.display = 'flex';
   wrap.innerHTML = progSalas.map((s,i)=>`
@@ -6301,6 +6334,7 @@ function switchProgSalaPublic(salaId, btn){
 }
 
 function renderProgItems(items, container){
+  container.innerHTML = ''; // Always clear first
   if(!items||!items.length){ container.innerHTML='<p style="text-align:center;color:rgba(255,255,255,.6);padding:40px 0;">Programação em breve.</p>'; return; }
   container.innerHTML = items.map(item=>{
     if(item.type==='separador') return `<hr class="prog-separador">`;
