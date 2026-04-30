@@ -3628,27 +3628,125 @@ function addCustomQuestion(){
   renderCustomQList(); renderCustomQuestionsForm();
 }
 function removeCustomQuestion(id){ customQuestions=customQuestions.filter(q=>q.id!==id); renderCustomQList(); renderCustomQuestionsForm(); }
+let _editingCqId = null; // track which question is being edited
+
 function renderCustomQList(){
-  const typeLabels={radio:'Escolha única',checkbox:'Múltipla escolha',dropdown:'Dropdown',text:'Texto livre'};
+  const typeLabels={radio:'Escolha única (botões)',checkbox_single:'Escolha única (checkbox)',checkbox:'Múltipla escolha',dropdown:'Dropdown',text:'Texto livre'};
   const container=document.getElementById('custom-q-list');
   if(!customQuestions.length){container.innerHTML='<div class="empty-state" style="padding:10px 0;font-size:12px;">Nenhuma pergunta adicionada.</div>';return;}
   container.innerHTML=customQuestions.map(q=>{
-    const linkSection = q.options.length && q.linkBtnLabel ? `
-      <div style="margin-top:8px;padding:8px;background:#f0f8ff;border-radius:6px;border:1px solid #cce0ff;">
-        <div style="font-size:9px;font-weight:700;color:var(--blue);text-transform:uppercase;margin-bottom:6px;">🔗 Destino por resposta — botão: "${q.linkBtnLabel}"</div>
-        ${q.options.map(o=>`
-          <div style="margin-bottom:8px;">
-            <div style="font-size:10px;font-weight:700;color:var(--text);margin-bottom:3px;">${o}</div>
-            ${buildDestinationPicker(q.id, o, (q.optionLinks&&q.optionLinks[o])||'')}
-          </div>`).join('')}
+    const isEditing = _editingCqId === q.id;
+    const hasOptions = q.options && q.options.length > 0;
+    const blockedOptions = q.blockedOptions || [];
+
+    // Options with block toggles
+    const optionsSection = hasOptions ? `
+      <div style="margin-top:8px;">
+        <div style="font-size:9px;font-weight:700;color:var(--text-light);text-transform:uppercase;margin-bottom:5px;">Opções — clique 🔒 para bloquear/desbloquear</div>
+        ${q.options.map(o=>{
+          const blocked = blockedOptions.includes(o);
+          return `<div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid var(--gray2);">
+            <span style="flex:1;font-size:11px;${blocked?'text-decoration:line-through;color:var(--text-light);':''}">${o}</span>
+            ${blocked?'<span style="font-size:9px;color:#c0392b;font-weight:700;">BLOQUEADA</span>':''}
+            <button onclick="toggleBlockOption('${q.id}','${o.replace(/'/g,"\\'")}')"
+              style="padding:2px 7px;border:none;border-radius:4px;cursor:pointer;font-size:10px;font-weight:700;
+                background:${blocked?'#e8f8ef':'#fde8e8'};color:${blocked?'#1a7a40':'#c0392b'};">
+              ${blocked?'🔓 Liberar':'🔒 Bloquear'}
+            </button>
+          </div>`;
+        }).join('')}
       </div>` : '';
-    const linkMeta = q.linkBtnLabel ? ` · Botão: "${q.linkBtnLabel}"` : '';
+
+    // Edit form inline
+    const editSection = isEditing ? `
+      <div style="margin-top:10px;padding:10px;background:#fff;border-radius:8px;border:1.5px solid var(--blue);">
+        <div style="font-size:10px;font-weight:700;color:var(--blue);margin-bottom:8px;text-transform:uppercase;">Editar pergunta</div>
+        <div style="font-size:10px;font-weight:600;color:var(--text-light);margin-bottom:3px;">TEXTO DA PERGUNTA</div>
+        <input type="text" id="cq-edit-text-${q.id}" value="${q.text.replace(/"/g,'&quot;')}"
+          style="width:100%;padding:7px 10px;border:1.5px solid var(--gray2);border-radius:6px;font-size:12px;margin-bottom:8px;">
+        <div style="font-size:10px;font-weight:600;color:var(--text-light);margin-bottom:3px;">TIPO DE RESPOSTA</div>
+        <select id="cq-edit-type-${q.id}" style="width:100%;padding:7px 10px;border:1.5px solid var(--gray2);border-radius:6px;font-size:12px;margin-bottom:8px;">
+          <option value="radio"${q.type==='radio'?' selected':''}>Escolha única (botões)</option>
+          <option value="checkbox_single"${q.type==='checkbox_single'?' selected':''}>Escolha única (checkbox)</option>
+          <option value="checkbox"${q.type==='checkbox'?' selected':''}>Múltipla escolha (checkbox)</option>
+          <option value="dropdown"${q.type==='dropdown'?' selected':''}>Menu suspenso (dropdown)</option>
+          <option value="text"${q.type==='text'?' selected':''}>Texto livre</option>
+        </select>
+        <div style="font-size:10px;font-weight:600;color:var(--text-light);margin-bottom:3px;">OPÇÕES (uma por linha)</div>
+        <textarea id="cq-edit-options-${q.id}" rows="4"
+          style="width:100%;padding:7px 10px;border:1.5px solid var(--gray2);border-radius:6px;font-size:12px;resize:vertical;margin-bottom:8px;"
+          placeholder="Opção 1&#10;Opção 2&#10;…">${(q.options||[]).join('\n')}</textarea>
+        <label style="display:flex;align-items:center;gap:8px;font-size:12px;margin-bottom:10px;">
+          <input type="checkbox" id="cq-edit-req-${q.id}" ${q.required?'checked':''} style="width:15px;height:15px;accent-color:var(--blue);">
+          Resposta obrigatória
+        </label>
+        <div style="display:flex;gap:8px;">
+          <button onclick="saveCqEdit('${q.id}')"
+            style="flex:1;padding:8px;background:var(--blue);color:#fff;border:none;border-radius:6px;font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer;">
+            ✔ Salvar
+          </button>
+          <button onclick="_editingCqId=null;renderCustomQList();"
+            style="padding:8px 12px;background:#f4f6f9;color:var(--text-light);border:none;border-radius:6px;font-family:var(--font);font-size:11px;cursor:pointer;">
+            Cancelar
+          </button>
+        </div>
+      </div>` : '';
+
     return `<div class="custom-q-item">
-      <div class="custom-q-header"><span>${q.text}</span><button onclick="removeCustomQuestion('${q.id}')">✕</button></div>
-      <div class="custom-q-meta">${typeLabels[q.type]}${q.required?' · Obrigatória':' · Opcional'}${q.options.length?' · '+q.options.length+' opções':''}${linkMeta}</div>
-      ${linkSection}
+      <div class="custom-q-header">
+        <span>${q.text}</span>
+        <div style="display:flex;gap:4px;flex-shrink:0;">
+          <button onclick="startEditCq('${q.id}')" style="background:var(--blue-light);border:none;color:var(--blue);cursor:pointer;font-size:12px;padding:2px 7px;border-radius:4px;font-weight:700;" title="Editar">✏</button>
+          <button onclick="removeCustomQuestion('${q.id}')" style="background:none;border:none;color:#c0392b;cursor:pointer;font-size:15px;" title="Remover">✕</button>
+        </div>
+      </div>
+      <div class="custom-q-meta">${typeLabels[q.type]||q.type}${q.required?' · Obrigatória':' · Opcional'}${hasOptions?' · '+q.options.length+' opções':''}${blockedOptions.length?' · '+blockedOptions.length+' bloqueada(s)':''}</div>
+      ${optionsSection}
+      ${editSection}
     </div>`;
   }).join('');
+}
+
+function startEditCq(id){
+  _editingCqId = (_editingCqId === id) ? null : id;
+  renderCustomQList();
+  // Scroll to the edit form
+  setTimeout(()=>{
+    const el = document.getElementById('cq-edit-text-'+id);
+    if(el) el.scrollIntoView({behavior:'smooth', block:'nearest'});
+  }, 50);
+}
+
+function saveCqEdit(id){
+  const q = customQuestions.find(x=>x.id===id);
+  if(!q) return;
+  const text = document.getElementById('cq-edit-text-'+id)?.value.trim();
+  const type = document.getElementById('cq-edit-type-'+id)?.value;
+  const optionsRaw = document.getElementById('cq-edit-options-'+id)?.value||'';
+  const required = document.getElementById('cq-edit-req-'+id)?.checked||false;
+  if(!text){ alert('Insira o texto da pergunta.'); return; }
+  const options = optionsRaw.split('\n').map(s=>s.trim()).filter(Boolean);
+  if(type!=='text' && options.length<1){ alert('Adicione pelo menos uma opção.'); return; }
+  // Keep blocked options that still exist in the new options list
+  q.text = text;
+  q.type = type;
+  q.options = options;
+  q.required = required;
+  q.blockedOptions = (q.blockedOptions||[]).filter(b=>options.includes(b));
+  _editingCqId = null;
+  renderCustomQList();
+  renderCustomQuestionsForm();
+}
+
+function toggleBlockOption(qId, optionValue){
+  const q = customQuestions.find(x=>x.id===qId);
+  if(!q) return;
+  if(!q.blockedOptions) q.blockedOptions = [];
+  const idx = q.blockedOptions.indexOf(optionValue);
+  if(idx>-1) q.blockedOptions.splice(idx,1);
+  else q.blockedOptions.push(optionValue);
+  renderCustomQList();
+  renderCustomQuestionsForm();
 }
 
 function buildDestinationPicker(qId, optionValue, currentVal){
@@ -3851,10 +3949,43 @@ function renderCustomQuestionsForm(){
     const safeName='cq_'+q.id.replace(/[^a-z0-9_]/gi,'_');
     let inner='';
     if(q.type==='text') inner='<input type="text" name="'+safeName+'" id="cq_'+q.id+'" placeholder="Sua resposta…">';
-    else if(q.type==='dropdown') inner='<div class="select-wrap"><select name="'+safeName+'" id="cq_'+q.id+'"><option value="">Selecione…</option>'+q.options.map(o=>'<option value="'+o+'">'+o+'</option>').join('')+'</select></div>';
-    else if(q.type==='radio') inner='<div class="radio-group">'+q.options.map((o,oi)=>{ const uid='cq_'+q.id+'_'+oi; return '<div class="radio-option"><input type="radio" name="'+safeName+'" id="'+uid+'" value="'+o+'"><label for="'+uid+'">'+o+'</label></div>'; }).join('')+'</div>';
-    else if(q.type==='checkbox_single') inner='<div class="checkbox-single-group">'+q.options.map((o,oi)=>{ const uid='cq_'+q.id+'_'+oi; return '<div class="checkbox-single-option"><input type="checkbox" name="'+safeName+'_single" id="'+uid+'" value="'+o+'" onchange="uncheckOthers(this,\''+safeName+'_single\')"><label for="'+uid+'">'+o+'</label></div>'; }).join('')+'</div>';
-    else if(q.type==='checkbox') inner='<div class="checkbox-group">'+q.options.map((o,oi)=>{ const uid='cq_'+q.id+'_'+oi; return '<div class="checkbox-option"><input type="checkbox" name="'+safeName+'" id="'+uid+'" value="'+o+'"><label for="'+uid+'">'+o+'</label></div>'; }).join('')+'</div>';
+    else if(q.type==='dropdown'){
+      const opts = q.options.map(o=>{
+        const blocked=(q.blockedOptions||[]).includes(o);
+        return `<option value="${o}"${blocked?' disabled':''} style="${blocked?'color:#bbb;':''}">  ${o}${blocked?' (esgotado)':''}</option>`;
+      }).join('');
+      inner='<div class="select-wrap"><select name="'+safeName+'" id="cq_'+q.id+'"><option value="">Selecione…</option>'+opts+'</select></div>';
+    }
+    else if(q.type==='radio'){
+      inner='<div class="radio-group">'+q.options.map((o,oi)=>{
+        const uid='cq_'+q.id+'_'+oi;
+        const blocked=(q.blockedOptions||[]).includes(o);
+        return `<div class="radio-option"${blocked?' style="opacity:.45;pointer-events:none;"':''}>
+          <input type="radio" name="${safeName}" id="${uid}" value="${o}"${blocked?' disabled':''}>
+          <label for="${uid}">${o}${blocked?'<br><span style="font-size:9px;color:#c0392b;font-weight:700;">ESGOTADO</span>':''}</label>
+        </div>`;
+      }).join('')+'</div>';
+    }
+    else if(q.type==='checkbox_single'){
+      inner='<div class="checkbox-single-group">'+q.options.map((o,oi)=>{
+        const uid='cq_'+q.id+'_'+oi;
+        const blocked=(q.blockedOptions||[]).includes(o);
+        return `<div class="checkbox-single-option"${blocked?' style="opacity:.45;pointer-events:none;"':''}>
+          <input type="checkbox" name="${safeName}_single" id="${uid}" value="${o}"${blocked?' disabled':''} onchange="uncheckOthers(this,'${safeName}_single')">
+          <label for="${uid}">${o}${blocked?'<br><span style="font-size:9px;color:#c0392b;font-weight:700;">ESGOTADO</span>':''}</label>
+        </div>`;
+      }).join('')+'</div>';
+    }
+    else if(q.type==='checkbox'){
+      inner='<div class="checkbox-group">'+q.options.map((o,oi)=>{
+        const uid='cq_'+q.id+'_'+oi;
+        const blocked=(q.blockedOptions||[]).includes(o);
+        return `<div class="checkbox-option"${blocked?' style="opacity:.45;pointer-events:none;"':''}>
+          <input type="checkbox" name="${safeName}" id="${uid}" value="${o}"${blocked?' disabled':''}>
+          <label for="${uid}">${o}${blocked?' <span style="font-size:10px;color:#c0392b;font-weight:700;">(esgotado)</span>':''}</label>
+        </div>`;
+      }).join('')+'</div>';
+    }
     return '<div class="field-group" data-cqid="'+q.id+'" data-cqtype="'+q.type+'" data-cqreq="'+q.required+'"><label class="fg-label">'+q.text+reqMark+'</label>'+inner+'</div>';
   }).join('');
   // Append standalone link buttons
