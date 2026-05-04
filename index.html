@@ -3247,19 +3247,40 @@ async function saveToSupabase(record){
   } catch(e){ return false; }
 }
 
-async function loadFromSupabase(){
+let _inscricoesCache = null;
+let _inscricoesCacheTime = 0;
+const CACHE_TTL_MS = 60000; // 1 minute cache
+
+async function loadFromSupabase(forceRefresh = false){
+  // Use cache if fresh and not forced
+  if(!forceRefresh && _inscricoesCache && (Date.now() - _inscricoesCacheTime) < CACHE_TTL_MS){
+    inscricoes = _inscricoesCache;
+    return true;
+  }
   try {
-    const { data, error }=await sb.from('inscricoes').select('*').order('created_at',{ascending:false});
+    // Select only the fields we actually use — avoid SELECT *
+    const { data, error } = await sb.from('inscricoes')
+      .select('id,data_inscricao,hora_inscricao,nome_completo,cpf,telefone,email,perfil,trabalha_redor,created_at,respostas_extras')
+      .order('created_at', {ascending: false});
     if(error) return null;
-    return data.map(r=>({
-      id:r.id||'',
-      data:r.data_inscricao||'', hora:r.hora_inscricao||'', nome:r.nome_completo||'',
-      cpf:r.cpf||'', telefone:r.telefone||'', email:r.email||'',
-      perfil:r.perfil||'', redor:r.trabalha_redor||'',
-      created_at:r.created_at||'',
-      extras:r.respostas_extras?JSON.parse(r.respostas_extras):{}
+    const mapped = data.map(r=>({
+      id: r.id||'',
+      data: r.data_inscricao||'', hora: r.hora_inscricao||'', nome: r.nome_completo||'',
+      cpf: r.cpf||'', telefone: r.telefone||'', email: r.email||'',
+      perfil: r.perfil||'', redor: r.trabalha_redor||'',
+      created_at: r.created_at||'',
+      extras: r.respostas_extras ? JSON.parse(r.respostas_extras) : {}
     }));
+    inscricoes = mapped;
+    _inscricoesCache = mapped;
+    _inscricoesCacheTime = Date.now();
+    return true;
   } catch(e){ return null; }
+}
+
+function invalidateInscricoesCache(){
+  _inscricoesCache = null;
+  _inscricoesCacheTime = 0;
 }
 
 async function checkCpfExists(cpf){
@@ -4132,6 +4153,7 @@ async function handleSubmit(e){
   const savedOnline=await saveToSupabase(record);
   if(!savedOnline){ const local=JSON.parse(localStorage.getItem('redor_inscricoes')||'[]'); local.push(record); localStorage.setItem('redor_inscricoes',JSON.stringify(local)); }
   inscricoes.unshift(record);
+  invalidateInscricoesCache(); // New inscription — force next load to refresh
   submitBtn.textContent=originalText; submitBtn.disabled=false;
 
   // Clear the already-registered alert if present
@@ -4154,8 +4176,8 @@ function novaInscricao(){
 const PALETTE=['#005ca9','#0a7bc4','#1a9fde','#4ab8e8','#7dd0f0','#aee2f8','#5c9e31','#e8a020','#d9534f','#9b59b6','#2ecc71','#e67e22'];
 
 async function updateDashboard(){
-  const online=await loadFromSupabase();
-  if(online!==null) inscricoes=online; else inscricoes=JSON.parse(localStorage.getItem('redor_inscricoes')||'[]');
+  const ok = await loadFromSupabase(true); // Force refresh on dashboard open
+  if(!ok) inscricoes = JSON.parse(localStorage.getItem('redor_inscricoes')||'[]');
 
   // Detect "inscritos no local" — inscribed during event hours
   const evData = currentSettings.eventoData || {};
@@ -4273,9 +4295,8 @@ async function updateDashboard(){
 
 async function renderInscricoesList(skipFetch){
   if(!skipFetch){
-    const online=await loadFromSupabase();
-    if(online!==null) inscricoes=online;
-    else inscricoes=JSON.parse(localStorage.getItem('redor_inscricoes')||'[]');
+    const ok = await loadFromSupabase();
+    if(!ok) inscricoes = JSON.parse(localStorage.getItem('redor_inscricoes')||'[]');
   }
   document.getElementById('data-count').textContent=inscricoes.length;
   const wrap=document.getElementById('inscricoes-list-wrap');
@@ -4287,12 +4308,11 @@ async function renderInscricoesList(skipFetch){
 // EXPORT
 // ═══════════════════════════════════════
 async function downloadXLSX(){
-  const online=await loadFromSupabase();
-  const data=online!==null?online:JSON.parse(localStorage.getItem('redor_inscricoes')||'[]');
-  if(!data.length){alert('Nenhuma inscrição para exportar.');return;}
+  await loadFromSupabase(true); // Force fresh data for export
+  if(!inscricoes.length){alert('Nenhuma inscrição para exportar.');return;}
   const extraKeys=customQuestions.map(q=>q.text);
   const headers=['Data','Hora','Nome Completo','CPF','Telefone/WhatsApp','E-mail','Perfil',"Trabalha na Rede D'Or?",...extraKeys];
-  const rows=data.map(r=>[r.data,r.hora,r.nome,r.cpf||'',r.telefone,r.email,r.perfil,r.redor,...extraKeys.map(k=>(r.extras&&r.extras[k])||'')]);
+  const rows=inscricoes.map(r=>[r.data,r.hora,r.nome,r.cpf||'',r.telefone,r.email,r.perfil,r.redor,...extraKeys.map(k=>(r.extras&&r.extras[k])||'')]);
   const wb=XLSX.utils.book_new();
   const ws=XLSX.utils.aoa_to_sheet([headers,...rows]);
   ws['!cols']=[{wch:12},{wch:8},{wch:35},{wch:16},{wch:20},{wch:35},{wch:45},{wch:22},...extraKeys.map(()=>({wch:30}))];
@@ -4302,12 +4322,11 @@ async function downloadXLSX(){
 }
 
 async function downloadCSV(){
-  const online=await loadFromSupabase();
-  const data=online!==null?online:JSON.parse(localStorage.getItem('redor_inscricoes')||'[]');
-  if(!data.length){alert('Nenhuma inscrição para exportar.');return;}
+  await loadFromSupabase(true); // Force fresh data for export
+  if(!inscricoes.length){alert('Nenhuma inscrição para exportar.');return;}
   const extraKeys=customQuestions.map(q=>q.text);
   const h=['Data','Hora','Nome Completo','CPF','Telefone/WhatsApp','E-mail','Perfil',"Trabalha na Rede D'Or?",...extraKeys];
-  const rows=data.map(r=>[r.data,r.hora,r.nome,r.cpf||'',r.telefone,r.email,r.perfil,r.redor,...extraKeys.map(k=>(r.extras&&r.extras[k])||'')].map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(','));
+  const rows=inscricoes.map(r=>[r.data,r.hora,r.nome,r.cpf||'',r.telefone,r.email,r.perfil,r.redor,...extraKeys.map(k=>(r.extras&&r.extras[k])||'')].map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(','));
   const csv='\uFEFF'+[h.join(','),...rows].join('\n');
   const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'})); a.download='Inscricoes.csv'; a.click();
 }
