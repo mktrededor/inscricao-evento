@@ -3274,7 +3274,6 @@ async function loadFromSupabase(forceRefresh = false){
       if(data.length < PAGE_SIZE) break; // last page
       from += PAGE_SIZE;
     }
-    if(error) return null;
     const mapped = allData.map(r=>({
       id: r.id||'',
       data: r.data_inscricao||'', hora: r.hora_inscricao||'', nome: r.nome_completo||'',
