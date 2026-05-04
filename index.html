@@ -3261,7 +3261,8 @@ async function loadFromSupabase(forceRefresh = false){
     // Select only the fields we actually use — avoid SELECT *
     const { data, error } = await sb.from('inscricoes')
       .select('id,data_inscricao,hora_inscricao,nome_completo,cpf,telefone,email,perfil,trabalha_redor,created_at,respostas_extras')
-      .order('created_at', {ascending: false});
+      .order('created_at', {ascending: false})
+      .limit(10000); // Supabase Free default cap is 1000 — override explicitly
     if(error) return null;
     const mapped = data.map(r=>({
       id: r.id||'',
