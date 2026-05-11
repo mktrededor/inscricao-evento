@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Check-in — Rede D'Or Eventos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@300;400;500;600;700;800&family=Barlow+Condensed:wght@500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
+<style>
+:root{
+  --blue:      #003DA5;
+  --blue-dark: #002780;
+  --blue-light:#71C5E8;
+  --gold:      #C6A27C;
+  --white:     #FFFFFF;
+  --off-white: #F4F6FA;
+  --gray-100:  #EEF1F8;
+  --gray-200:  #D8DDE8;
+  --gray-400:  #9BA5B8;
+  --gray-600:  #5A6478;
+  --gray-800:  #2A3148;
+  --black:     #0A0E1A;
+  --success:   #00B74F;
+  --danger:    #FA4616;
+  --warn:      #F0B323;
+  --font: 'Barlow', sans-serif;
+  --font-cond: 'Barlow Condensed', sans-serif;
+}
+
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:var(--black);font-family:var(--font);overflow:hidden;user-select:none}
+
+/* ───── SCREENS ───── */
+.screen{
+  position:fixed;inset:0;display:flex;flex-direction:column;
+  align-items:center;transition:opacity .35s,transform .35s;
+}
+.screen.hidden{opacity:0;pointer-events:none;transform:scale(.97)}
+
+/* ───── SCREEN: SPLASH ───── */
+#screenSplash{
+  background:var(--blue);justify-content:center;
+}
+.splash-logo{text-align:center;animation:fadeUp .6s ease .2s both}
+.splash-logo .logo-icon{
+  width:80px;height:80px;background:rgba(255,255,255,.15);border-radius:20px;
+  display:flex;align-items:center;justify-content:center;margin:0 auto 20px;
+  backdrop-filter:blur(10px);
+}
+.splash-brand{font-family:var(--font-cond);font-weight:800;font-size:32px;color:white;letter-spacing:.5px}
+.splash-sub{font-size:13px;color:rgba(255,255,255,.6);margin-top:6px;letter-spacing:1.5px;text-transform:uppercase}
+.splash-divider{width:48px;height:3px;background:var(--gold);border-radius:2px;margin:20px auto}
+.splash-system{font-family:var(--font-cond);font-weight:700;font-size:18px;color:rgba(255,255,255,.9);letter-spacing:.3px}
+
+/* ───── SCREEN: SCANNER ───── */
+#screenScanner{
+  background:var(--black);justify-content:flex-start;
+}
+.scanner-topbar{
+  width:100%;background:rgba(0,0,0,.85);backdrop-filter:blur(10px);
+  padding:env(safe-area-inset-top,16px) 20px 14px;
+  display:flex;align-items:center;justify-content:space-between;
+  border-bottom:1px solid rgba(255,255,255,.06);z-index:10;flex-shrink:0;
+}
+.scanner-topbar-brand{display:flex;align-items:center;gap:10px}
+.scanner-topbar-brand span{font-family:var(--font-cond);font-weight:700;font-size:15px;color:white;letter-spacing:.3px}
+.scanner-topbar-event{font-size:11px;color:rgba(255,255,255,.4);margin-top:1px;font-weight:400;letter-spacing:.5px}
+
+.scanner-count{
+  display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.07);
+  border-radius:8px;padding:6px 12px;
+}
+.scanner-count-num{font-family:var(--font-cond);font-weight:800;font-size:18px;color:var(--success)}
+.scanner-count-label{font-size:10px;color:rgba(255,255,255,.4);font-weight:600;letter-spacing:.5px;text-transform:uppercase}
+
+.camera-wrap{
+  flex:1;width:100%;position:relative;display:flex;align-items:center;justify-content:center;
+  background:#000;overflow:hidden;
+}
+#video{width:100%;height:100%;object-fit:cover;display:block}
+#canvas{display:none}
+
+.scan-overlay{
+  position:absolute;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;pointer-events:none;
+}
+.scan-frame{
+  width:230px;height:230px;position:relative;
+}
+.scan-frame::before,.scan-frame::after{
+  content:'';position:absolute;width:40px;height:40px;
+  border-color:white;border-style:solid;border-width:3px;
+}
+.scan-frame::before{top:0;left:0;border-right:none;border-bottom:none;border-radius:4px 0 0 0}
+.scan-frame::after{bottom:0;right:0;border-left:none;border-top:none;border-radius:0 0 4px 0}
+.scan-frame-tl2,.scan-frame-br2{position:absolute;width:40px;height:40px;border-color:white;border-style:solid;border-width:3px}
+.scan-frame-tl2{top:0;right:0;border-left:none;border-bottom:none;border-radius:0 4px 0 0}
+.scan-frame-br2{bottom:0;left:0;border-right:none;border-top:none;border-radius:0 0 0 4px}
+
+.scan-line{
+  position:absolute;left:4px;right:4px;height:2px;
+  background:linear-gradient(90deg,transparent,var(--blue-light),var(--blue-light),transparent);
+  border-radius:1px;animation:scanLine 2.5s ease-in-out infinite;top:4px;
+}
+@keyframes scanLine{0%{top:4px;opacity:0}10%{opacity:1}90%{opacity:1}100%{top:calc(100% - 6px);opacity:0}}
+
+.scan-hint{
+  margin-top:28px;color:rgba(255,255,255,.7);font-size:13px;font-weight:500;
+  background:rgba(0,0,0,.5);padding:8px 16px;border-radius:20px;letter-spacing:.3px;
+}
+
+.scanner-bottom{
+  width:100%;background:rgba(0,0,0,.85);backdrop-filter:blur(10px);
+  padding:16px 20px env(safe-area-inset-bottom,16px);
+  border-top:1px solid rgba(255,255,255,.06);flex-shrink:0;
+}
+.scanner-bottom-row{display:flex;gap:10px}
+.scan-btn{
+  flex:1;padding:12px;border-radius:10px;border:none;cursor:pointer;
+  font-family:var(--font);font-size:13px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  transition:all .18s;letter-spacing:.5px;text-transform:uppercase;
+}
+.scan-btn-manual{background:rgba(255,255,255,.08);color:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.12)}
+.scan-btn-manual:hover{background:rgba(255,255,255,.14)}
+.scan-btn-history{background:rgba(0,61,165,.3);color:var(--blue-light);border:1px solid rgba(0,61,165,.4)}
+.scan-btn-history:hover{background:rgba(0,61,165,.45)}
+
+.last-scans{margin-top:12px}
+.last-scan-item{
+  display:flex;align-items:center;gap:10px;padding:8px 0;
+  border-bottom:1px solid rgba(255,255,255,.04);
+}
+.last-scan-item:last-child{border-bottom:none}
+.last-scan-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.last-scan-name{flex:1;font-size:12px;color:rgba(255,255,255,.7);font-weight:500}
+.last-scan-time{font-size:10px;color:rgba(255,255,255,.3)}
+
+/* ───── SCREEN: RESULT OK ───── */
+#screenOk{
+  background:var(--success);justify-content:center;
+}
+.result-icon-wrap{
+  width:120px;height:120px;background:rgba(255,255,255,.2);
+  border-radius:50%;display:flex;align-items:center;justify-content:center;
+  margin-bottom:28px;animation:popIn .4s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes popIn{from{transform:scale(0);opacity:0}to{transform:scale(1);opacity:1}}
+.result-title{font-family:var(--font-cond);font-weight:800;font-size:38px;color:white;letter-spacing:.5px;text-align:center}
+.result-name{font-size:22px;font-weight:700;color:rgba(255,255,255,.9);margin-top:8px;text-align:center;max-width:280px}
+.result-perfil{font-size:14px;color:rgba(255,255,255,.6);margin-top:4px;text-align:center;font-weight:500;letter-spacing:.5px;text-transform:uppercase}
+.result-time{font-size:13px;color:rgba(255,255,255,.5);margin-top:16px;font-weight:500}
+.result-badge{
+  background:rgba(255,255,255,.2);border-radius:20px;padding:8px 20px;
+  font-size:13px;font-weight:700;color:white;margin-top:20px;letter-spacing:.5px;
+}
+.result-action{
+  position:absolute;bottom:env(safe-area-inset-bottom,32px);
+  color:rgba(255,255,255,.6);font-size:13px;font-weight:500;
+  animation:blink 1.5s ease infinite;
+}
+@keyframes blink{0%,100%{opacity:.4}50%{opacity:1}}
+
+/* ───── SCREEN: RESULT WARN ───── */
+#screenWarn{
+  background:#B36200;justify-content:center;
+}
+
+/* ───── SCREEN: RESULT ERR ───── */
+#screenErr{
+  background:var(--danger);justify-content:center;
+}
+
+/* ───── SCREEN: MANUAL ───── */
+#screenManual{
+  background:var(--black);justify-content:flex-start;
+  padding-top:env(safe-area-inset-top,0);
+}
+.manual-topbar{
+  width:100%;padding:16px 20px;display:flex;align-items:center;gap:14px;
+  border-bottom:1px solid rgba(255,255,255,.06);background:rgba(255,255,255,.03);
+}
+.manual-topbar button{
+  background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);
+  border-radius:8px;width:36px;height:36px;display:flex;align-items:center;
+  justify-content:center;cursor:pointer;color:rgba(255,255,255,.7);flex-shrink:0;
+}
+.manual-topbar-title{font-family:var(--font-cond);font-weight:700;font-size:17px;color:white}
+.manual-body{flex:1;width:100%;padding:24px 20px;overflow-y:auto}
+.manual-search{
+  width:100%;padding:14px 16px;border-radius:10px;border:1.5px solid rgba(255,255,255,.1);
+  background:rgba(255,255,255,.05);color:white;font-family:var(--font);font-size:15px;
+  outline:none;transition:border-color .2s;
+}
+.manual-search:focus{border-color:var(--blue-light)}
+.manual-search::placeholder{color:rgba(255,255,255,.3)}
+.manual-results{margin-top:16px;display:flex;flex-direction:column;gap:10px}
+.manual-card{
+  background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);
+  border-radius:12px;padding:16px;cursor:pointer;transition:all .18s;
+  display:flex;align-items:center;gap:14px;
+}
+.manual-card:hover,.manual-card:active{background:rgba(0,61,165,.25);border-color:rgba(113,197,232,.3)}
+.manual-card-avatar{
+  width:44px;height:44px;border-radius:10px;background:var(--blue);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  font-family:var(--font-cond);font-weight:800;font-size:18px;color:white;
+}
+.manual-card-info{flex:1;min-width:0}
+.manual-card-name{font-size:15px;font-weight:700;color:white;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.manual-card-perfil{font-size:12px;color:rgba(255,255,255,.4);margin-top:2px;font-weight:500}
+.manual-card-status{flex-shrink:0}
+.manual-empty{text-align:center;padding:40px 0;color:rgba(255,255,255,.3);font-size:14px}
+
+/* ───── SCREEN: HISTORY ───── */
+#screenHistory{
+  background:var(--black);justify-content:flex-start;
+  padding-top:env(safe-area-inset-top,0);
+}
+.history-list{flex:1;width:100%;overflow-y:auto;padding:16px}
+.history-item{
+  display:flex;align-items:center;gap:12px;padding:14px 16px;
+  background:rgba(255,255,255,.04);border-radius:10px;margin-bottom:8px;
+  border:1px solid rgba(255,255,255,.05);
+}
+.history-icon{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.history-info{flex:1;min-width:0}
+.history-name{font-size:13px;font-weight:700;color:rgba(255,255,255,.9);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.history-detail{font-size:11px;color:rgba(255,255,255,.3);margin-top:2px}
+.history-time{font-size:11px;color:rgba(255,255,255,.3);flex-shrink:0}
+.history-stat{display:flex;gap:20px;padding:0 16px 16px;justify-content:center}
+.history-stat-item{text-align:center}
+.history-stat-num{font-family:var(--font-cond);font-weight:800;font-size:28px;color:white}
+.history-stat-label{font-size:10px;color:rgba(255,255,255,.35);font-weight:600;letter-spacing:.5px;text-transform:uppercase}
+
+/* ───── ANIMATIONS ───── */
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+
+/* ───── SCANNER LOADING ───── */
+.camera-loading{
+  position:absolute;inset:0;background:#000;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:16px;
+}
+.camera-loading svg{animation:spin 1.2s linear infinite;color:var(--blue-light)}
+.camera-loading span{color:rgba(255,255,255,.4);font-size:13px;font-weight:500}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ───── OFFLINE BANNER ───── */
+.offline-banner{
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  background:var(--warn);color:white;text-align:center;
+  padding:8px;font-size:12px;font-weight:700;letter-spacing:.5px;
+  transform:translateY(-100%);transition:transform .3s;
+}
+.offline-banner.show{transform:translateY(0)}
+</style>
+</head>
+<body>
+
+<div class="offline-banner" id="offlineBanner">MODO OFFLINE — VALIDANDO COM DADOS LOCAIS</div>
+
+<!-- ══════════════ SPLASH ══════════════ -->
+<div class="screen" id="screenSplash">
+  <div class="splash-logo">
+    <div class="logo-icon">
+      <svg width="44" height="44" viewBox="0 0 44 44" fill="none">
+        <rect width="24" height="24" rx="5" fill="#71C5E8"/>
+        <rect x="20" y="20" width="24" height="24" rx="5" fill="white" fill-opacity=".9"/>
+      </svg>
+    </div>
+    <div class="splash-brand">REDE D'OR</div>
+    <div class="splash-sub">Gestão de Eventos</div>
+    <div class="splash-divider"></div>
+    <div class="splash-system">Check-in</div>
+  </div>
+</div>
+
+<!-- ══════════════ SCANNER ══════════════ -->
+<div class="screen hidden" id="screenScanner">
+  <div class="scanner-topbar">
+    <div class="scanner-topbar-brand">
+      <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+        <rect width="16" height="16" rx="3.5" fill="#71C5E8"/>
+        <rect x="12" y="12" width="16" height="16" rx="3.5" fill="white" fill-opacity=".9"/>
+      </svg>
+      <div>
+        <span>REDE D'OR</span>
+        <div class="scanner-topbar-event" id="topEventName">Check-in de Evento</div>
+      </div>
+    </div>
+    <div class="scanner-count">
+      <div>
+        <div class="scanner-count-num" id="counterNum">0</div>
+        <div class="scanner-count-label">Entradas</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="camera-wrap">
+    <video id="video" autoplay playsinline muted></video>
+    <canvas id="canvas"></canvas>
+    <div class="camera-loading" id="cameraLoading">
+      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" stroke-dasharray="50" stroke-dashoffset="15"/></svg>
+      <span>Iniciando câmera...</span>
+    </div>
+    <div class="scan-overlay" id="scanOverlay" style="display:none">
+      <div class="scan-frame">
+        <div class="scan-frame-tl2"></div>
+        <div class="scan-frame-br2"></div>
+        <div class="scan-line"></div>
+      </div>
+      <div class="scan-hint">Aponte para o QR Code do participante</div>
+    </div>
+  </div>
+
+  <div class="scanner-bottom">
+    <div class="scanner-bottom-row">
+      <button class="scan-btn scan-btn-manual" onclick="showScreen('screenManual')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        Busca Manual
+      </button>
+      <button class="scan-btn scan-btn-history" onclick="showScreen('screenHistory')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        Check-ins
+      </button>
+    </div>
+    <div class="last-scans" id="lastScans"></div>
+  </div>
+</div>
+
+<!-- ══════════════ RESULT OK ══════════════ -->
+<div class="screen hidden" id="screenOk">
+  <div class="result-icon-wrap">
+    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+    </svg>
+  </div>
+  <div class="result-title">ENTRADA LIBERADA</div>
+  <div class="result-name" id="okName"></div>
+  <div class="result-perfil" id="okPerfil"></div>
+  <div class="result-time" id="okTime"></div>
+  <div class="result-badge">Check-in Registrado</div>
+  <div class="result-action">Toque para continuar</div>
+</div>
+
+<!-- ══════════════ RESULT WARN (JÁ VALIDADO) ══════════════ -->
+<div class="screen hidden" id="screenWarn">
+  <div class="result-icon-wrap">
+    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5">
+      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+    </svg>
+  </div>
+  <div class="result-title">JÁ VALIDADO</div>
+  <div class="result-name" id="warnName"></div>
+  <div class="result-perfil" id="warnPerfil"></div>
+  <div class="result-time" id="warnTime"></div>
+  <div class="result-badge" style="background:rgba(255,255,255,.2)">QR Code Já Utilizado</div>
+  <div class="result-action">Toque para continuar</div>
+</div>
+
+<!-- ══════════════ RESULT ERR ══════════════ -->
+<div class="screen hidden" id="screenErr">
+  <div class="result-icon-wrap">
+    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5">
+      <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+    </svg>
+  </div>
+  <div class="result-title">NÃO ENCONTRADO</div>
+  <div class="result-name" style="font-size:16px;color:rgba(255,255,255,.7)" id="errMsg">QR Code inválido ou não cadastrado</div>
+  <div class="result-badge" style="background:rgba(255,255,255,.15);margin-top:32px">Tente a busca manual</div>
+  <div class="result-action">Toque para continuar</div>
+</div>
+
+<!-- ══════════════ MANUAL SEARCH ══════════════ -->
+<div class="screen hidden" id="screenManual" style="padding-top:0">
+  <div class="manual-topbar">
+    <button onclick="showScreen('screenScanner')">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+    </button>
+    <div class="manual-topbar-title">Busca de Participante</div>
+  </div>
+  <div class="manual-body">
+    <input class="manual-search" id="manualSearch" type="search" placeholder="Nome ou número de telefone..." oninput="searchManual(this.value)" autocomplete="off" autocorrect="off" spellcheck="false">
+    <div class="manual-results" id="manualResults">
+      <div class="manual-empty">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color:rgba(255,255,255,.15);margin-bottom:12px;display:block;margin-left:auto;margin-right:auto"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        Digite para buscar participantes
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ HISTORY ══════════════ -->
+<div class="screen hidden" id="screenHistory" style="padding-top:0">
+  <div class="manual-topbar">
+    <button onclick="showScreen('screenScanner')">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+    </button>
+    <div class="manual-topbar-title">Check-ins Realizados</div>
+  </div>
+  <div class="history-stat" id="historyStat">
+    <div class="history-stat-item">
+      <div class="history-stat-num" id="hStatTotal">0</div>
+      <div class="history-stat-label">Entradas</div>
+    </div>
+    <div class="history-stat-item">
+      <div class="history-stat-num" id="hStatConf">0</div>
+      <div class="history-stat-label">Confirmados</div>
+    </div>
+    <div class="history-stat-item">
+      <div class="history-stat-num" id="hStatPend">0</div>
+      <div class="history-stat-label">Aguardando</div>
+    </div>
+  </div>
+  <div class="history-list" id="historyList">
+    <div class="manual-empty">Sem check-ins registrados</div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════
+// DATA — carregado do localStorage (compartilhado com admin)
+// ══════════════════════════════════════════════
+let inscritos = [];
+let scanHistory = [];  // {id, nome, perfil, ts, tipo}
+let scanning = false;
+let lastScanTime = 0;
+let stream = null;
+
+function loadInscritos(){
+  const s = localStorage.getItem('redor_inscritos');
+  if(s) inscritos = JSON.parse(s);
+  const h = localStorage.getItem('redor_scan_history');
+  if(h) scanHistory = JSON.parse(h);
+}
+
+function saveInscritos(){
+  localStorage.setItem('redor_inscritos', JSON.stringify(inscritos));
+}
+
+function saveScanHistory(){
+  localStorage.setItem('redor_scan_history', JSON.stringify(scanHistory.slice(0,500)));
+}
+
+// ══════════════════════════════════════════════
+// NAVIGATION
+// ══════════════════════════════════════════════
+let currentScreen = 'screenSplash';
+let resultTimeout = null;
+
+function showScreen(id, auto=false){
+  document.querySelector('#'+currentScreen).classList.add('hidden');
+  document.querySelector('#'+id).classList.remove('hidden');
+  currentScreen = id;
+
+  if(id==='screenScanner') renderLastScans();
+  if(id==='screenHistory') renderHistory();
+  if(id==='screenManual'){
+    setTimeout(()=>{
+      const inp = document.getElementById('manualSearch');
+      if(inp){inp.value='';inp.focus()}
+    },200);
+    document.getElementById('manualResults').innerHTML='<div class="manual-empty"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color:rgba(255,255,255,.15);margin-bottom:12px;display:block;margin-left:auto;margin-right:auto"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Digite para buscar participantes</div>';
+  }
+
+  // Result screens: auto back
+  if(id.startsWith('screenO')||id.startsWith('screenW')||id.startsWith('screenE')){
+    if(resultTimeout) clearTimeout(resultTimeout);
+    // Vibrate
+    if(navigator.vibrate){
+      if(id==='screenOk') navigator.vibrate([80,40,80]);
+      else if(id==='screenWarn') navigator.vibrate([200]);
+      else navigator.vibrate([300,100,300]);
+    }
+    resultTimeout = setTimeout(()=>{
+      showScreen('screenScanner');
+      scanning = false;
+    }, 4000);
+    // Tap to dismiss
+    document.getElementById(id).onclick = ()=>{
+      clearTimeout(resultTimeout);
+      showScreen('screenScanner');
+      scanning = false;
+    };
+  }
+}
+
+// ══════════════════════════════════════════════
+// CAMERA & QR SCANNING
+// ══════════════════════════════════════════════
+async function startCamera(){
+  try{
+    stream = await navigator.mediaDevices.getUserMedia({
+      video:{facingMode:'environment',width:{ideal:1280},height:{ideal:720}}
+    });
+    const video = document.getElementById('video');
+    video.srcObject = stream;
+    video.addEventListener('loadedmetadata',()=>{
+      video.play();
+      document.getElementById('cameraLoading').style.display='none';
+      document.getElementById('scanOverlay').style.display='flex';
+      requestAnimationFrame(tick);
+    });
+  } catch(err){
+    document.getElementById('cameraLoading').innerHTML=`
+      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+      <span style="color:rgba(255,255,255,.5)">Câmera não disponível</span>
+      <span style="font-size:11px;color:rgba(255,255,255,.3)">Use a busca manual</span>
+    `;
+  }
+}
+
+function tick(){
+  if(currentScreen!=='screenScanner'){ requestAnimationFrame(tick); return; }
+
+  const video = document.getElementById('video');
+  const canvas = document.getElementById('canvas');
+  if(video.readyState === video.HAVE_ENOUGH_DATA){
+    canvas.width=video.videoWidth;
+    canvas.height=video.videoHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video,0,0,canvas.width,canvas.height);
+    const img = ctx.getImageData(0,0,canvas.width,canvas.height);
+    const code = jsQR(img.data,img.width,img.height,{inversionAttempts:'dontInvert'});
+    if(code){
+      const now = Date.now();
+      if(now-lastScanTime > 2500){
+        lastScanTime = now;
+        processQR(code.data);
+      }
+    }
+  }
+  requestAnimationFrame(tick);
+}
+
+// ══════════════════════════════════════════════
+// QR PROCESSING
+// ══════════════════════════════════════════════
+function processQR(qrData){
+  if(scanning) return;
+  scanning = true;
+
+  // Extract id and token from URL
+  let id = null, token = null;
+  try{
+    const url = new URL(qrData);
+    id = url.searchParams.get('id');
+    token = url.searchParams.get('token');
+  } catch(e){
+    // Try as plain token
+    id = qrData;
+  }
+
+  validateCheckin(id, token);
+}
+
+function validateCheckin(id, token){
+  const ins = inscritos.find(i=>i.id===id);
+
+  if(!ins){
+    // Not found
+    document.getElementById('errMsg').textContent = 'QR Code não encontrado na lista de inscritos';
+    showScreen('screenErr');
+    return;
+  }
+
+  if(ins.token && token && ins.token !== token){
+    document.getElementById('errMsg').textContent = 'Token inválido — QR Code não autêntico';
+    showScreen('screenErr');
+    return;
+  }
+
+  if(ins.checkin){
+    // Already checked in
+    document.getElementById('warnName').textContent = ins.nome;
+    document.getElementById('warnPerfil').textContent = ins.perfil;
+    document.getElementById('warnTime').textContent = 'Check-in realizado em: '+(ins.checkinAt?new Date(ins.checkinAt).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'—');
+    showScreen('screenWarn');
+    return;
+  }
+
+  // Success — register
+  ins.checkin = true;
+  ins.checkinAt = new Date().toISOString();
+  ins.status = 'checkin';
+  saveInscritos();
+
+  const entry = {id:ins.id,nome:ins.nome,perfil:ins.perfil,ts:ins.checkinAt,tipo:'ok'};
+  scanHistory.unshift(entry);
+  saveScanHistory();
+
+  // Add to main activity
+  const act = JSON.parse(localStorage.getItem('redor_atividade')||'[]');
+  act.unshift({tipo:'checkin',nome:ins.nome,ts:ins.checkinAt});
+  localStorage.setItem('redor_atividade',JSON.stringify(act.slice(0,200)));
+
+  // Update counter
+  const count = inscritos.filter(i=>i.checkin).length;
+  document.getElementById('counterNum').textContent = count;
+
+  document.getElementById('okName').textContent = ins.nome;
+  document.getElementById('okPerfil').textContent = ins.perfil;
+  document.getElementById('okTime').textContent = new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  showScreen('screenOk');
+  renderLastScans();
+}
+
+// ══════════════════════════════════════════════
+// MANUAL SEARCH
+// ══════════════════════════════════════════════
+function searchManual(q){
+  q = q.toLowerCase().trim();
+  const resultsEl = document.getElementById('manualResults');
+  if(!q){
+    resultsEl.innerHTML='<div class="manual-empty"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color:rgba(255,255,255,.15);margin-bottom:12px;display:block;margin-left:auto;margin-right:auto"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Digite para buscar participantes</div>';
+    return;
+  }
+  const results = inscritos.filter(i=>
+    i.nome.toLowerCase().includes(q)||i.telefone.includes(q)
+  ).slice(0,8);
+
+  if(!results.length){
+    resultsEl.innerHTML='<div class="manual-empty">Nenhum participante encontrado</div>';
+    return;
+  }
+
+  resultsEl.innerHTML = results.map(r=>`
+    <div class="manual-card" onclick="manualCheckin('${r.id}')">
+      <div class="manual-card-avatar">${r.nome.charAt(0).toUpperCase()}</div>
+      <div class="manual-card-info">
+        <div class="manual-card-name">${r.nome}</div>
+        <div class="manual-card-perfil">${r.perfil} · ${r.telefone}</div>
+      </div>
+      <div class="manual-card-status">
+        ${r.checkin
+          ? '<span style="font-size:10px;font-weight:700;color:var(--warn);background:rgba(240,179,35,.15);padding:4px 8px;border-radius:12px;letter-spacing:.5px">JÁ ENTROU</span>'
+          : r.rsvp==='sim'
+          ? '<span style="font-size:10px;font-weight:700;color:var(--success);background:rgba(0,183,79,.15);padding:4px 8px;border-radius:12px;letter-spacing:.5px">CONFIRMADO</span>'
+          : '<span style="font-size:10px;font-weight:700;color:rgba(255,255,255,.3);background:rgba(255,255,255,.05);padding:4px 8px;border-radius:12px;letter-spacing:.5px">INSCRITO</span>'
+        }
+      </div>
+    </div>
+  `).join('');
+}
+
+function manualCheckin(id){
+  scanning = false;
+  document.getElementById('screenManual').classList.add('hidden');
+  currentScreen = 'screenScanner';
+  setTimeout(()=>validateCheckin(id,null), 100);
+}
+
+// ══════════════════════════════════════════════
+// HISTORY
+// ══════════════════════════════════════════════
+function renderHistory(){
+  const listEl = document.getElementById('historyList');
+  const total = inscritos.filter(i=>i.checkin).length;
+  const conf = inscritos.filter(i=>i.rsvp==='sim').length;
+  const pend = inscritos.filter(i=>i.rsvp!=='sim'&&!i.checkin).length;
+
+  document.getElementById('hStatTotal').textContent=total;
+  document.getElementById('hStatConf').textContent=conf;
+  document.getElementById('hStatPend').textContent=pend;
+
+  if(!scanHistory.length){
+    listEl.innerHTML='<div class="manual-empty">Sem check-ins registrados</div>';
+    return;
+  }
+
+  listEl.innerHTML=scanHistory.map(h=>`
+    <div class="history-item">
+      <div class="history-icon" style="background:rgba(0,183,79,.12)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2.5"><path d="M9 11l3 3L22 4"/></svg>
+      </div>
+      <div class="history-info">
+        <div class="history-name">${h.nome}</div>
+        <div class="history-detail">${h.perfil}</div>
+      </div>
+      <div class="history-time">${new Date(h.ts).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</div>
+    </div>
+  `).join('');
+}
+
+function renderLastScans(){
+  const el = document.getElementById('lastScans');
+  const last = scanHistory.slice(0,3);
+  if(!last.length){el.innerHTML='';return;}
+  el.innerHTML=last.map(h=>`
+    <div class="last-scan-item">
+      <div class="last-scan-dot" style="background:var(--success)"></div>
+      <div class="last-scan-name">${h.nome}</div>
+      <div class="last-scan-time">${new Date(h.ts).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</div>
+    </div>
+  `).join('');
+}
+
+// ══════════════════════════════════════════════
+// OFFLINE / URL PARAMS
+// ══════════════════════════════════════════════
+function checkOffline(){
+  window.addEventListener('offline',()=>document.getElementById('offlineBanner').classList.add('show'));
+  window.addEventListener('online',()=>document.getElementById('offlineBanner').classList.remove('show'));
+  if(!navigator.onLine) document.getElementById('offlineBanner').classList.add('show');
+}
+
+function checkUrlParams(){
+  const params = new URLSearchParams(window.location.search);
+  const id = params.get('id');
+  const token = params.get('token');
+  if(id){
+    setTimeout(()=>validateCheckin(id,token), 800);
+  }
+}
+
+function loadEventName(){
+  const c = localStorage.getItem('redor_config');
+  if(c){
+    const cfg=JSON.parse(c);
+    if(cfg.eventName) document.getElementById('topEventName').textContent=cfg.eventName;
+  }
+}
+
+// ══════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════
+window.addEventListener('DOMContentLoaded',()=>{
+  loadInscritos();
+  checkOffline();
+  loadEventName();
+
+  // Update counter
+  const ck = inscritos.filter(i=>i.checkin).length;
+  document.getElementById('counterNum').textContent=ck;
+
+  // Splash → scanner
+  setTimeout(()=>{
+    showScreen('screenScanner');
+    startCamera();
+    checkUrlParams();
+  }, 2000);
+
+  // Periodic refresh from localStorage
+  setInterval(()=>{
+    loadInscritos();
+    const ck2 = inscritos.filter(i=>i.checkin).length;
+    document.getElementById('counterNum').textContent=ck2;
+  }, 10000);
+});
+</script>
+</body>
+</html>

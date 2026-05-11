@@ -1,0 +1,1862 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rede D'Or — Painel de Gestão de Eventos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@300;400;500;600;700;800&family=Barlow+Condensed:wght@500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+:root {
+  --blue:      #003DA5;
+  --blue-dark: #002780;
+  --blue-mid:  #1A52B8;
+  --blue-light:#71C5E8;
+  --gold:      #C6A27C;
+  --gold-dark: #B47E00;
+  --white:     #FFFFFF;
+  --off-white: #F4F6FA;
+  --gray-100:  #EEF1F8;
+  --gray-200:  #D8DDE8;
+  --gray-400:  #9BA5B8;
+  --gray-600:  #5A6478;
+  --gray-800:  #2A3148;
+  --black:     #0A0E1A;
+  --success:   #00B74F;
+  --danger:    #FA4616;
+  --warn:      #F0B323;
+  --shadow-sm: 0 2px 8px rgba(0,61,165,.08);
+  --shadow-md: 0 4px 20px rgba(0,61,165,.13);
+  --shadow-lg: 0 8px 40px rgba(0,61,165,.18);
+  --radius:    10px;
+  --radius-lg: 16px;
+  --font: 'Barlow', sans-serif;
+  --font-cond: 'Barlow Condensed', sans-serif;
+  --sidebar-w: 260px;
+  --topbar-h:  64px;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+body{font-family:var(--font);background:var(--off-white);color:var(--gray-800);display:flex;flex-direction:column}
+
+/* ───── TOPBAR ───── */
+.topbar{
+  position:fixed;top:0;left:0;right:0;height:var(--topbar-h);
+  background:var(--blue);display:flex;align-items:center;
+  padding:0 24px 0 0;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,.2);
+}
+.topbar-brand{
+  width:var(--sidebar-w);display:flex;align-items:center;gap:12px;
+  padding:0 24px;border-right:1px solid rgba(255,255,255,.12);flex-shrink:0;
+}
+.topbar-brand svg{flex-shrink:0}
+.topbar-brand-text{display:flex;flex-direction:column}
+.topbar-brand-text span:first-child{
+  font-family:var(--font-cond);font-weight:800;font-size:16px;
+  color:var(--white);letter-spacing:.5px;line-height:1;
+}
+.topbar-brand-text span:last-child{
+  font-size:10px;font-weight:400;color:rgba(255,255,255,.6);letter-spacing:1px;
+  text-transform:uppercase;
+}
+.topbar-actions{display:flex;align-items:center;gap:16px;margin-left:auto}
+.topbar-event-name{
+  font-weight:600;font-size:14px;color:rgba(255,255,255,.85);
+  background:rgba(255,255,255,.1);border-radius:6px;padding:6px 14px;
+  border:1px solid rgba(255,255,255,.15);
+}
+.topbar-user{
+  width:36px;height:36px;background:var(--gold);border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-weight:700;font-size:13px;color:var(--blue-dark);cursor:pointer;
+}
+.status-dot{
+  width:8px;height:8px;border-radius:50%;background:var(--success);
+  box-shadow:0 0 0 3px rgba(0,183,79,.2);animation:pulse 2s infinite;
+}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 3px rgba(0,183,79,.2)}50%{box-shadow:0 0 0 6px rgba(0,183,79,.05)}}
+
+/* ───── SIDEBAR ───── */
+.sidebar{
+  position:fixed;top:var(--topbar-h);left:0;bottom:0;
+  width:var(--sidebar-w);background:var(--white);
+  border-right:1px solid var(--gray-200);display:flex;flex-direction:column;
+  overflow-y:auto;z-index:50;
+}
+.sidebar-section{padding:20px 16px 8px;font-size:10px;font-weight:700;
+  color:var(--gray-400);letter-spacing:1.5px;text-transform:uppercase}
+.nav-item{
+  display:flex;align-items:center;gap:12px;padding:10px 16px;
+  margin:2px 8px;border-radius:8px;cursor:pointer;
+  font-size:14px;font-weight:500;color:var(--gray-600);
+  transition:all .18s;border:none;background:none;width:calc(100% - 16px);text-align:left;
+}
+.nav-item:hover{background:var(--gray-100);color:var(--blue)}
+.nav-item.active{background:rgba(0,61,165,.08);color:var(--blue);font-weight:600}
+.nav-item .nav-icon{width:18px;height:18px;opacity:.7;flex-shrink:0}
+.nav-item.active .nav-icon{opacity:1}
+.nav-badge{
+  margin-left:auto;background:var(--blue);color:var(--white);
+  font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;
+}
+.sidebar-bottom{margin-top:auto;padding:16px;border-top:1px solid var(--gray-200)}
+.sidebar-version{font-size:11px;color:var(--gray-400);text-align:center}
+
+/* ───── MAIN ───── */
+.main{
+  margin-left:var(--sidebar-w);margin-top:var(--topbar-h);
+  flex:1;height:calc(100vh - var(--topbar-h));overflow-y:auto;
+  padding:28px 32px;
+}
+
+/* ───── PAGE ───── */
+.page{display:none;animation:fadeIn .25s ease}
+.page.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+.page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:28px;gap:16px}
+.page-header-left h1{font-family:var(--font-cond);font-weight:800;font-size:28px;color:var(--black);letter-spacing:-.3px}
+.page-header-left p{font-size:14px;color:var(--gray-400);margin-top:4px}
+
+/* ───── CARDS ───── */
+.cards-row{display:grid;gap:16px;margin-bottom:24px}
+.cards-4{grid-template-columns:repeat(4,1fr)}
+.cards-3{grid-template-columns:repeat(3,1fr)}
+.cards-2{grid-template-columns:repeat(2,1fr)}
+
+.kpi-card{
+  background:var(--white);border-radius:var(--radius-lg);padding:22px 24px;
+  border:1px solid var(--gray-200);box-shadow:var(--shadow-sm);
+  display:flex;flex-direction:column;gap:8px;
+}
+.kpi-card .kpi-top{display:flex;align-items:center;justify-content:space-between}
+.kpi-card .kpi-label{font-size:12px;font-weight:600;color:var(--gray-400);letter-spacing:.8px;text-transform:uppercase}
+.kpi-card .kpi-icon{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center}
+.kpi-card .kpi-value{font-family:var(--font-cond);font-weight:800;font-size:36px;color:var(--black);line-height:1}
+.kpi-card .kpi-sub{font-size:12px;color:var(--gray-400)}
+.kpi-card .kpi-sub b{color:var(--success)}
+.kpi-card .kpi-sub .neg{color:var(--danger)}
+.kpi-card.blue{border-left:4px solid var(--blue)}
+.kpi-card.gold{border-left:4px solid var(--gold)}
+.kpi-card.green{border-left:4px solid var(--success)}
+.kpi-card.orange{border-left:4px solid var(--warn)}
+
+/* ───── PANELS ───── */
+.panel{
+  background:var(--white);border-radius:var(--radius-lg);
+  border:1px solid var(--gray-200);box-shadow:var(--shadow-sm);
+  overflow:hidden;margin-bottom:24px;
+}
+.panel-header{
+  padding:18px 24px;border-bottom:1px solid var(--gray-200);
+  display:flex;align-items:center;justify-content:space-between;gap:16px;
+}
+.panel-title{font-family:var(--font-cond);font-weight:700;font-size:16px;color:var(--black);letter-spacing:.2px}
+.panel-body{padding:24px}
+
+/* ───── BUTTONS ───── */
+.btn{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:9px 18px;border-radius:8px;border:none;cursor:pointer;
+  font-family:var(--font);font-size:13px;font-weight:600;
+  transition:all .18s;letter-spacing:.3px;
+}
+.btn-primary{background:var(--blue);color:var(--white)}
+.btn-primary:hover{background:var(--blue-dark);box-shadow:0 4px 14px rgba(0,61,165,.3)}
+.btn-secondary{background:var(--gray-100);color:var(--gray-800);border:1px solid var(--gray-200)}
+.btn-secondary:hover{background:var(--gray-200)}
+.btn-danger{background:var(--danger);color:var(--white)}
+.btn-danger:hover{background:#d63510}
+.btn-success{background:var(--success);color:var(--white)}
+.btn-success:hover{background:#009940}
+.btn-outline{background:transparent;color:var(--blue);border:1.5px solid var(--blue)}
+.btn-outline:hover{background:rgba(0,61,165,.06)}
+.btn-gold{background:var(--gold);color:var(--white)}
+.btn-gold:hover{background:var(--gold-dark)}
+.btn-sm{padding:6px 12px;font-size:12px;border-radius:6px}
+.btn-lg{padding:12px 24px;font-size:15px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+
+/* ───── TABLE ───── */
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{
+  padding:10px 14px;text-align:left;font-size:10px;font-weight:700;
+  color:var(--gray-400);letter-spacing:1px;text-transform:uppercase;
+  background:var(--gray-100);border-bottom:2px solid var(--gray-200);
+}
+td{padding:12px 14px;border-bottom:1px solid var(--gray-100);color:var(--gray-800)}
+tr:hover td{background:rgba(0,61,165,.025)}
+tr:last-child td{border-bottom:none}
+
+/* ───── BADGES ───── */
+.badge{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;
+}
+.badge-green{background:rgba(0,183,79,.1);color:#006d2e}
+.badge-red{background:rgba(250,70,22,.1);color:#c03a0e}
+.badge-blue{background:rgba(0,61,165,.1);color:var(--blue)}
+.badge-gold{background:rgba(198,162,124,.15);color:#7a5a30}
+.badge-gray{background:var(--gray-100);color:var(--gray-600)}
+
+/* ───── FORM ───── */
+.form-grid{display:grid;gap:16px}
+.form-2{grid-template-columns:1fr 1fr}
+.form-3{grid-template-columns:1fr 1fr 1fr}
+.field{display:flex;flex-direction:column;gap:6px}
+label{font-size:12px;font-weight:600;color:var(--gray-600);letter-spacing:.5px;text-transform:uppercase}
+input,select,textarea{
+  padding:10px 14px;border:1.5px solid var(--gray-200);border-radius:8px;
+  font-family:var(--font);font-size:14px;color:var(--black);
+  background:var(--white);transition:border-color .18s;outline:none;
+}
+input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(0,61,165,.08)}
+textarea{resize:vertical;min-height:100px}
+.field-hint{font-size:11px;color:var(--gray-400);margin-top:2px}
+
+/* ───── TABS ───── */
+.tabs{display:flex;gap:4px;background:var(--gray-100);border-radius:10px;padding:4px}
+.tab{
+  padding:8px 18px;border-radius:8px;font-size:13px;font-weight:600;
+  color:var(--gray-600);cursor:pointer;transition:all .18s;border:none;background:none;
+}
+.tab.active{background:var(--white);color:var(--blue);box-shadow:var(--shadow-sm)}
+
+/* ───── ALERTS ───── */
+.alert{padding:12px 16px;border-radius:8px;font-size:13px;font-weight:500;display:flex;align-items:flex-start;gap:10px}
+.alert-info{background:rgba(0,61,165,.08);color:var(--blue);border:1px solid rgba(0,61,165,.15)}
+.alert-success{background:rgba(0,183,79,.08);color:#005c28;border:1px solid rgba(0,183,79,.15)}
+.alert-danger{background:rgba(250,70,22,.08);color:#8b2800;border:1px solid rgba(250,70,22,.15)}
+.alert-warn{background:rgba(240,179,35,.08);color:#6b4400;border:1px solid rgba(240,179,35,.2)}
+
+/* ───── PROGRESS ───── */
+.progress-wrap{background:var(--gray-200);border-radius:4px;height:8px;overflow:hidden}
+.progress-bar{height:100%;border-radius:4px;background:var(--blue);transition:width .4s ease}
+.progress-bar.gold{background:var(--gold)}
+.progress-bar.green{background:var(--success)}
+
+/* ───── PHONE PREVIEW ───── */
+.phone-frame{
+  width:280px;background:#0F0F0F;border-radius:36px;padding:12px;
+  box-shadow:0 20px 60px rgba(0,0,0,.4);border:2px solid #333;flex-shrink:0;
+}
+.phone-screen{background:#E5DDD5;border-radius:26px;overflow:hidden;min-height:480px}
+.phone-statusbar{background:#128C7E;padding:8px 16px;display:flex;justify-content:space-between;align-items:center}
+.phone-statusbar span{color:white;font-size:11px;font-weight:600}
+.phone-header{background:#075E54;padding:10px 14px;display:flex;align-items:center;gap:10px}
+.phone-avatar{width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.3);display:flex;align-items:center;justify-content:center;font-size:14px;color:white;font-weight:700;flex-shrink:0}
+.phone-contact{flex:1}
+.phone-contact-name{color:white;font-size:13px;font-weight:600}
+.phone-contact-status{color:rgba(255,255,255,.7);font-size:11px}
+.phone-messages{padding:12px 10px;display:flex;flex-direction:column;gap:6px;min-height:360px}
+.wpp-msg{
+  background:white;border-radius:4px 12px 12px 4px;padding:10px 12px;
+  max-width:85%;box-shadow:0 1px 2px rgba(0,0,0,.1);position:relative;
+  font-size:13px;line-height:1.5;color:#333;align-self:flex-start;
+}
+.wpp-msg::before{content:'';position:absolute;left:-7px;top:0;border:7px solid transparent;border-right:7px solid white;border-top:0}
+.wpp-msg-media{width:100%;aspect-ratio:1.5;object-fit:cover;border-radius:8px;margin-bottom:8px;background:var(--gray-200);display:flex;align-items:center;justify-content:center}
+.wpp-msg-time{font-size:10px;color:#999;text-align:right;margin-top:4px}
+.wpp-btn-yes,.wpp-btn-no{
+  margin:4px 0;padding:10px;background:#25D366;color:white;border-radius:8px;
+  font-size:12px;font-weight:600;text-align:center;
+}
+.wpp-btn-no{background:var(--danger)}
+
+/* ───── UPLOAD ZONE ───── */
+.upload-zone{
+  border:2px dashed var(--gray-300,#CBD2E0);border-radius:12px;
+  padding:40px 24px;text-align:center;cursor:pointer;
+  transition:all .2s;background:var(--gray-100);
+}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--blue);background:rgba(0,61,165,.04)}
+.upload-zone svg{color:var(--gray-400);margin-bottom:12px}
+.upload-zone h4{font-size:15px;font-weight:600;color:var(--gray-600)}
+.upload-zone p{font-size:12px;color:var(--gray-400);margin-top:4px}
+
+/* ───── REAL-TIME ───── */
+.realtime-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--gray-100)}
+.realtime-row:last-child{border-bottom:none}
+.realtime-icon{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.realtime-info{flex:1}
+.realtime-info strong{display:block;font-size:13px;font-weight:600;color:var(--black)}
+.realtime-info span{font-size:11px;color:var(--gray-400)}
+.realtime-time{font-size:11px;color:var(--gray-400);flex-shrink:0}
+
+/* ───── CHECKIN PAGE ───── */
+.checkin-link-box{
+  background:var(--gray-100);border:1.5px solid var(--gray-200);
+  border-radius:10px;padding:14px 18px;display:flex;align-items:center;gap:12px;
+  font-family:'Barlow Condensed',monospace;font-size:14px;color:var(--blue);font-weight:500;
+}
+.checkin-link-box button{margin-left:auto;flex-shrink:0}
+
+/* ───── MODAL ───── */
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(10,14,26,.6);
+  z-index:200;display:flex;align-items:center;justify-content:center;
+  backdrop-filter:blur(4px);display:none;
+}
+.modal-overlay.open{display:flex;animation:fadeIn .2s}
+.modal{
+  background:var(--white);border-radius:var(--radius-lg);
+  padding:28px;max-width:520px;width:90%;box-shadow:var(--shadow-lg);
+  animation:slideUp .25s ease;
+}
+@keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+.modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.modal-title{font-family:var(--font-cond);font-weight:700;font-size:18px;color:var(--black)}
+.modal-close{background:none;border:none;cursor:pointer;color:var(--gray-400);padding:4px}
+.modal-footer{display:flex;justify-content:flex-end;gap:10px;margin-top:24px;padding-top:20px;border-top:1px solid var(--gray-100)}
+
+/* ───── SCROLLBAR ───── */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--gray-200);border-radius:4px}
+
+/* ───── DIVIDER ───── */
+.divider{height:1px;background:var(--gray-200);margin:20px 0}
+
+/* ───── STAT ROW ───── */
+.stat-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--gray-100);font-size:13px}
+.stat-row:last-child{border-bottom:none}
+.stat-row-label{color:var(--gray-600);font-weight:500}
+.stat-row-value{font-weight:700;color:var(--black)}
+
+/* ───── CHART MOCK ───── */
+.mini-bar-chart{display:flex;align-items:flex-end;gap:4px;height:60px}
+.mini-bar{flex:1;border-radius:4px 4px 0 0;background:var(--gray-200);transition:height .4s;min-height:4px}
+.mini-bar.active{background:var(--blue)}
+.mini-bar-labels{display:flex;gap:4px;margin-top:4px}
+.mini-bar-labels span{flex:1;text-align:center;font-size:9px;color:var(--gray-400);font-weight:600;letter-spacing:.5px}
+
+/* ───── TOGGLE ───── */
+.toggle{width:40px;height:22px;border-radius:11px;background:var(--gray-200);cursor:pointer;position:relative;transition:background .2s;border:none}
+.toggle.on{background:var(--blue)}
+.toggle::after{content:'';position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:white;transition:left .2s;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+.toggle.on::after{left:21px}
+
+/* ───── PROFILE CHIPS ───── */
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+.chip{
+  display:flex;align-items:center;gap:6px;padding:6px 12px;
+  border-radius:20px;border:1.5px solid var(--gray-200);
+  font-size:12px;font-weight:600;color:var(--gray-600);cursor:pointer;
+  transition:all .15s;background:var(--white);
+}
+.chip.selected{border-color:var(--blue);color:var(--blue);background:rgba(0,61,165,.06)}
+.chip-dot{width:8px;height:8px;border-radius:50%;background:var(--gray-300,#CBD2E0)}
+.chip.selected .chip-dot{background:var(--blue)}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="topbar-brand">
+    <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+      <rect width="18" height="18" rx="4" fill="#71C5E8"/>
+      <rect x="14" y="14" width="18" height="18" rx="4" fill="white" fill-opacity=".9"/>
+    </svg>
+    <div class="topbar-brand-text">
+      <span>REDE D'OR</span>
+      <span>GESTÃO DE EVENTOS</span>
+    </div>
+  </div>
+  <div class="topbar-actions">
+    <div class="status-dot" title="Sistema online"></div>
+    <div class="topbar-event-name" id="topEventName">I Simpósio de Infectologia — PE</div>
+    <div class="topbar-user" title="Admin">AD</div>
+  </div>
+</div>
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+  <div class="sidebar-section">Principal</div>
+  <button class="nav-item active" onclick="showPage('dashboard')">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+    Dashboard
+  </button>
+  <button class="nav-item" onclick="showPage('inscritos')">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+    Inscritos
+    <span class="nav-badge" id="sidebarTotal">0</span>
+  </button>
+  <button class="nav-item" onclick="showPage('upload')">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+    Upload Planilha
+  </button>
+  <div class="sidebar-section">Comunicação</div>
+  <button class="nav-item" onclick="showPage('disparos')">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.62 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.6a16 16 0 0 0 6.09 6.09l.97-.97a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+    Disparos WhatsApp
+  </button>
+  <button class="nav-item" onclick="showPage('realtimeAlt')">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+    Tempo Real
+  </button>
+  <div class="sidebar-section">Check-in</div>
+  <button class="nav-item" onclick="showPage('checkin')">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+    Gestão de Check-in
+  </button>
+  <button class="nav-item" onclick="showPage('presenca')">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+    Lista de Presença
+  </button>
+  <div class="sidebar-section">Sistema</div>
+  <button class="nav-item" onclick="showPage('config')">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M5.34 5.34L3.93 6.75m13.74 11.32l1.41 1.41M5.34 18.66l-1.41 1.41M20 12h2M2 12h2m8-10v2m0 16v2"/></svg>
+    Configurações
+  </button>
+  <div class="sidebar-bottom">
+    <div class="sidebar-version">v2.0.0 — Rede D'Or © 2024</div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════ MAIN ═══════════════════════════════ -->
+<div class="main">
+
+<!-- ───── PAGE: DASHBOARD ───── -->
+<div class="page active" id="page-dashboard">
+  <div class="page-header">
+    <div class="page-header-left">
+      <h1>Dashboard</h1>
+      <p>Visão geral do evento em tempo real</p>
+    </div>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-secondary btn-sm" onclick="refreshAll()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+        Atualizar
+      </button>
+      <button class="btn btn-primary btn-sm" onclick="exportExcel()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Exportar
+      </button>
+    </div>
+  </div>
+
+  <div class="cards-row cards-4">
+    <div class="kpi-card blue">
+      <div class="kpi-top">
+        <span class="kpi-label">Total Inscritos</span>
+        <div class="kpi-icon" style="background:rgba(0,61,165,.08)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#003DA5" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+        </div>
+      </div>
+      <div class="kpi-value" id="kpiTotal">—</div>
+      <div class="kpi-sub">Planilha carregada</div>
+    </div>
+    <div class="kpi-card green">
+      <div class="kpi-top">
+        <span class="kpi-label">Disparos Enviados</span>
+        <div class="kpi-icon" style="background:rgba(0,183,79,.08)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00B74F" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.62 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.6a16 16 0 0 0 6.09 6.09l.97-.97a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+        </div>
+      </div>
+      <div class="kpi-value" id="kpiEnviados">—</div>
+      <div class="kpi-sub">Via WhatsApp</div>
+    </div>
+    <div class="kpi-card gold">
+      <div class="kpi-top">
+        <span class="kpi-label">Confirmados</span>
+        <div class="kpi-icon" style="background:rgba(198,162,124,.1)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C6A27C" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        </div>
+      </div>
+      <div class="kpi-value" id="kpiConfirmados">—</div>
+      <div class="kpi-sub" id="kpiConfPct">—% de taxa</div>
+    </div>
+    <div class="kpi-card orange">
+      <div class="kpi-top">
+        <span class="kpi-label">Check-ins Realizados</span>
+        <div class="kpi-icon" style="background:rgba(240,179,35,.1)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F0B323" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+        </div>
+      </div>
+      <div class="kpi-value" id="kpiCheckin">—</div>
+      <div class="kpi-sub">No dia do evento</div>
+    </div>
+  </div>
+
+  <div class="cards-row cards-2">
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">Distribuição por Perfil</span>
+        <span class="badge badge-blue" id="perfilTotal">0 perfis</span>
+      </div>
+      <div class="panel-body" id="perfilChart">
+        <div style="color:var(--gray-400);font-size:13px;text-align:center;padding:20px 0">
+          Carregue a planilha para visualizar
+        </div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">Funil de Engajamento</span>
+      </div>
+      <div class="panel-body">
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <div>
+            <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:6px">
+              <span style="font-weight:600;color:var(--gray-600)">Inscritos</span>
+              <span class="stat-row-value" id="fTotal">0</span>
+            </div>
+            <div class="progress-wrap"><div class="progress-bar" id="fBarTotal" style="width:100%"></div></div>
+          </div>
+          <div>
+            <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:6px">
+              <span style="font-weight:600;color:var(--gray-600)">Mensagem Enviada</span>
+              <span class="stat-row-value" id="fEnv">0</span>
+            </div>
+            <div class="progress-wrap"><div class="progress-bar" id="fBarEnv" style="width:0%"></div></div>
+          </div>
+          <div>
+            <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:6px">
+              <span style="font-weight:600;color:var(--gray-600)">Confirmados (SIM)</span>
+              <span class="stat-row-value" id="fConf">0</span>
+            </div>
+            <div class="progress-wrap"><div class="progress-bar green" id="fBarConf" style="width:0%"></div></div>
+          </div>
+          <div>
+            <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:6px">
+              <span style="font-weight:600;color:var(--gray-600)">Check-in Realizado</span>
+              <span class="stat-row-value" id="fCheck">0</span>
+            </div>
+            <div class="progress-wrap"><div class="progress-bar gold" id="fBarCheck" style="width:0%"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title">Atividade Recente</span>
+      <div class="status-dot"></div>
+    </div>
+    <div class="panel-body" id="recentActivity">
+      <div style="color:var(--gray-400);font-size:13px;text-align:center;padding:20px 0">Nenhuma atividade registrada ainda</div>
+    </div>
+  </div>
+</div>
+
+<!-- ───── PAGE: UPLOAD ───── -->
+<div class="page" id="page-upload">
+  <div class="page-header">
+    <div class="page-header-left">
+      <h1>Upload de Planilha</h1>
+      <p>Importe a lista de inscritos do evento</p>
+    </div>
+  </div>
+
+  <div class="cards-row cards-2">
+    <div class="panel">
+      <div class="panel-header"><span class="panel-title">Importar Arquivo</span></div>
+      <div class="panel-body">
+        <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()" ondrop="handleDrop(event)" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          <h4>Arraste ou clique para selecionar</h4>
+          <p>Suporta .xlsx, .xls, .csv</p>
+        </div>
+        <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" style="display:none" onchange="handleFileSelect(event)">
+        <div id="uploadAlert" style="display:none;margin-top:16px"></div>
+        <div class="divider"></div>
+        <div class="alert alert-info" style="font-size:12px">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <div>
+            <strong>Formato esperado:</strong> A planilha deve ter as colunas <strong>Nome</strong>, <strong>Telefone</strong> e <strong>Perfil</strong>.
+            O telefone deve estar no formato internacional (ex: 5581999999999).
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-header"><span class="panel-title">Prévia dos Dados</span><span class="badge badge-gray" id="previewCount">0 registros</span></div>
+      <div class="panel-body" style="padding:0">
+        <div class="table-wrap" style="max-height:340px;overflow-y:auto">
+          <table id="previewTable">
+            <thead><tr><th>#</th><th>Nome</th><th>Telefone</th><th>Perfil</th><th>Status</th></tr></thead>
+            <tbody id="previewBody">
+              <tr><td colspan="5" style="text-align:center;color:var(--gray-400);padding:30px">Nenhum arquivo carregado</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div style="padding:16px;display:flex;justify-content:flex-end;gap:10px">
+          <button class="btn btn-secondary btn-sm" onclick="clearData()">Limpar</button>
+          <button class="btn btn-primary btn-sm" onclick="confirmImport()" id="btnImport" disabled>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 11l3 3L22 4"/></svg>
+            Confirmar Importação
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel" id="uploadHistory">
+    <div class="panel-header"><span class="panel-title">Histórico de Importações</span></div>
+    <div class="panel-body">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Data</th><th>Arquivo</th><th>Registros</th><th>Status</th></tr></thead>
+          <tbody id="historyBody">
+            <tr><td colspan="4" style="text-align:center;color:var(--gray-400);padding:20px">Sem histórico</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ───── PAGE: INSCRITOS ───── -->
+<div class="page" id="page-inscritos">
+  <div class="page-header">
+    <div class="page-header-left">
+      <h1>Inscritos</h1>
+      <p id="inscritosSubtitle">Lista completa de participantes</p>
+    </div>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-secondary btn-sm" onclick="exportExcel()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Exportar XLSX
+      </button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-header">
+      <div style="display:flex;gap:8px;flex:1">
+        <input type="text" id="searchInput" placeholder="Buscar por nome ou telefone..." style="max-width:300px;padding:8px 12px;font-size:13px" oninput="filterTable()">
+        <select id="filterPerfil" style="font-size:13px;padding:8px 12px" onchange="filterTable()">
+          <option value="">Todos os perfis</option>
+        </select>
+        <select id="filterStatus" style="font-size:13px;padding:8px 12px" onchange="filterTable()">
+          <option value="">Todos os status</option>
+          <option value="pendente">Pendente</option>
+          <option value="enviado">Enviado</option>
+          <option value="confirmado">Confirmado</option>
+          <option value="recusado">Recusado</option>
+          <option value="checkin">Check-in</option>
+        </select>
+      </div>
+    </div>
+    <div class="table-wrap" style="max-height:500px;overflow-y:auto">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Nome</th>
+            <th>Telefone</th>
+            <th>Perfil</th>
+            <th>WhatsApp</th>
+            <th>RSVP</th>
+            <th>Check-in</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody id="inscritosBody">
+          <tr><td colspan="8" style="text-align:center;color:var(--gray-400);padding:30px">Nenhum dado carregado</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ───── PAGE: DISPAROS ───── -->
+<div class="page" id="page-disparos">
+  <div class="page-header">
+    <div class="page-header-left">
+      <h1>Disparos WhatsApp</h1>
+      <p>Configure e envie mensagens aos inscritos</p>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 320px;gap:24px;align-items:start">
+    <div>
+      <!-- CONFIGURAÇÃO TWILIO -->
+      <div class="panel" style="margin-bottom:24px">
+        <div class="panel-header">
+          <span class="panel-title">Credenciais Twilio</span>
+          <button class="btn btn-sm btn-secondary" onclick="toggleTwilio()">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            <span id="twilioToggleText">Configurar</span>
+          </button>
+        </div>
+        <div class="panel-body" id="twilioConfig" style="display:none">
+          <div class="form-grid form-2" style="margin-bottom:16px">
+            <div class="field">
+              <label>Account SID</label>
+              <input type="password" id="twilioSid" placeholder="ACxxxxxxxxxx..." oninput="saveTwilio()">
+            </div>
+            <div class="field">
+              <label>Auth Token</label>
+              <input type="password" id="twilioToken" placeholder="Token de autenticação" oninput="saveTwilio()">
+            </div>
+            <div class="field">
+              <label>Número WhatsApp (From)</label>
+              <input type="text" id="twilioFrom" placeholder="whatsapp:+14155238886" oninput="saveTwilio()">
+            </div>
+            <div class="field">
+              <label>URL base do sistema (RSVP)</label>
+              <input type="text" id="twilioBaseUrl" placeholder="https://simposiorededorpe.netlify.app/" oninput="saveTwilio()">
+            </div>
+          </div>
+          <div class="alert alert-info" style="font-size:12px">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            Dados salvos localmente. Nunca compartilhe suas credenciais.
+          </div>
+        </div>
+        <div class="panel-body" id="twilioStatus" style="padding:14px 24px">
+          <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--gray-600)">
+            <div id="twilioStatusDot" style="width:8px;height:8px;border-radius:50%;background:var(--gray-300,#CBD2E0)"></div>
+            <span id="twilioStatusText">Credenciais não configuradas</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- MENSAGEM -->
+      <div class="panel" style="margin-bottom:24px">
+        <div class="panel-header"><span class="panel-title">Composição da Mensagem</span></div>
+        <div class="panel-body">
+          <div class="field" style="margin-bottom:16px">
+            <label>Texto da Mensagem</label>
+            <textarea id="msgText" rows="8" oninput="updatePreview()" placeholder="Olá, {{nome}}! Você está inscrito(a) no evento. Confirme sua presença:&#10;&#10;✅ SIM: {{link_sim}}&#10;❌ NÃO: {{link_nao}}">Olá, {{nome}}!
+
+Você está inscrito(a) no *I Simpósio de Infectologia — Regional PE*.
+
+Confirme sua presença clicando abaixo:
+
+SIM: {{link_sim}}
+NÃO: {{link_nao}}</textarea>
+            <div class="field-hint">Use <strong>{{nome}}</strong> para o nome, <strong>{{link_sim}}</strong> e <strong>{{link_nao}}</strong> para os links de RSVP</div>
+          </div>
+          <div class="field" style="margin-bottom:16px">
+            <label>Imagem (opcional)</label>
+            <div style="display:flex;gap:10px;align-items:center">
+              <input type="text" id="msgImgUrl" placeholder="URL pública da imagem (JPEG/PNG)" oninput="updatePreview()" style="flex:1">
+              <button class="btn btn-secondary btn-sm" onclick="document.getElementById('msgImgFile').click()">Upload</button>
+            </div>
+            <input type="file" id="msgImgFile" accept="image/*" style="display:none" onchange="handleMsgImg(event)">
+          </div>
+        </div>
+      </div>
+
+      <!-- DESTINATÁRIOS -->
+      <div class="panel" style="margin-bottom:24px">
+        <div class="panel-header">
+          <span class="panel-title">Destinatários</span>
+          <span class="badge badge-blue" id="destCount">0 selecionados</span>
+        </div>
+        <div class="panel-body">
+          <div style="margin-bottom:16px">
+            <label style="margin-bottom:8px;display:block">Selecionar por Perfil</label>
+            <div class="chips" id="perfilChips"></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+            <label style="margin:0;text-transform:none;font-size:13px;font-weight:500;color:var(--gray-600)">Apenas pendentes (sem envio anterior)</label>
+            <button class="toggle on" id="onlyPending" onclick="this.classList.toggle('on');updateDestCount()"></button>
+          </div>
+          <div class="divider"></div>
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span style="font-size:13px;color:var(--gray-600)">Total a disparar: <strong id="totalDisp">0</strong> mensagens</span>
+            <button class="btn btn-primary" onclick="openDisparo()">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+              Iniciar Disparo
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- HISTÓRICO DE DISPAROS -->
+      <div class="panel">
+        <div class="panel-header"><span class="panel-title">Histórico de Campanhas</span></div>
+        <div class="panel-body" style="padding:0">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Data/Hora</th><th>Enviados</th><th>Confirmados</th><th>Recusados</th><th>Taxa</th></tr></thead>
+              <tbody id="campanhaBody">
+                <tr><td colspan="5" style="text-align:center;color:var(--gray-400);padding:20px">Sem campanhas</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PREVIEW DO CELULAR -->
+    <div style="position:sticky;top:0">
+      <div class="panel" style="margin-bottom:16px">
+        <div class="panel-header"><span class="panel-title">Prévia — WhatsApp</span></div>
+        <div class="panel-body" style="display:flex;justify-content:center;padding:20px">
+          <div class="phone-frame">
+            <div class="phone-screen">
+              <div class="phone-statusbar">
+                <span>09:41</span><span>●●● WiFi</span>
+              </div>
+              <div class="phone-header">
+                <div class="phone-avatar">RD</div>
+                <div class="phone-contact">
+                  <div class="phone-contact-name">Rede D'Or Eventos</div>
+                  <div class="phone-contact-status">online</div>
+                </div>
+              </div>
+              <div class="phone-messages">
+                <div class="wpp-msg">
+                  <div id="previewImgWrap" style="display:none">
+                    <div class="wpp-msg-media" id="previewImgBox">
+                      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color:var(--gray-400)"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                    </div>
+                  </div>
+                  <div id="previewText" style="white-space:pre-wrap;word-break:break-word"></div>
+                  <div style="margin-top:8px;display:flex;flex-direction:column;gap:4px">
+                    <div class="wpp-btn-yes">SIM — Confirmar Presença</div>
+                    <div class="wpp-btn-no">NÃO — Não poderei ir</div>
+                  </div>
+                  <div class="wpp-msg-time">09:41 ✓✓</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ───── PAGE: REALTIME ───── -->
+<div class="page" id="page-realtimeAlt">
+  <div class="page-header">
+    <div class="page-header-left">
+      <h1>Tempo Real</h1>
+      <p>Confirmações e recusas ao vivo</p>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <div class="status-dot"></div>
+      <span style="font-size:13px;font-weight:600;color:var(--success)">Ao vivo</span>
+    </div>
+  </div>
+
+  <div class="cards-row cards-4">
+    <div class="kpi-card green">
+      <div class="kpi-top"><span class="kpi-label">Confirmados</span></div>
+      <div class="kpi-value" id="rtConfirmados">0</div>
+      <div class="kpi-sub">Responderam SIM</div>
+    </div>
+    <div class="kpi-card" style="border-left:4px solid var(--danger)">
+      <div class="kpi-top"><span class="kpi-label">Recusados</span></div>
+      <div class="kpi-value" id="rtRecusados">0</div>
+      <div class="kpi-sub">Responderam NÃO</div>
+    </div>
+    <div class="kpi-card blue">
+      <div class="kpi-top"><span class="kpi-label">Aguardando</span></div>
+      <div class="kpi-value" id="rtAguardando">0</div>
+      <div class="kpi-sub">Sem resposta</div>
+    </div>
+    <div class="kpi-card gold">
+      <div class="kpi-top"><span class="kpi-label">Check-ins</span></div>
+      <div class="kpi-value" id="rtCheckin">0</div>
+      <div class="kpi-sub">Entraram no evento</div>
+    </div>
+  </div>
+
+  <div class="cards-row cards-2">
+    <div class="panel">
+      <div class="panel-header"><span class="panel-title">Últimas Confirmações (SIM)</span></div>
+      <div class="panel-body" id="rtSimList">
+        <div style="color:var(--gray-400);font-size:13px;text-align:center;padding:20px">Nenhuma confirmação ainda</div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-header"><span class="panel-title">Últimas Recusas (NÃO)</span></div>
+      <div class="panel-body" id="rtNaoList">
+        <div style="color:var(--gray-400);font-size:13px;text-align:center;padding:20px">Nenhuma recusa ainda</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-header"><span class="panel-title">Feed de Atividade</span><div class="status-dot"></div></div>
+    <div class="panel-body" id="rtFeed">
+      <div style="color:var(--gray-400);font-size:13px;text-align:center;padding:20px">Sem atividade</div>
+    </div>
+  </div>
+</div>
+
+<!-- ───── PAGE: CHECK-IN ───── -->
+<div class="page" id="page-checkin">
+  <div class="page-header">
+    <div class="page-header-left">
+      <h1>Gestão de Check-in</h1>
+      <p>Link e QR Code para as promotoras na entrada</p>
+    </div>
+  </div>
+
+  <div class="cards-row cards-2">
+    <div class="panel">
+      <div class="panel-header"><span class="panel-title">Link da Página de Promotoras</span></div>
+      <div class="panel-body">
+        <div class="alert alert-info" style="margin-bottom:16px;font-size:12px">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          Envie este link para as promotoras. A página funciona em qualquer celular, sem instalação.
+        </div>
+        <div class="checkin-link-box">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+          <span id="checkinLinkDisplay">redor_checkin.html (arquivo separado)</span>
+          <button class="btn btn-primary btn-sm" onclick="copyCheckinLink()">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            Copiar
+          </button>
+        </div>
+        <div class="divider"></div>
+        <div style="text-align:center">
+          <div id="adminQrCode" style="display:inline-block;padding:12px;background:white;border-radius:8px;border:1px solid var(--gray-200)"></div>
+          <p style="font-size:11px;color:var(--gray-400);margin-top:8px">QR Code do link de promotoras</p>
+          <button class="btn btn-secondary btn-sm" style="margin-top:8px" onclick="downloadAdminQr()">Baixar QR Code</button>
+        </div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-header"><span class="panel-title">Status de Check-in</span></div>
+      <div class="panel-body">
+        <div class="cards-row cards-2" style="margin-bottom:16px">
+          <div style="background:rgba(0,183,79,.06);border:1.5px solid rgba(0,183,79,.2);border-radius:10px;padding:16px;text-align:center">
+            <div style="font-family:var(--font-cond);font-weight:800;font-size:32px;color:var(--success)" id="checkinCount">0</div>
+            <div style="font-size:12px;color:var(--gray-600);font-weight:600">Check-ins</div>
+          </div>
+          <div style="background:rgba(0,61,165,.06);border:1.5px solid rgba(0,61,165,.2);border-radius:10px;padding:16px;text-align:center">
+            <div style="font-family:var(--font-cond);font-weight:800;font-size:32px;color:var(--blue)" id="checkinPending">0</div>
+            <div style="font-size:12px;color:var(--gray-600);font-weight:600">Confirmados / Aguardando</div>
+          </div>
+        </div>
+        <div id="lastCheckins" style="max-height:240px;overflow-y:auto">
+          <div style="color:var(--gray-400);font-size:13px;text-align:center;padding:20px">Sem check-ins</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-header"><span class="panel-title">Orientações para Promotoras</span></div>
+    <div class="panel-body">
+      <div class="form-grid form-3">
+        <div style="background:var(--gray-100);border-radius:10px;padding:16px;text-align:center">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" style="margin-bottom:8px"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          <div style="font-weight:700;font-size:13px;color:var(--black);margin-bottom:4px">1. Acesse o link</div>
+          <div style="font-size:12px;color:var(--gray-600)">Abra o link no celular via WhatsApp ou direto no navegador</div>
+        </div>
+        <div style="background:var(--gray-100);border-radius:10px;padding:16px;text-align:center">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" style="margin-bottom:8px"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+          <div style="font-weight:700;font-size:13px;color:var(--black);margin-bottom:4px">2. Aponte para o QR Code</div>
+          <div style="font-size:12px;color:var(--gray-600)">Use a câmera do celular para ler o QR Code do inscrito</div>
+        </div>
+        <div style="background:var(--gray-100);border-radius:10px;padding:16px;text-align:center">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2" style="margin-bottom:8px"><path d="M9 11l3 3L22 4"/></svg>
+          <div style="font-weight:700;font-size:13px;color:var(--black);margin-bottom:4px">3. Tela verde = liberado</div>
+          <div style="font-size:12px;color:var(--gray-600)">Confirmação visual imediata. QR já usado exibe aviso</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ───── PAGE: PRESENÇA ───── -->
+<div class="page" id="page-presenca">
+  <div class="page-header">
+    <div class="page-header-left">
+      <h1>Lista de Presença</h1>
+      <p>Todos que realizaram check-in no evento</p>
+    </div>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-success btn-sm" onclick="exportPresenca()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Exportar Presença
+      </button>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>#</th><th>Nome</th><th>Telefone</th><th>Perfil</th><th>Check-in em</th></tr></thead>
+        <tbody id="presencaBody">
+          <tr><td colspan="5" style="text-align:center;color:var(--gray-400);padding:30px">Nenhum check-in registrado</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ───── PAGE: CONFIG ───── -->
+<div class="page" id="page-config">
+  <div class="page-header">
+    <div class="page-header-left">
+      <h1>Configurações</h1>
+      <p>Parâmetros gerais do sistema</p>
+    </div>
+  </div>
+  <div class="cards-row cards-2">
+    <div class="panel">
+      <div class="panel-header"><span class="panel-title">Informações do Evento</span></div>
+      <div class="panel-body">
+        <div class="form-grid">
+          <div class="field">
+            <label>Nome do Evento</label>
+            <input type="text" id="cfgEventName" value="I Simpósio de Infectologia — PE" onchange="saveConfig()">
+          </div>
+          <div class="field">
+            <label>Data do Evento</label>
+            <input type="date" id="cfgEventDate" onchange="saveConfig()">
+          </div>
+          <div class="field">
+            <label>Local</label>
+            <input type="text" id="cfgLocal" placeholder="Ex: Recife Expo Center" onchange="saveConfig()">
+          </div>
+          <div class="field">
+            <label>Capacidade Máxima</label>
+            <input type="number" id="cfgCap" placeholder="200" onchange="saveConfig()">
+          </div>
+        </div>
+        <div class="divider"></div>
+        <button class="btn btn-primary btn-sm" onclick="saveConfig();showToast('Configurações salvas!')">Salvar Configurações</button>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-header"><span class="panel-title">Dados e Cache</span></div>
+      <div class="panel-body">
+        <div class="stat-row">
+          <span class="stat-row-label">Inscritos carregados</span>
+          <span class="stat-row-value" id="cfgCountInscritos">0</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-row-label">Disparos realizados</span>
+          <span class="stat-row-value" id="cfgCountDisparos">0</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-row-label">Check-ins</span>
+          <span class="stat-row-value" id="cfgCountCheckins">0</span>
+        </div>
+        <div class="divider"></div>
+        <div style="display:flex;gap:10px">
+          <button class="btn btn-secondary btn-sm" onclick="exportBackup()">Exportar Backup</button>
+          <button class="btn btn-danger btn-sm" onclick="if(confirm('Limpar todos os dados?'))clearAllData()">Limpar Tudo</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /main -->
+
+<!-- ───── MODAL CONFIRMAÇÃO DISPARO ───── -->
+<div class="modal-overlay" id="disparoModal">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header">
+      <span class="modal-title">Confirmar Disparo</span>
+      <button class="modal-close" onclick="closeModal('disparoModal')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div id="disparoModalBody"></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('disparoModal')">Cancelar</button>
+      <button class="btn btn-primary" onclick="executarDisparo()" id="btnExecutar">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        Disparar Agora
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ───── TOAST ───── -->
+<div id="toast" style="
+  position:fixed;bottom:24px;right:24px;background:var(--black);color:white;
+  padding:12px 20px;border-radius:8px;font-size:13px;font-weight:600;
+  transform:translateY(80px);opacity:0;transition:all .3s;z-index:999;
+  max-width:300px;box-shadow:var(--shadow-lg)
+"></div>
+
+<script>
+// ══════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════
+let inscritos = [];
+let atividade = [];
+let campanhas = [];
+
+// Load from localStorage
+function loadState(){
+  const s = localStorage.getItem('redor_inscritos');
+  if(s) inscritos = JSON.parse(s);
+  const a = localStorage.getItem('redor_atividade');
+  if(a) atividade = JSON.parse(a);
+  const c = localStorage.getItem('redor_campanhas');
+  if(c) campanhas = JSON.parse(c);
+  loadTwilio();
+  loadConfig();
+  refreshAll();
+}
+
+function saveInscritos(){
+  localStorage.setItem('redor_inscritos', JSON.stringify(inscritos));
+}
+function saveAtividade(){
+  localStorage.setItem('redor_atividade', JSON.stringify(atividade.slice(0,200)));
+}
+function saveCampanhas(){
+  localStorage.setItem('redor_campanhas', JSON.stringify(campanhas));
+}
+
+// ══════════════════════════════════════════════
+// NAVIGATION
+// ══════════════════════════════════════════════
+function showPage(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  const pg = document.getElementById('page-'+id);
+  if(pg) pg.classList.add('active');
+  const btn = document.querySelector(`[onclick="showPage('${id}')"]`);
+  if(btn) btn.classList.add('active');
+  if(id==='inscritos') renderInscritos();
+  if(id==='dashboard') refreshDashboard();
+  if(id==='realtimeAlt') renderRealtime();
+  if(id==='presenca') renderPresenca();
+  if(id==='config') renderConfig();
+  if(id==='disparos'){renderPerfilChips();updatePreview();updateDestCount();}
+  if(id==='checkin') renderCheckinPage();
+}
+
+// ══════════════════════════════════════════════
+// UPLOAD
+// ══════════════════════════════════════════════
+let pendingData = [];
+
+function handleDragOver(e){e.preventDefault();document.getElementById('uploadZone').classList.add('drag')}
+function handleDragLeave(e){document.getElementById('uploadZone').classList.remove('drag')}
+function handleDrop(e){
+  e.preventDefault();
+  document.getElementById('uploadZone').classList.remove('drag');
+  const f = e.dataTransfer.files[0];
+  if(f) processFile(f);
+}
+function handleFileSelect(e){
+  const f = e.target.files[0];
+  if(f) processFile(f);
+}
+
+function processFile(file){
+  const reader = new FileReader();
+  reader.onload = function(e){
+    try{
+      let data;
+      const wb = XLSX.read(e.target.result, {type:'binary'});
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      data = XLSX.utils.sheet_to_json(ws, {defval:''});
+      if(!data.length) throw new Error('Planilha vazia');
+
+      // Normalize columns
+      pendingData = data.map((row,i)=>{
+        const nome = row['Nome']||row['nome']||row['NOME']||row['name']||Object.values(row)[0]||'';
+        const tel  = String(row['Telefone']||row['telefone']||row['Celular']||row['celular']||row['Fone']||row['phone']||Object.values(row)[1]||'').replace(/\D/g,'');
+        const perfil = row['Perfil']||row['perfil']||row['Especialidade']||row['Categoria']||Object.values(row)[2]||'Geral';
+        return {
+          id: 'ins_'+(Date.now()+i),
+          nome: String(nome).trim(),
+          telefone: tel,
+          perfil: String(perfil).trim(),
+          status: 'pendente',
+          rsvp: null,
+          checkin: false,
+          checkinAt: null,
+          disparadoAt: null,
+          token: Math.random().toString(36).slice(2)+Math.random().toString(36).slice(2)
+        };
+      }).filter(r=>r.nome&&r.telefone);
+
+      renderPreview(pendingData, file.name);
+      setUploadAlert('success', `${pendingData.length} registros encontrados. Revise e confirme a importação.`);
+      document.getElementById('btnImport').disabled = false;
+    }catch(err){
+      setUploadAlert('danger','Erro ao processar arquivo: '+err.message);
+    }
+  };
+  reader.readAsBinaryString(file);
+}
+
+function renderPreview(data, filename){
+  document.getElementById('previewCount').textContent = data.length+' registros';
+  const tbody = document.getElementById('previewBody');
+  tbody.innerHTML = data.slice(0,50).map((r,i)=>`
+    <tr>
+      <td>${i+1}</td>
+      <td><strong>${r.nome}</strong></td>
+      <td>${r.telefone}</td>
+      <td><span class="badge badge-gray">${r.perfil}</span></td>
+      <td><span class="badge badge-blue">Novo</span></td>
+    </tr>
+  `).join('');
+  if(data.length>50) tbody.innerHTML += `<tr><td colspan="5" style="text-align:center;color:var(--gray-400);padding:10px;font-size:12px">… e mais ${data.length-50} registros</td></tr>`;
+}
+
+function confirmImport(){
+  if(!pendingData.length) return;
+  inscritos = pendingData.map(r=>({...r}));
+  saveInscritos();
+  addHistory(pendingData.length);
+  showToast(`${inscritos.length} inscritos importados com sucesso!`);
+  setUploadAlert('success', `Importação concluída! ${inscritos.length} inscritos carregados.`);
+  pendingData = [];
+  document.getElementById('btnImport').disabled = true;
+  refreshAll();
+  // Simula RSVP aleatório para demo
+  setTimeout(simulateDemo, 1000);
+}
+
+function simulateDemo(){
+  if(inscritos.length===0) return;
+  // Simula alguns RSVPs para demonstração
+  inscritos.forEach((ins,i)=>{
+    if(Math.random()>.4){
+      ins.disparadoAt = new Date(Date.now()-Math.random()*3600000).toISOString();
+      ins.status='enviado';
+    }
+  });
+  const enviados = inscritos.filter(i=>i.status==='enviado');
+  enviados.forEach(ins=>{
+    if(Math.random()>.35){
+      ins.rsvp = Math.random()>.3?'sim':'nao';
+      ins.status = ins.rsvp==='sim'?'confirmado':'recusado';
+      atividade.unshift({tipo:ins.rsvp,nome:ins.nome,ts:new Date().toISOString()});
+    }
+  });
+  const confirmados = inscritos.filter(i=>i.status==='confirmado');
+  confirmados.slice(0,Math.floor(confirmados.length*.4)).forEach(ins=>{
+    ins.checkin=true;
+    ins.checkinAt=new Date().toISOString();
+    ins.status='checkin';
+    atividade.unshift({tipo:'checkin',nome:ins.nome,ts:new Date().toISOString()});
+  });
+  saveInscritos();
+  saveAtividade();
+  refreshAll();
+}
+
+function addHistory(count){
+  const tbody = document.getElementById('historyBody');
+  const row = `<tr>
+    <td>${new Date().toLocaleString('pt-BR')}</td>
+    <td>planilha_inscritos.xlsx</td>
+    <td><strong>${count}</strong></td>
+    <td><span class="badge badge-green">Importado</span></td>
+  </tr>`;
+  if(tbody.children[0]&&tbody.children[0].children[0]&&tbody.children[0].children[0].getAttribute('colspan')) tbody.innerHTML='';
+  tbody.insertAdjacentHTML('afterbegin',row);
+}
+
+function clearData(){
+  pendingData=[];
+  document.getElementById('previewBody').innerHTML='<tr><td colspan="5" style="text-align:center;color:var(--gray-400);padding:30px">Nenhum arquivo carregado</td></tr>';
+  document.getElementById('previewCount').textContent='0 registros';
+  document.getElementById('btnImport').disabled=true;
+  document.getElementById('uploadAlert').style.display='none';
+  document.getElementById('fileInput').value='';
+}
+
+function setUploadAlert(type,msg){
+  const el = document.getElementById('uploadAlert');
+  el.style.display='block';
+  el.className='alert alert-'+type;
+  el.innerHTML=`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>${msg}`;
+}
+
+// ══════════════════════════════════════════════
+// DASHBOARD
+// ══════════════════════════════════════════════
+function refreshDashboard(){
+  const total = inscritos.length;
+  const enviados = inscritos.filter(i=>i.status!=='pendente').length;
+  const conf = inscritos.filter(i=>i.rsvp==='sim').length;
+  const checkin = inscritos.filter(i=>i.checkin).length;
+
+  document.getElementById('kpiTotal').textContent = total||'—';
+  document.getElementById('kpiEnviados').textContent = enviados||'—';
+  document.getElementById('kpiConfirmados').textContent = conf||'—';
+  document.getElementById('kpiCheckin').textContent = checkin||'—';
+  document.getElementById('sidebarTotal').textContent = total;
+
+  const pct = enviados>0?Math.round(conf/enviados*100):0;
+  document.getElementById('kpiConfPct').textContent = pct+'% de taxa';
+
+  // Funil
+  document.getElementById('fTotal').textContent=total;
+  document.getElementById('fEnv').textContent=enviados;
+  document.getElementById('fConf').textContent=conf;
+  document.getElementById('fCheck').textContent=checkin;
+  document.getElementById('fBarEnv').style.width=(total>0?enviados/total*100:0)+'%';
+  document.getElementById('fBarConf').style.width=(total>0?conf/total*100:0)+'%';
+  document.getElementById('fBarCheck').style.width=(total>0?checkin/total*100:0)+'%';
+
+  // Perfis
+  const perfis = {};
+  inscritos.forEach(i=>{perfis[i.perfil]=(perfis[i.perfil]||0)+1});
+  const perfilEl = document.getElementById('perfilChart');
+  document.getElementById('perfilTotal').textContent=Object.keys(perfis).length+' perfis';
+  if(!Object.keys(perfis).length){
+    perfilEl.innerHTML='<div style="color:var(--gray-400);font-size:13px;text-align:center;padding:20px 0">Carregue a planilha para visualizar</div>';
+  } else {
+    const maxV = Math.max(...Object.values(perfis));
+    perfilEl.innerHTML = Object.entries(perfis).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`
+      <div style="margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px">
+          <span style="font-weight:600;color:var(--gray-700,#3A4155)">${k}</span>
+          <span style="font-weight:700;color:var(--black)">${v}</span>
+        </div>
+        <div class="progress-wrap"><div class="progress-bar" style="width:${v/maxV*100}%"></div></div>
+      </div>
+    `).join('');
+  }
+
+  // Atividade recente
+  const actEl = document.getElementById('recentActivity');
+  if(!atividade.length){
+    actEl.innerHTML='<div style="color:var(--gray-400);font-size:13px;text-align:center;padding:20px 0">Nenhuma atividade registrada ainda</div>';
+  } else {
+    actEl.innerHTML = atividade.slice(0,8).map(a=>`
+      <div class="realtime-row">
+        <div class="realtime-icon" style="background:${a.tipo==='sim'?'rgba(0,183,79,.1)':a.tipo==='nao'?'rgba(250,70,22,.1)':'rgba(198,162,124,.1)'}">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${a.tipo==='sim'?'var(--success)':a.tipo==='nao'?'var(--danger)':'var(--gold)'}" stroke-width="2">
+            ${a.tipo==='sim'?'<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>'
+            :a.tipo==='nao'?'<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>'
+            :'<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/>'}
+          </svg>
+        </div>
+        <div class="realtime-info">
+          <strong>${a.nome}</strong>
+          <span>${a.tipo==='sim'?'Confirmou presença':a.tipo==='nao'?'Recusou participação':'Realizou check-in'}</span>
+        </div>
+        <div class="realtime-time">${new Date(a.ts).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</div>
+      </div>
+    `).join('');
+  }
+}
+
+// ══════════════════════════════════════════════
+// INSCRITOS TABLE
+// ══════════════════════════════════════════════
+function renderInscritos(){
+  document.getElementById('inscritosSubtitle').textContent=`${inscritos.length} participantes cadastrados`;
+  // Preenche filtro de perfis
+  const perfisSet = [...new Set(inscritos.map(i=>i.perfil))];
+  const fp = document.getElementById('filterPerfil');
+  const cur = fp.value;
+  fp.innerHTML='<option value="">Todos os perfis</option>'+perfisSet.map(p=>`<option value="${p}">${p}</option>`).join('');
+  fp.value=cur;
+  filterTable();
+}
+
+function filterTable(){
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  const fp = document.getElementById('filterPerfil').value;
+  const fs = document.getElementById('filterStatus').value;
+  const filtered = inscritos.filter(i=>{
+    if(q&&!i.nome.toLowerCase().includes(q)&&!i.telefone.includes(q)) return false;
+    if(fp&&i.perfil!==fp) return false;
+    if(fs&&i.status!==fs) return false;
+    return true;
+  });
+  const tbody = document.getElementById('inscritosBody');
+  if(!filtered.length){
+    tbody.innerHTML='<tr><td colspan="8" style="text-align:center;color:var(--gray-400);padding:30px">Nenhum resultado</td></tr>';
+    return;
+  }
+  const statusMap={pendente:'<span class="badge badge-gray">Pendente</span>',enviado:'<span class="badge badge-blue">Enviado</span>',confirmado:'<span class="badge badge-green">Confirmado</span>',recusado:'<span class="badge badge-red">Recusado</span>',checkin:'<span class="badge badge-gold">Check-in</span>'};
+  tbody.innerHTML = filtered.map((r,i)=>`
+    <tr>
+      <td style="color:var(--gray-400);font-size:12px">${i+1}</td>
+      <td><strong style="font-size:13px">${r.nome}</strong></td>
+      <td style="font-size:12px;color:var(--gray-600)">${r.telefone}</td>
+      <td><span class="badge badge-gray">${r.perfil}</span></td>
+      <td>${r.disparadoAt?'<span class="badge badge-green">Enviado</span>':'<span class="badge badge-gray">Pendente</span>'}</td>
+      <td>${r.rsvp?`<span class="badge ${r.rsvp==='sim'?'badge-green':'badge-red'}">${r.rsvp.toUpperCase()}</span>`:'<span class="badge badge-gray">—</span>'}</td>
+      <td>${r.checkin?`<span class="badge badge-gold">Realizado</span>`:'<span class="badge badge-gray">—</span>'}</td>
+      <td>
+        <button class="btn btn-secondary btn-sm" onclick="viewQr('${r.id}')" title="Ver QR Code">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        </button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function viewQr(id){
+  const ins = inscritos.find(i=>i.id===id);
+  if(!ins) return;
+  const cfg = getConfig();
+  const url = (cfg.baseUrl||window.location.href.replace('redor_admin.html','redor_checkin.html'))+'?id='+ins.id+'&token='+ins.token;
+  document.getElementById('disparoModalBody').innerHTML=`
+    <p style="font-size:13px;color:var(--gray-600);margin-bottom:16px"><strong>${ins.nome}</strong> — ${ins.perfil}</p>
+    <div style="display:flex;justify-content:center;margin-bottom:12px">
+      <div id="qrModal" style="padding:12px;background:white;border:1px solid var(--gray-200);border-radius:8px;display:inline-block"></div>
+    </div>
+    <p style="font-size:11px;color:var(--gray-400);text-align:center;word-break:break-all">${url}</p>
+  `;
+  document.getElementById('btnExecutar').style.display='none';
+  document.querySelector('.modal-footer .btn-secondary').textContent='Fechar';
+  document.getElementById('disparoModal').classList.add('open');
+  setTimeout(()=>{
+    const el = document.getElementById('qrModal');
+    if(el) new QRCode(el,{text:url,width:180,height:180,colorDark:'#003DA5',colorLight:'#ffffff'});
+  },100);
+}
+
+// ══════════════════════════════════════════════
+// TWILIO / DISPAROS
+// ══════════════════════════════════════════════
+let selectedPerfis = new Set();
+
+function saveTwilio(){
+  localStorage.setItem('redor_twilio',JSON.stringify({
+    sid:document.getElementById('twilioSid').value,
+    token:document.getElementById('twilioToken').value,
+    from:document.getElementById('twilioFrom').value,
+    baseUrl:document.getElementById('twilioBaseUrl').value
+  }));
+  updateTwilioStatus();
+}
+
+function loadTwilio(){
+  const t = localStorage.getItem('redor_twilio');
+  if(!t) return;
+  const d = JSON.parse(t);
+  document.getElementById('twilioSid').value=d.sid||'';
+  document.getElementById('twilioToken').value=d.token||'';
+  document.getElementById('twilioFrom').value=d.from||'';
+  document.getElementById('twilioBaseUrl').value=d.baseUrl||'';
+  updateTwilioStatus();
+}
+
+function updateTwilioStatus(){
+  const t = getTwilio();
+  const ok = t.sid&&t.token&&t.from;
+  document.getElementById('twilioStatusDot').style.background=ok?'var(--success)':'var(--gray-300,#CBD2E0)';
+  document.getElementById('twilioStatusText').textContent=ok?'Credenciais configuradas':'Credenciais não configuradas';
+}
+
+function getTwilio(){
+  const t = localStorage.getItem('redor_twilio');
+  return t?JSON.parse(t):{};
+}
+
+function toggleTwilio(){
+  const el = document.getElementById('twilioConfig');
+  const status = document.getElementById('twilioStatus');
+  const open = el.style.display==='none';
+  el.style.display=open?'block':'none';
+  status.style.display=open?'none':'block';
+  document.getElementById('twilioToggleText').textContent=open?'Ocultar':'Configurar';
+}
+
+function renderPerfilChips(){
+  const perfis = [...new Set(inscritos.map(i=>i.perfil))];
+  const el = document.getElementById('perfilChips');
+  if(!perfis.length){el.innerHTML='<span style="font-size:12px;color:var(--gray-400)">Carregue inscritos primeiro</span>';return;}
+  if(!selectedPerfis.size) perfis.forEach(p=>selectedPerfis.add(p));
+  el.innerHTML = perfis.map(p=>`
+    <div class="chip ${selectedPerfis.has(p)?'selected':''}" onclick="togglePerfil('${p}',this)">
+      <div class="chip-dot"></div>${p}
+    </div>
+  `).join('');
+  updateDestCount();
+}
+
+function togglePerfil(p,el){
+  if(selectedPerfis.has(p)) selectedPerfis.delete(p);
+  else selectedPerfis.add(p);
+  el.classList.toggle('selected');
+  updateDestCount();
+}
+
+function updateDestCount(){
+  const onlyPending = document.getElementById('onlyPending').classList.contains('on');
+  const dest = inscritos.filter(i=>{
+    if(!selectedPerfis.has(i.perfil)) return false;
+    if(onlyPending&&i.disparadoAt) return false;
+    return true;
+  });
+  document.getElementById('destCount').textContent=dest.length+' selecionados';
+  document.getElementById('totalDisp').textContent=dest.length;
+}
+
+function handleMsgImg(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = r=>{
+    document.getElementById('msgImgUrl').value='[imagem local]';
+    document.getElementById('msgImgUrl').dataset.dataUrl = r.target.result;
+    updatePreview();
+  };
+  reader.readAsDataURL(file);
+}
+
+function updatePreview(){
+  const text = document.getElementById('msgText').value;
+  const name = 'João Silva';
+  const cfg = getConfig();
+  const base = cfg.baseUrl||'https://seu-evento.netlify.app/';
+  const token = 'abc123token';
+  const previewMsg = text
+    .replace('{{nome}}',name)
+    .replace('{{link_sim}}',base+'?rsvp=sim&t='+token)
+    .replace('{{link_nao}}',base+'?rsvp=nao&t='+token);
+  document.getElementById('previewText').textContent=previewMsg;
+
+  const imgUrl = document.getElementById('msgImgUrl').dataset.dataUrl||document.getElementById('msgImgUrl').value;
+  const imgWrap = document.getElementById('previewImgWrap');
+  const imgBox = document.getElementById('previewImgBox');
+  if(imgUrl&&imgUrl!=='[imagem local]'&&!imgUrl.startsWith('http')||imgUrl.startsWith('data:')){
+    imgWrap.style.display='block';
+    imgBox.innerHTML=`<img src="${imgUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:8px" onerror="this.parentElement.innerHTML='<svg width=32 height=32 viewBox=0 0 24 24 fill=none stroke=currentColor stroke-width=1.5 style=color:var(--gray-400)><rect x=3 y=3 width=18 height=18 rx=2/><circle cx=8.5 cy=8.5 r=1.5/><polyline points=21 15 16 10 5 21/></svg>'">`;
+  } else if(imgUrl&&imgUrl.startsWith('http')){
+    imgWrap.style.display='block';
+    imgBox.innerHTML=`<img src="${imgUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:8px">`;
+  } else {
+    imgWrap.style.display='none';
+  }
+}
+
+function openDisparo(){
+  const t = getTwilio();
+  if(!t.sid||!t.token||!t.from){showToast('Configure as credenciais do Twilio primeiro!');return;}
+  const onlyPending = document.getElementById('onlyPending').classList.contains('on');
+  const dest = inscritos.filter(i=>{
+    if(!selectedPerfis.has(i.perfil)) return false;
+    if(onlyPending&&i.disparadoAt) return false;
+    return true;
+  });
+  if(!dest.length){showToast('Nenhum destinatário selecionado!');return;}
+
+  document.getElementById('disparoModalBody').innerHTML=`
+    <div class="alert alert-warn" style="margin-bottom:16px">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      Esta ação enviará mensagens via WhatsApp e pode gerar custos no Twilio.
+    </div>
+    <div class="stat-row"><span class="stat-row-label">Destinatários</span><span class="stat-row-value">${dest.length}</span></div>
+    <div class="stat-row"><span class="stat-row-label">Perfis selecionados</span><span class="stat-row-value">${[...selectedPerfis].join(', ')}</span></div>
+    <div class="stat-row"><span class="stat-row-label">Somente pendentes</span><span class="stat-row-value">${onlyPending?'Sim':'Não'}</span></div>
+  `;
+  document.getElementById('btnExecutar').style.display='flex';
+  document.querySelector('.modal-footer .btn-secondary').textContent='Cancelar';
+  document.getElementById('disparoModal').classList.add('open');
+}
+
+async function executarDisparo(){
+  const t = getTwilio();
+  const onlyPending = document.getElementById('onlyPending').classList.contains('on');
+  const dest = inscritos.filter(i=>{
+    if(!selectedPerfis.has(i.perfil)) return false;
+    if(onlyPending&&i.disparadoAt) return false;
+    return true;
+  });
+  if(!dest.length) return;
+
+  const msgTemplate = document.getElementById('msgText').value;
+  const base = t.baseUrl||getConfig().baseUrl||window.location.href;
+  const imgUrl = document.getElementById('msgImgUrl').value;
+
+  closeModal('disparoModal');
+  document.getElementById('btnExecutar').disabled=true;
+
+  let enviados=0, erros=0;
+  for(const ins of dest){
+    const msg = msgTemplate
+      .replace('{{nome}}',ins.nome)
+      .replace('{{link_sim}}',base+'?rsvp=sim&t='+ins.token)
+      .replace('{{link_nao}}',base+'?rsvp=nao&t='+ins.token);
+    try{
+      const body = new URLSearchParams({
+        From: t.from,
+        To: 'whatsapp:+'+ins.telefone.replace(/\D/g,''),
+        Body: msg
+      });
+      if(imgUrl&&imgUrl.startsWith('http')) body.append('MediaUrl0',imgUrl);
+
+      const resp = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${t.sid}/Messages.json`,{
+        method:'POST',
+        headers:{Authorization:'Basic '+btoa(t.sid+':'+t.token),'Content-Type':'application/x-www-form-urlencoded'},
+        body
+      });
+      if(resp.ok){
+        ins.disparadoAt=new Date().toISOString();
+        ins.status='enviado';
+        enviados++;
+        atividade.unshift({tipo:'envio',nome:ins.nome,ts:new Date().toISOString()});
+      } else erros++;
+    } catch(e){ erros++; }
+    await new Promise(r=>setTimeout(r,350));
+  }
+
+  saveInscritos();
+  saveAtividade();
+  campanhas.unshift({ts:new Date().toISOString(),enviados,erros,perfis:[...selectedPerfis].join(', ')});
+  saveCampanhas();
+  renderCampanhas();
+  refreshAll();
+  showToast(`Disparo concluído: ${enviados} enviados, ${erros} erros`);
+  document.getElementById('btnExecutar').disabled=false;
+}
+
+function renderCampanhas(){
+  const tbody = document.getElementById('campanhaBody');
+  if(!campanhas.length){tbody.innerHTML='<tr><td colspan="5" style="text-align:center;color:var(--gray-400);padding:20px">Sem campanhas</td></tr>';return;}
+  tbody.innerHTML = campanhas.map(c=>`
+    <tr>
+      <td style="font-size:12px">${new Date(c.ts).toLocaleString('pt-BR')}</td>
+      <td><strong>${c.enviados}</strong></td>
+      <td>—</td><td>—</td>
+      <td>${c.enviados>0?'<span class="badge badge-green">OK</span>':'<span class="badge badge-red">Falhou</span>'}</td>
+    </tr>
+  `).join('');
+}
+
+// ══════════════════════════════════════════════
+// REALTIME
+// ══════════════════════════════════════════════
+function renderRealtime(){
+  const conf = inscritos.filter(i=>i.rsvp==='sim').length;
+  const nao  = inscritos.filter(i=>i.rsvp==='nao').length;
+  const aw   = inscritos.filter(i=>i.disparadoAt&&!i.rsvp).length;
+  const ck   = inscritos.filter(i=>i.checkin).length;
+  document.getElementById('rtConfirmados').textContent=conf;
+  document.getElementById('rtRecusados').textContent=nao;
+  document.getElementById('rtAguardando').textContent=aw;
+  document.getElementById('rtCheckin').textContent=ck;
+
+  const simList = inscritos.filter(i=>i.rsvp==='sim').slice(0,6);
+  const naoList = inscritos.filter(i=>i.rsvp==='nao').slice(0,6);
+
+  renderRtList('rtSimList',simList,'sim');
+  renderRtList('rtNaoList',naoList,'nao');
+
+  const feedEl = document.getElementById('rtFeed');
+  if(!atividade.length){feedEl.innerHTML='<div style="color:var(--gray-400);font-size:13px;text-align:center;padding:20px">Sem atividade</div>';return;}
+  feedEl.innerHTML=atividade.slice(0,10).map(a=>`
+    <div class="realtime-row">
+      <div class="realtime-icon" style="background:${a.tipo==='sim'?'rgba(0,183,79,.1)':a.tipo==='nao'?'rgba(250,70,22,.1)':'rgba(240,179,35,.1)'}">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${a.tipo==='sim'?'var(--success)':a.tipo==='nao'?'var(--danger)':'var(--warn)'}" stroke-width="2">
+          ${a.tipo==='sim'?'<path d="M9 11l3 3L22 4"/>':a.tipo==='nao'?'<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>':'<rect x="3" y="3" width="18" height="18" rx="2"/>'}
+        </svg>
+      </div>
+      <div class="realtime-info">
+        <strong>${a.nome}</strong>
+        <span>${a.tipo==='sim'?'Confirmou':a.tipo==='nao'?'Recusou':a.tipo==='checkin'?'Check-in':'Disparo enviado'}</span>
+      </div>
+      <div class="realtime-time">${new Date(a.ts).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</div>
+    </div>
+  `).join('');
+}
+
+function renderRtList(id,list,tipo){
+  const el=document.getElementById(id);
+  if(!list.length){el.innerHTML=`<div style="color:var(--gray-400);font-size:13px;text-align:center;padding:20px">Nenhum ${tipo==='sim'?'confirmado':'recusado'}</div>`;return;}
+  el.innerHTML=list.map(i=>`
+    <div class="realtime-row">
+      <div class="realtime-icon" style="background:${tipo==='sim'?'rgba(0,183,79,.1)':'rgba(250,70,22,.1)'}">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${tipo==='sim'?'var(--success)':'var(--danger)'}" stroke-width="2">
+          ${tipo==='sim'?'<path d="M9 11l3 3L22 4"/>':'<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>'}
+        </svg>
+      </div>
+      <div class="realtime-info"><strong>${i.nome}</strong><span>${i.perfil}</span></div>
+    </div>
+  `).join('');
+}
+
+// ══════════════════════════════════════════════
+// CHECK-IN PAGE
+// ══════════════════════════════════════════════
+function renderCheckinPage(){
+  const ck = inscritos.filter(i=>i.checkin).length;
+  const conf = inscritos.filter(i=>i.rsvp==='sim'&&!i.checkin).length;
+  document.getElementById('checkinCount').textContent=ck;
+  document.getElementById('checkinPending').textContent=conf;
+
+  const lastEl = document.getElementById('lastCheckins');
+  const last = inscritos.filter(i=>i.checkin).slice(0,8);
+  if(!last.length){lastEl.innerHTML='<div style="color:var(--gray-400);font-size:13px;text-align:center;padding:20px">Sem check-ins</div>';return;}
+  lastEl.innerHTML=last.map(i=>`
+    <div class="realtime-row">
+      <div class="realtime-icon" style="background:rgba(0,183,79,.08)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2"><path d="M9 11l3 3L22 4"/></svg>
+      </div>
+      <div class="realtime-info"><strong>${i.nome}</strong><span>${i.perfil} · ${i.checkinAt?new Date(i.checkinAt).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):''}</span></div>
+    </div>
+  `).join('');
+
+  // QR Code do link de check-in
+  const qrEl = document.getElementById('adminQrCode');
+  if(!qrEl.children.length){
+    const url = window.location.href.replace('redor_admin.html','redor_checkin.html');
+    new QRCode(qrEl,{text:url,width:140,height:140,colorDark:'#003DA5',colorLight:'#ffffff'});
+    document.getElementById('checkinLinkDisplay').textContent=url.length>60?url.slice(0,60)+'…':url;
+  }
+}
+
+function copyCheckinLink(){
+  const url = window.location.href.replace('redor_admin.html','redor_checkin.html');
+  navigator.clipboard.writeText(url).then(()=>showToast('Link copiado!'));
+}
+
+function downloadAdminQr(){
+  const canvas = document.querySelector('#adminQrCode canvas');
+  if(!canvas){showToast('QR Code não gerado');return;}
+  const a=document.createElement('a');
+  a.download='qrcode_promotoras.png';
+  a.href=canvas.toDataURL();
+  a.click();
+}
+
+// ══════════════════════════════════════════════
+// PRESENÇA
+// ══════════════════════════════════════════════
+function renderPresenca(){
+  const lista = inscritos.filter(i=>i.checkin);
+  const tbody = document.getElementById('presencaBody');
+  if(!lista.length){tbody.innerHTML='<tr><td colspan="5" style="text-align:center;color:var(--gray-400);padding:30px">Nenhum check-in registrado</td></tr>';return;}
+  tbody.innerHTML=lista.map((r,i)=>`
+    <tr>
+      <td style="color:var(--gray-400)">${i+1}</td>
+      <td><strong>${r.nome}</strong></td>
+      <td style="font-size:12px">${r.telefone}</td>
+      <td><span class="badge badge-gray">${r.perfil}</span></td>
+      <td style="font-size:12px">${r.checkinAt?new Date(r.checkinAt).toLocaleString('pt-BR'):'—'}</td>
+    </tr>
+  `).join('');
+}
+
+function exportPresenca(){
+  const lista = inscritos.filter(i=>i.checkin).map(r=>({
+    Nome:r.nome, Telefone:r.telefone, Perfil:r.perfil,
+    CheckIn:r.checkinAt?new Date(r.checkinAt).toLocaleString('pt-BR'):''
+  }));
+  if(!lista.length){showToast('Nenhum check-in para exportar');return;}
+  exportToXlsx(lista,'presenca_evento');
+}
+
+// ══════════════════════════════════════════════
+// CONFIG
+// ══════════════════════════════════════════════
+function getConfig(){
+  const c = localStorage.getItem('redor_config');
+  return c?JSON.parse(c):{};
+}
+function saveConfig(){
+  const cfg={
+    eventName:document.getElementById('cfgEventName').value,
+    eventDate:document.getElementById('cfgEventDate').value,
+    local:document.getElementById('cfgLocal').value,
+    cap:document.getElementById('cfgCap').value,
+    baseUrl:document.getElementById('twilioBaseUrl').value
+  };
+  localStorage.setItem('redor_config',JSON.stringify(cfg));
+  document.getElementById('topEventName').textContent=cfg.eventName||'Evento';
+}
+function loadConfig(){
+  const c=getConfig();
+  if(c.eventName) document.getElementById('cfgEventName').value=c.eventName;
+  if(c.eventDate) document.getElementById('cfgEventDate').value=c.eventDate;
+  if(c.local) document.getElementById('cfgLocal').value=c.local;
+  if(c.cap) document.getElementById('cfgCap').value=c.cap;
+  if(c.eventName) document.getElementById('topEventName').textContent=c.eventName;
+}
+function renderConfig(){
+  document.getElementById('cfgCountInscritos').textContent=inscritos.length;
+  document.getElementById('cfgCountDisparos').textContent=inscritos.filter(i=>i.disparadoAt).length;
+  document.getElementById('cfgCountCheckins').textContent=inscritos.filter(i=>i.checkin).length;
+}
+
+// ══════════════════════════════════════════════
+// EXPORT
+// ══════════════════════════════════════════════
+function exportExcel(){
+  if(!inscritos.length){showToast('Nenhum dado para exportar');return;}
+  const data=inscritos.map(r=>({
+    Nome:r.nome, Telefone:r.telefone, Perfil:r.perfil,
+    WhatsApp:r.disparadoAt?'Enviado':'Pendente',
+    RSVP:r.rsvp||'—',
+    CheckIn:r.checkin?'Sim':'Não',
+    CheckInEm:r.checkinAt?new Date(r.checkinAt).toLocaleString('pt-BR'):''
+  }));
+  exportToXlsx(data,'inscritos_evento');
+}
+
+function exportToXlsx(data, name){
+  const ws=XLSX.utils.json_to_sheet(data);
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Dados');
+  XLSX.writeFile(wb,`${name}_${new Date().toISOString().slice(0,10)}.xlsx`);
+  showToast('Arquivo exportado!');
+}
+
+function exportBackup(){
+  const data=JSON.stringify({inscritos,atividade,campanhas},null,2);
+  const blob=new Blob([data],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='backup_redor_'+new Date().toISOString().slice(0,10)+'.json';
+  a.click();
+  showToast('Backup exportado!');
+}
+
+function clearAllData(){
+  localStorage.clear();
+  inscritos=[];atividade=[];campanhas=[];
+  refreshAll();
+  showToast('Todos os dados foram limpos');
+}
+
+// ══════════════════════════════════════════════
+// UTIL
+// ══════════════════════════════════════════════
+function refreshAll(){
+  refreshDashboard();
+  renderCampanhas();
+  updateTwilioStatus();
+}
+
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;
+  t.style.transform='translateY(0)';
+  t.style.opacity='1';
+  setTimeout(()=>{t.style.transform='translateY(80px)';t.style.opacity='0';},3200);
+}
+
+function openModal(id){document.getElementById(id).classList.add('open')}
+function closeModal(id){
+  document.getElementById(id).classList.remove('open');
+  document.getElementById('btnExecutar').style.display='flex';
+  document.getElementById('btnExecutar').disabled=false;
+}
+
+// Close modal on overlay click
+document.querySelectorAll('.modal-overlay').forEach(o=>{
+  o.addEventListener('click',e=>{if(e.target===o) o.classList.remove('open')})
+});
+
+// ══════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded',()=>{
+  loadState();
+  updatePreview();
+  // Auto-refresh realtime
+  setInterval(()=>{
+    if(document.getElementById('page-realtimeAlt').classList.contains('active')) renderRealtime();
+    if(document.getElementById('page-dashboard').classList.contains('active')) refreshDashboard();
+  },15000);
+});
+</script>
+</body>
+</html>
