@@ -6169,15 +6169,18 @@ function renderProgAdmin(){
 }
 
 function restoreProgData(s){
-  if(s.progItems) progItems = s.progItems;
+  if(s.progSalas && s.progSalas.length){
+    progSalas = s.progSalas;
+    progSalaAtualId = progSalas[0].id;
+    // progItems comes from the active sala, not the flat array
+    progItems = JSON.parse(JSON.stringify(progSalas[0].items || []));
+  } else if(s.progItems){
+    progItems = s.progItems;
+  }
   if(s.progInternoAtivo !== undefined){
     progInternoAtivo = s.progInternoAtivo;
     const el = document.getElementById('toggle-prog-interno');
     if(el) el.checked = progInternoAtivo;
-  }
-  if(s.progSalas && s.progSalas.length){
-    progSalas = s.progSalas;
-    progSalaAtualId = progSalas[0].id;
   }
   if(s.progSalasAtivo !== undefined){
     progSalasAtivo = s.progSalasAtivo;
@@ -6193,10 +6196,6 @@ function restoreProgData(s){
     if(el) el.checked = s.progDownloadAtivo;
     const wrap = document.getElementById('prog-download-upload-wrap');
     if(wrap) wrap.style.display = s.progDownloadAtivo ? '' : 'none';
-  }
-  if(s.progDownloadAtivo !== undefined){
-    const el = document.getElementById('toggle-prog-download');
-    if(el) el.checked = s.progDownloadAtivo;
   }
   if(s.progOverlayColor){
     const el = document.getElementById('ed-prog-overlay-color'); if(el) el.value=s.progOverlayColor;
@@ -6429,8 +6428,7 @@ function selectProgSala(id){
   if(!sala) return;
   progItems = JSON.parse(JSON.stringify(sala.items));
   const lbl = document.getElementById('prog-sala-ativa-label');
-  if(lbl) lbl.textContent = 'Editando: ' + sala.nome;
-  renderProgSalasList();
+  if(lbl) lbl.textContent = '✏️ Editando: "' + sala.nome + '"';
   renderProgSalasSelector();
   renderProgAdmin();
 }
