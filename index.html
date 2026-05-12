@@ -420,7 +420,10 @@ body.admin-open.admin-collapsed{margin-right:110px;}
 .apply-btn:hover{background:#084d8a;}
 .apply-btn.success{background:#1e7e3e;}
 
-/* ══════ PROGRAMAÇÃO ══════ */
+.prog-add-strip{display:flex;align-items:center;gap:5px;padding:4px 6px;margin:2px 0 6px;background:#f8faff;border-radius:6px;border:1px dashed #cce0ff;}
+.prog-add-strip button{padding:2px 8px;background:#e8f0fb;color:var(--blue);border:1px solid #cce0ff;border-radius:4px;font-size:10px;font-weight:700;cursor:pointer;white-space:nowrap;}
+.prog-add-strip button:hover{background:var(--blue-light);}
+
 #screen-programacao{position:relative;align-items:flex-start;justify-content:flex-start;overflow:hidden;min-height:100vh;}
 #prog-content{position:relative;z-index:2;width:100%;max-width:800px;margin:0 auto;padding:40px 24px 80px;}
 .prog-header{text-align:center;margin-bottom:40px;}
@@ -1897,6 +1900,7 @@ async function uploadDataUrlToStorage(dataUrl, key) {
 
 async function saveSettings(obj) {
   showSavingIndicator();
+  _settingsCache = null; // Invalidate cache on save
   try {
     // Construir versão limpa: sem dataUrls — só URLs públicas do Storage
     const slim = JSON.parse(JSON.stringify(obj));
@@ -1942,12 +1946,22 @@ async function saveSettings(obj) {
   } catch(e) { console.warn('Settings save failed:', e.message); return false; }
 }
 
+let _settingsCache = null;
+let _settingsCacheTime = 0;
+const SETTINGS_CACHE_TTL = 300000; // 5 minutes
+
 async function loadSettings() {
+  if(_settingsCache && (Date.now()-_settingsCacheTime) < SETTINGS_CACHE_TTL){
+    return _settingsCache;
+  }
   try {
     const { data, error } = await sb.from('settings').select('value').eq('key','global').maybeSingle();
     if (error) throw new Error(error.message);
     if (!data) return null;
-    return JSON.parse(data.value);
+    const parsed = JSON.parse(data.value);
+    _settingsCache = parsed;
+    _settingsCacheTime = Date.now();
+    return parsed;
   } catch(e) {
     return null;
   }
@@ -2600,7 +2614,10 @@ let speakersDB = []; // all-time speakers from DB
 
 async function loadSpeakersDB(){
   try {
-    const { data, error } = await sb.from('speakers_db').select('*').order('name', {ascending:true});
+    // Exclude photo_data_url — photos are in settings.speakers (bandwidth optimization)
+    const { data, error } = await sb.from('speakers_db')
+      .select('id,name,role,bio,photo_adjust,updated_at')
+      .order('name', {ascending:true});
     if(error){ console.warn('speakers_db load error:', error.message); return []; }
     return data || [];
   } catch(e){ return []; }
@@ -3158,7 +3175,12 @@ async function applySpeakersAndSave(){
 // ═══════════════════════════════════════
 // PAGE INIT
 // ═══════════════════════════════════════
+window.onerror = function(msg, src, line, col, err){
+  console.error('RUNTIME ERROR:', msg, 'line:', line, err);
+};
+
 window.onload = async function(){
+  try {
   if(window.location.hash==='#admin'){
     adminUnlocked=false;
     // Wait for full page load before opening admin
@@ -3178,10 +3200,10 @@ window.onload = async function(){
   updateBtnChegar();
   initHourSelects();
 
-  // Load speakersDB FIRST so photo enrichment works during settings restore
-  speakersDB = await loadSpeakersDB();
-  renderDBBankList();
-  // Load locais DB in parallel
+  // Load speakersDB lazily when speakers tab is opened (saves bandwidth)
+  // speakersDB = await loadSpeakersDB(); — moved to showAdminTab('speakers')
+  
+  // Load locais DB
   loadLocaisDB().then(data => { locaisDB = data; renderLocalSelect(); });
 
   const settingsPromise=loadSettings();
@@ -3189,6 +3211,8 @@ window.onload = async function(){
   const saved=await Promise.race([settingsPromise,timeoutPromise]);
   if(saved){
     currentSettings = saved;
+    // Load speakersDB for photo enrichment before applying settings
+    if(!speakersDB.length) speakersDB = await loadSpeakersDB();
     await applySettingsToPage(saved);
     if(saved.colorStates){ Object.assign(colorStates,saved.colorStates); buildColorTargets(); }
   }
@@ -3228,6 +3252,7 @@ window.onload = async function(){
   } else {
     setTimeout(()=>document.getElementById('screen-landing').classList.add('visible'),100);
   }
+  } catch(e){ console.error('onload error:', e); }
 };
 
 // ═══════════════════════════════════════
@@ -3461,7 +3486,10 @@ function showAdminTab(tab){
 
   if(tab==='dash') updateDashboard();
   if(tab==='data') renderInscricoesList();
-  if(tab==='speakers') renderDBBankList();
+  if(tab==='speakers'){
+    if(!speakersDB.length) loadSpeakersDB().then(data=>{ speakersDB=data; renderDBBankList(); });
+    else renderDBBankList();
+  }
   if(tab==='rsvp'){ loadRsvpStats(); renderRsvpPerfilGrid(); }
   if(tab==='patrocinio') renderPatList();
   if(tab==='evento') renderLocalSelect();
@@ -4522,10 +4550,8 @@ async function loadRsvpStats(){
 }
 
 // Auto-refresh every 30 seconds when RSVP tab is visible
-setInterval(()=>{
-  const tab = document.getElementById('tab-rsvp');
-  if(tab && tab.classList.contains('active')) loadRsvpStats();
-}, 30000);
+// RSVP auto-refresh disabled to reduce Supabase bandwidth usage
+// Use the "Atualizar agora" button to refresh manually
 
 // ── Generate unique token ──
 function genToken(){ return Math.random().toString(36).slice(2)+Date.now().toString(36); }
@@ -6064,13 +6090,36 @@ function moveProgItem(id, dir){
   const idx = progItems.findIndex(p=>p.id===id);
   if(dir==='up' && idx>0){ [progItems[idx-1],progItems[idx]]=[progItems[idx],progItems[idx-1]]; }
   if(dir==='down' && idx<progItems.length-1){ [progItems[idx+1],progItems[idx]]=[progItems[idx],progItems[idx+1]]; }
+  if(dir==='top'){ const [item]=progItems.splice(idx,1); progItems.unshift(item); }
+  if(dir==='bottom'){ const [item]=progItems.splice(idx,1); progItems.push(item); }
+  // Jump to a specific index
+  if(typeof dir==='number'){ const [item]=progItems.splice(idx,1); progItems.splice(dir,0,item); }
+  renderProgAdmin();
+}
+
+function addProgItemAfter(afterId, type){
+  const idx = progItems.findIndex(p=>p.id===afterId);
+  const newItem = { id:'pi_'+Date.now(), type, hora:'', tipoPalestra:'', titulo:'', palestrante:'', texto:'' };
+  progItems.splice(idx+1, 0, newItem);
+  renderProgAdmin();
+  // Scroll to new item after render
+  setTimeout(()=>{
+    const el = document.querySelector(`[data-pid="${newItem.id}"]`);
+    if(el) el.scrollIntoView({behavior:'smooth', block:'nearest'});
+  }, 80);
+}
+
+function moveProgToIndex(id, targetIdx){
+  const idx = progItems.findIndex(p=>p.id===id);
+  if(idx<0||targetIdx<0||targetIdx>=progItems.length) return;
+  const [item]=progItems.splice(idx,1);
+  progItems.splice(targetIdx,0,item);
   renderProgAdmin();
 }
 
 function renderProgAdmin(){
   const wrap = document.getElementById('prog-admin-lista');
   if(!wrap) return;
-  // Show which sala is being edited
   if(progSalasAtivo && progSalaAtualId){
     const sala = progSalas.find(s=>s.id===progSalaAtualId);
     const lbl = document.getElementById('prog-sala-ativa-label');
@@ -6078,130 +6127,45 @@ function renderProgAdmin(){
   }
   if(!progItems.length){ wrap.innerHTML='<div class="empty-state" style="font-size:12px;padding:12px 0;">Nenhum item ainda. Use os botões abaixo para adicionar.</div>'; return; }
 
-  // Build speaker options
-  const spOptions = speakers.map(s=>`<option value="${s.name}">${s.name}</option>`).join('');
+  const total = progItems.length;
+
+  const addStrip = (afterId) => `
+    <div class="prog-add-strip">
+      <span style="font-size:9px;color:var(--text-light);font-weight:600;white-space:nowrap;">Inserir aqui:</span>
+      <button onclick="addProgItemAfter('${afterId}','linha')">＋ Linha</button>
+      <button onclick="addProgItemAfter('${afterId}','subtexto')">＋ Subtexto</button>
+      <button onclick="addProgItemAfter('${afterId}','sessao')">🏷</button>
+      <button onclick="addProgItemAfter('${afterId}','separador')">—</button>
+    </div>`;
+
+  const moveControls = (item, idx) => `
+    <div style="display:flex;gap:3px;align-items:center;flex-wrap:wrap;">
+      <button onclick="moveProgItem('${item.id}','top')" title="Topo" style="padding:2px 5px;border:1px solid var(--gray2);border-radius:4px;background:#fff;cursor:pointer;font-size:10px;"${idx===0?' disabled':''}>⇈</button>
+      <button onclick="moveProgItem('${item.id}','up')" title="Subir" style="padding:2px 5px;border:1px solid var(--gray2);border-radius:4px;background:#fff;cursor:pointer;font-size:10px;"${idx===0?' disabled':''}>↑</button>
+      <select title="Ir para posição" onchange="moveProgToIndex('${item.id}',parseInt(this.value));this.selectedIndex=${idx}"
+        style="padding:2px 3px;border:1px solid var(--gray2);border-radius:4px;font-size:10px;cursor:pointer;max-width:48px;">
+        ${progItems.map((_,i)=>'<option value="'+i+'"'+(i===idx?' selected':'')+'>'+  (i+1)+'</option>').join('')}
+      </select>
+      <button onclick="moveProgItem('${item.id}','down')" title="Descer" style="padding:2px 5px;border:1px solid var(--gray2);border-radius:4px;background:#fff;cursor:pointer;font-size:10px;"${idx===total-1?' disabled':''}>↓</button>
+      <button onclick="moveProgItem('${item.id}','bottom')" title="Fim" style="padding:2px 5px;border:1px solid var(--gray2);border-radius:4px;background:#fff;cursor:pointer;font-size:10px;"${idx===total-1?' disabled':''}>⇊</button>
+    </div>`;
 
   wrap.innerHTML = progItems.map((item,i)=>{
-    if(item.type==='separador') return `
-      <div style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:#f4f6f9;border-radius:8px;margin-bottom:8px;">
-        <span style="flex:1;font-size:11px;color:var(--text-light);font-weight:600;">— SEPARADOR DE SESSÃO —</span>
-        <button onclick="moveProgItem('${item.id}','up')" style="padding:3px 7px;border:1px solid var(--gray2);border-radius:5px;background:#fff;cursor:pointer;font-size:11px;">↑</button>
-        <button onclick="moveProgItem('${item.id}','down')" style="padding:3px 7px;border:1px solid var(--gray2);border-radius:5px;background:#fff;cursor:pointer;font-size:11px;">↓</button>
-        <button onclick="removeProgItem('${item.id}')" style="padding:3px 7px;border:none;background:#fde8e8;color:#c0392b;border-radius:5px;cursor:pointer;font-size:11px;">✕</button>
-      </div>`;
-
-    if(item.type==='sessao') return `
-      <div style="background:#fff8e1;border:1.5px solid #f0c040;border-radius:8px;padding:12px;margin-bottom:8px;">
-        <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
-          <span style="font-size:10px;font-weight:700;color:#7a6000;text-transform:uppercase;">🏷 Título de Sessão</span>
-          <div style="display:flex;gap:4px;">
-            <button onclick="moveProgItem('${item.id}','up')" style="padding:2px 6px;border:1px solid #ddd;border-radius:4px;background:#fff;cursor:pointer;font-size:10px;">↑</button>
-            <button onclick="moveProgItem('${item.id}','down')" style="padding:2px 6px;border:1px solid #ddd;border-radius:4px;background:#fff;cursor:pointer;font-size:10px;">↓</button>
-            <button onclick="removeProgItem('${item.id}')" style="padding:2px 6px;border:none;background:#fde8e8;color:#c0392b;border-radius:4px;cursor:pointer;font-size:10px;">✕</button>
-          </div>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 2fr;gap:8px;">
-          <div>
-            <div style="font-size:10px;font-weight:600;color:#7a6000;margin-bottom:3px;">HORÁRIO (opcional)</div>
-            <input type="text" value="${item.hora||''}" placeholder="Ex: 8h"
-              data-id="${item.id}" data-field="hora" onchange="updateProgField(this)"
-              style="width:100%;padding:6px 8px;border:1.5px solid #f0c040;border-radius:6px;font-size:12px;">
-          </div>
-          <div>
-            <div style="font-size:10px;font-weight:600;color:#7a6000;margin-bottom:3px;">TÍTULO DA SESSÃO</div>
-            <input type="text" value="${item.titulo||''}" placeholder="Ex: Sessão da Manhã…"
-              data-id="${item.id}" data-field="titulo" onchange="updateProgField(this)"
-              style="width:100%;padding:6px 10px;border:1.5px solid #f0c040;border-radius:6px;font-size:13px;font-weight:700;">
-          </div>
-        </div>
-      </div>`;
-
-    if(item.type==='subtexto') return `
-      <div style="background:#fffde7;border-radius:8px;padding:12px;margin-bottom:8px;border:1px solid #f0e080;">
-        <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
-          <span style="font-size:10px;font-weight:700;color:#7a6000;text-transform:uppercase;">Subtexto</span>
-          <div style="display:flex;gap:4px;">
-            <button onclick="moveProgItem('${item.id}','up')" style="padding:2px 6px;border:1px solid #ddd;border-radius:4px;background:#fff;cursor:pointer;font-size:10px;">↑</button>
-            <button onclick="moveProgItem('${item.id}','down')" style="padding:2px 6px;border:1px solid #ddd;border-radius:4px;background:#fff;cursor:pointer;font-size:10px;">↓</button>
-            <button onclick="removeProgItem('${item.id}')" style="padding:2px 6px;border:none;background:#fde8e8;color:#c0392b;border-radius:4px;cursor:pointer;font-size:10px;">✕</button>
-          </div>
-        </div>
-        <div style="font-size:10px;font-weight:600;color:var(--text-light);margin-bottom:3px;">TIPO DE PALESTRANTE</div>
-        <select data-id="${item.id}" data-field="tipoPalestra" onchange="updateProgTipoSelect(this)"
-          style="width:100%;padding:6px 8px;border:1px solid #ddd;border-radius:6px;font-size:12px;margin-bottom:4px;">
-          <option value="">Selecione…</option>
-          <option value="Palestrante"${item.tipoPalestra==='Palestrante'?' selected':''}>Palestrante</option>
-          <option value="Moderador(a)"${item.tipoPalestra==='Moderador(a)'?' selected':''}>Moderador(a)</option>
-          <option value="Mediador(a)"${item.tipoPalestra==='Mediador(a)'?' selected':''}>Mediador(a)</option>
-          <option value="__custom__"${(item.tipoPalestra&&!['','Palestrante','Moderador(a)','Mediador(a)'].includes(item.tipoPalestra))?' selected':''}>Outro…</option>
-        </select>
-        <input type="text" value="${(item.tipoPalestra&&!['','Palestrante','Moderador(a)','Mediador(a)'].includes(item.tipoPalestra))?item.tipoPalestra:''}"
-          placeholder="Digite o tipo…" data-id="${item.id}" data-field="tipoPalestra" onchange="updateProgField(this)"
-          style="width:100%;padding:6px 8px;border:1px solid #ddd;border-radius:6px;font-size:12px;margin-bottom:6px;display:${(item.tipoPalestra&&!['','Palestrante','Moderador(a)','Mediador(a)'].includes(item.tipoPalestra))?'block':'none'};"
-          id="prog-tipo-custom-${item.id}">
-        <div style="font-size:10px;font-weight:600;color:var(--text-light);margin-bottom:3px;">BUSCAR PALESTRANTE</div>
-        <input type="text" placeholder="🔍 Digite o nome…" oninput="filterProgSpeakers(this, '${item.id}')"
-          style="width:100%;padding:6px 8px;border:1px solid #ddd;border-radius:6px;font-size:12px;margin-bottom:4px;">
-        <select data-id="${item.id}" data-field="palestrante"
-          onchange="updateProgField(this)"
-          style="width:100%;padding:6px 8px;border:1px solid #ddd;border-radius:6px;font-size:12px;" id="prog-sp-sel-${item.id}">
-          <option value="">Selecione…</option>
-          ${speakers.map(s=>`<option value="${s.name}"${s.name===item.palestrante?' selected':''}>${s.name}</option>`).join('')}
-        </select>
-      </div>`;
-
-    // type === 'linha'
-    return `
-      <div style="background:#fff;border:1.5px solid var(--gray2);border-radius:10px;padding:12px;margin-bottom:8px;">
-        <div style="display:flex;justify-content:space-between;margin-bottom:10px;">
-          <span style="font-size:10px;font-weight:700;color:var(--blue);text-transform:uppercase;">Linha ${i+1}</span>
-          <div style="display:flex;gap:4px;">
-            <button onclick="moveProgItem('${item.id}','up')" style="padding:2px 6px;border:1px solid var(--gray2);border-radius:4px;background:#fff;cursor:pointer;font-size:10px;">↑</button>
-            <button onclick="moveProgItem('${item.id}','down')" style="padding:2px 6px;border:1px solid var(--gray2);border-radius:4px;background:#fff;cursor:pointer;font-size:10px;">↓</button>
-            <button onclick="removeProgItem('${item.id}')" style="padding:2px 6px;border:none;background:#fde8e8;color:#c0392b;border-radius:4px;cursor:pointer;font-size:10px;">✕</button>
-          </div>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
-          <div>
-            <div style="font-size:10px;font-weight:600;color:var(--text-light);margin-bottom:3px;">HORÁRIO</div>
-            <input type="text" value="${item.hora||''}" placeholder="Ex: 8h - 8h30"
-              data-id="${item.id}" data-field="hora" onchange="updateProgField(this)"
-              style="width:100%;padding:6px 8px;border:1.5px solid var(--gray2);border-radius:6px;font-size:12px;">
-          </div>
-          <div>
-            <div style="font-size:10px;font-weight:600;color:var(--text-light);margin-bottom:3px;">TIPO (opcional)</div>
-            <input type="text" value="${item.tipoPalestra||''}" placeholder="Ex: Conferência, Mesa"
-              data-id="${item.id}" data-field="tipoPalestra" onchange="updateProgField(this)"
-              style="width:100%;padding:6px 8px;border:1.5px solid var(--gray2);border-radius:6px;font-size:12px;">
-          </div>
-        </div>
-        <div style="font-size:10px;font-weight:600;color:var(--text-light);margin-bottom:3px;">TÍTULO DA PALESTRA</div>
-        <input type="text" value="${item.titulo||''}" placeholder="Ex: A Troca de Plantão: Desafios Médicos e Bioéticos"
-          data-id="${item.id}" data-field="titulo" onchange="updateProgField(this)"
-          style="width:100%;padding:6px 8px;border:1.5px solid var(--gray2);border-radius:6px;font-size:12px;">
-      </div>`;
-  }).join('');
-
-  // Restore select values after render
-  progItems.forEach((item,i)=>{
-    if(item.type==='subtexto'){
-      const sel = wrap.querySelectorAll('select')[i] || wrap.querySelectorAll('select')[0];
-      // Use safer approach
+    let card = '';
+    if(item.type==='separador'){
+      card = '<div data-pid="'+item.id+'" style="display:flex;align-items:center;gap:6px;padding:8px 10px;background:#f4f6f9;border-radius:8px;margin-bottom:4px;border:1px solid var(--gray2);"><span style="flex:1;font-size:11px;color:var(--text-light);font-weight:600;">— SEPARADOR —</span>'+moveControls(item,i)+'<button onclick="removeProgItem(\''+item.id+'\')" style="padding:2px 7px;border:none;background:#fde8e8;color:#c0392b;border-radius:4px;cursor:pointer;font-size:10px;">✕</button></div>';
+    } else if(item.type==='sessao'){
+      card = '<div data-pid="'+item.id+'" style="background:#fff8e1;border:1.5px solid #f0c040;border-radius:8px;padding:10px 12px;margin-bottom:4px;"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;"><span style="font-size:10px;font-weight:700;color:#7a6000;text-transform:uppercase;">🏷 Sessão</span><div style="display:flex;gap:4px;align-items:center;">'+moveControls(item,i)+'<button onclick="removeProgItem(\''+item.id+'\')" style="padding:2px 6px;border:none;background:#fde8e8;color:#c0392b;border-radius:4px;cursor:pointer;font-size:10px;">✕</button></div></div><div style="display:grid;grid-template-columns:1fr 2fr;gap:8px;"><div><div style="font-size:10px;font-weight:600;color:#7a6000;margin-bottom:3px;">HORÁRIO</div><input type="text" value="'+(item.hora||'')+'" placeholder="Ex: 8h" data-id="'+item.id+'" data-field="hora" onchange="updateProgField(this)" style="width:100%;padding:5px 8px;border:1.5px solid #f0c040;border-radius:6px;font-size:12px;"></div><div><div style="font-size:10px;font-weight:600;color:#7a6000;margin-bottom:3px;">TÍTULO</div><input type="text" value="'+(item.titulo||'')+'" placeholder="Ex: Sessão da Manhã" data-id="'+item.id+'" data-field="titulo" onchange="updateProgField(this)" style="width:100%;padding:5px 10px;border:1.5px solid #f0c040;border-radius:6px;font-size:13px;font-weight:700;"></div></div></div>';
+    } else if(item.type==='subtexto'){
+      const presets = ['','Palestrante','Moderador(a)','Mediador(a)'];
+      const isCustom = item.tipoPalestra && !presets.includes(item.tipoPalestra);
+      const spOpts = speakers.map(s=>'<option value="'+s.name+'"'+(s.name===item.palestrante?' selected':'')+'>'+s.name+'</option>').join('');
+      card = '<div data-pid="'+item.id+'" style="background:#fffde7;border-radius:8px;padding:10px 12px;margin-bottom:4px;border:1px solid #f0e080;"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;"><span style="font-size:10px;font-weight:700;color:#7a6000;text-transform:uppercase;">Subtexto</span><div style="display:flex;gap:4px;align-items:center;">'+moveControls(item,i)+'<button onclick="removeProgItem(\''+item.id+'\')" style="padding:2px 6px;border:none;background:#fde8e8;color:#c0392b;border-radius:4px;cursor:pointer;font-size:10px;">✕</button></div></div><select data-id="'+item.id+'" data-field="tipoPalestra" onchange="updateProgTipoSelect(this)" style="width:100%;padding:6px 8px;border:1px solid #ddd;border-radius:6px;font-size:12px;margin-bottom:4px;"><option value="">Selecione…</option><option value="Palestrante"'+(item.tipoPalestra==='Palestrante'?' selected':'')+'>Palestrante</option><option value="Moderador(a)"'+(item.tipoPalestra==='Moderador(a)'?' selected':'')+'>Moderador(a)</option><option value="Mediador(a)"'+(item.tipoPalestra==='Mediador(a)'?' selected':'')+'>Mediador(a)</option><option value="__custom__"'+(isCustom?' selected':'')+'>Outro…</option></select><input type="text" value="'+(isCustom?item.tipoPalestra:'')+'" placeholder="Digite o tipo…" data-id="'+item.id+'" data-field="tipoPalestra" onchange="updateProgField(this)" id="prog-tipo-custom-'+item.id+'" style="width:100%;padding:6px 8px;border:1px solid #ddd;border-radius:6px;font-size:12px;margin-bottom:6px;display:'+(isCustom?'block':'none')+';"><input type="text" placeholder="🔍 Buscar palestrante…" oninput="filterProgSpeakers(this,\''+item.id+'\')" style="width:100%;padding:6px 8px;border:1px solid #ddd;border-radius:6px;font-size:12px;margin-bottom:4px;"><select data-id="'+item.id+'" data-field="palestrante" onchange="updateProgField(this)" id="prog-sp-sel-'+item.id+'" style="width:100%;padding:6px 8px;border:1px solid #ddd;border-radius:6px;font-size:12px;"><option value="">Selecione…</option>'+spOpts+'</select></div>';
+    } else {
+      card = '<div data-pid="'+item.id+'" style="background:#fff;border:1.5px solid var(--gray2);border-radius:10px;padding:10px 12px;margin-bottom:4px;"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;"><span style="font-size:10px;font-weight:700;color:var(--blue);text-transform:uppercase;">Linha '+(i+1)+'</span><div style="display:flex;gap:4px;align-items:center;">'+moveControls(item,i)+'<button onclick="removeProgItem(\''+item.id+'\')" style="padding:2px 6px;border:none;background:#fde8e8;color:#c0392b;border-radius:4px;cursor:pointer;font-size:10px;">✕</button></div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;"><div><div style="font-size:10px;font-weight:600;color:var(--text-light);margin-bottom:3px;">HORÁRIO</div><input type="text" value="'+(item.hora||'')+'" placeholder="Ex: 8h - 8h30" data-id="'+item.id+'" data-field="hora" onchange="updateProgField(this)" style="width:100%;padding:6px 8px;border:1.5px solid var(--gray2);border-radius:6px;font-size:12px;"></div><div><div style="font-size:10px;font-weight:600;color:var(--text-light);margin-bottom:3px;">TIPO (opcional)</div><input type="text" value="'+(item.tipoPalestra||'')+'" placeholder="Ex: Conferência" data-id="'+item.id+'" data-field="tipoPalestra" onchange="updateProgField(this)" style="width:100%;padding:6px 8px;border:1.5px solid var(--gray2);border-radius:6px;font-size:12px;"></div></div><div style="font-size:10px;font-weight:600;color:var(--text-light);margin-bottom:3px;">TÍTULO DA PALESTRA</div><input type="text" value="'+(item.titulo||'')+'" placeholder="Ex: A Troca de Plantão…" data-id="'+item.id+'" data-field="titulo" onchange="updateProgField(this)" style="width:100%;padding:6px 8px;border:1.5px solid var(--gray2);border-radius:6px;font-size:12px;"></div>';
     }
-  });
-}
-
-async function saveProgData(){
-  progInternoAtivo = document.getElementById('toggle-prog-interno')?.checked || false;
-  progSalasAtivo   = document.getElementById('toggle-prog-salas')?.checked || false;
-  if(progSalasAtivo) getProgSalasForSave(); // sync current sala
-  currentSettings.progItems = progItems;
-  currentSettings.progInternoAtivo = progInternoAtivo;
-  currentSettings.progFileUrl = progFileUrl;
-  currentSettings.progSalas = progSalas;
-  currentSettings.progSalasAtivo = progSalasAtivo;
-  const saved = await saveSettings(gatherSettings());
-  showSaveIndicator(saved, '✔ Programação salva!');
+    return card + addStrip(item.id);
+  }).join('');
 }
 
 function restoreProgData(s){
@@ -6342,6 +6306,19 @@ function applyPalestrantesBackground(s){
   }
 }
 
+async function saveProgData(){
+  progInternoAtivo = document.getElementById('toggle-prog-interno')?.checked || false;
+  progSalasAtivo   = document.getElementById('toggle-prog-salas')?.checked || false;
+  if(progSalasAtivo) getProgSalasForSave();
+  currentSettings.progItems = progItems;
+  currentSettings.progInternoAtivo = progInternoAtivo;
+  currentSettings.progFileUrl = progFileUrl;
+  currentSettings.progSalas = progSalas;
+  currentSettings.progSalasAtivo = progSalasAtivo;
+  const saved = await saveSettings(gatherSettings());
+  showSaveIndicator(saved, '✔ Programação salva!');
+}
+
 function updateProgField(el){
   const id = el.dataset.id;
   const field = el.dataset.field;
@@ -6443,20 +6420,19 @@ function addProgSala(){
 }
 
 function selectProgSala(id){
-  // Save current progItems back to active sala
   if(progSalaAtualId){
     const cur = progSalas.find(s=>s.id===progSalaAtualId);
     if(cur) cur.items = JSON.parse(JSON.stringify(progItems));
   }
   progSalaAtualId = id;
   const sala = progSalas.find(s=>s.id===id);
-  if(sala){
-    progItems = JSON.parse(JSON.stringify(sala.items));
-    renderProgAdmin();
-    const lbl = document.getElementById('prog-sala-ativa-label');
-    if(lbl) lbl.textContent = 'Editando: ' + sala.nome;
-  }
+  if(!sala) return;
+  progItems = JSON.parse(JSON.stringify(sala.items));
+  const lbl = document.getElementById('prog-sala-ativa-label');
+  if(lbl) lbl.textContent = 'Editando: ' + sala.nome;
+  renderProgSalasList();
   renderProgSalasSelector();
+  renderProgAdmin();
 }
 
 function removeProgSala(id){
@@ -6496,19 +6472,21 @@ function renameProgSala(id, novoNome){
 }
 
 function renderProgSalasSelector(){
-  // Admin selector
   const sel = document.getElementById('prog-sala-selector');
-  if(sel){
-    sel.innerHTML = progSalas.map(s=>`
-      <button onclick="selectProgSala('${s.id}')"
-        style="padding:6px 14px;border-radius:50px;font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer;border:1.5px solid var(--blue);
-          background:${s.id===progSalaAtualId?'var(--blue)':'#fff'};color:${s.id===progSalaAtualId?'#fff':'var(--blue)'};">
-        ${s.nome}
-      </button>`).join('');
-  }
+  if(!sel) return;
+  sel.innerHTML = '';
+  progSalas.forEach(s=>{
+    const active = s.id === progSalaAtualId;
+    const btn = document.createElement('button');
+    btn.textContent = s.nome;
+    btn.style.cssText = 'padding:6px 14px;border-radius:50px;font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer;border:1.5px solid var(--blue);margin:2px;';
+    btn.style.background = active ? 'var(--blue)' : '#fff';
+    btn.style.color = active ? '#fff' : 'var(--blue)';
+    btn.onclick = function(){ selectProgSala(s.id); };
+    sel.appendChild(btn);
+  });
 }
 
-// Save salas — called inside saveProgData
 function getProgSalasForSave(){
   // Sync current sala before saving
   if(progSalaAtualId){
