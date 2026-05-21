@@ -1703,8 +1703,13 @@ async function saveSettings(obj) {
   showSavingIndicator();
   _settingsCache = null; // Invalidate cache on save
   try {
-    // Construir versão limpa: sem dataUrls — só URLs públicas do Storage
     const slim = JSON.parse(JSON.stringify(obj));
+
+    // PROTECTION: never save empty patrocinios if DB has data
+    // This prevents accidental banner loss on page load races
+    if(slim.patrocinios && slim.patrocinios.length === 0 && currentSettings.patrocinios && currentSettings.patrocinios.length > 0){
+      slim.patrocinios = currentSettings.patrocinios;
+    }
     // fileStore agora guarda {type, url} em vez de {type, dataUrl}
     // speakers.photoDataUrl pode ser dataUrl (recém-uploadado) ou URL pública
     // Garantir que nenhuma dataUrl grande vaze pro banco
@@ -2033,14 +2038,13 @@ async function applySettingsToPage(s) {
   // Restaurar patrocínios
   if(s.locaisDB){ locaisDB = s.locaisDB; renderLocalSelect(); }
   if(s.patrocinios){
-    // Merge saved cliques back — never lose click data
     patrocinios = s.patrocinios.map(p=>({
       ...p,
-      // Restore image: prefer imgUrl (Storage), fall back to imgDataUrl
       imgUrl: p.imgUrl || null,
       imgDataUrl: p.imgDataUrl || null,
       cliques: p.cliques || 0
     }));
+    currentSettings.patrocinios = patrocinios; // keep in sync
     renderPatList();
   }
   if(s.patAtivo!==undefined){
@@ -2300,11 +2304,10 @@ function updateBtnChegar(){
   const chegarAtivo = document.getElementById('toggle-chegar')?.checked||false;
   const btn = document.getElementById('btn-chegar');
   if(!btn) return;
-  // Get selected local
   const localId = document.getElementById('ev-local-select')?.value||
                   currentSettings.eventoData?.localId||'';
   const localObj = locaisDB.find(l=>l.id===localId);
-  const mapsLink = localObj?.mapsLink||'';
+  const mapsLink = localObj?.mapsUrl||localObj?.mapsLink||''; // support both field names
   const localNome = localObj?.nome||'Local do evento';
   if(chegarAtivo && mapsLink){
     btn.style.display='';
@@ -2322,7 +2325,7 @@ function updateBtnChegar(){
 function openComoChegar(){
   const localId = currentSettings.eventoData?.localId||'';
   const localObj = locaisDB.find(l=>l.id===localId);
-  const mapsLink = localObj?.mapsLink||'';
+  const mapsLink = localObj?.mapsUrl||localObj?.mapsLink||'';
   if(mapsLink) window.open(mapsLink,'_blank');
 }
 
@@ -2667,6 +2670,9 @@ async function handleFavicon(input){
 }
 
 async function saveEventoData(){
+  const btn = document.querySelector('[onclick="saveEventoData()"]');
+  if(btn){ btn.textContent='⏳ Salvando…'; btn.disabled=true; }
+
   const nome    = document.getElementById('ev-nome').value.trim();
   const data    = document.getElementById('ev-data').value;
   const horaIni = document.getElementById('ev-hora-ini').value;
@@ -2684,11 +2690,11 @@ async function saveEventoData(){
   if(nome) document.title = nome + ' – Inscrição';
 
   const saved = await saveSettings(gatherSettings());
-  showSaveIndicator(saved, '✔ Dados do evento salvos!');
+  if(btn){ btn.textContent='💾 Salvar dados do evento'; btn.disabled=false; }
+  showSaveIndicator(saved, saved ? '✔ Dados do evento salvos!' : '⚠ Falha ao salvar');
+  updateBtnChegar();
 }
 
-
-  const evData = currentSettings.eventoData||{};
 function syncEventoToForm(){
   const evData = currentSettings.eventoData||{};
   const titleEl = document.getElementById('event-title');
