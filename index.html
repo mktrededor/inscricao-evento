@@ -1460,8 +1460,23 @@ a#prog-download-link{text-decoration:none !important;}
     <div class="admin-section">
       <h3>📊 Inscrições</h3>
       <div class="stat-grid">
+        <div class="stat-card"><div class="stat-num" id="dash-total">0</div><div class="stat-label">Total Inscritos</div></div>
+        <div class="stat-card"><div class="stat-num" id="dash-redor-sim">0</div><div class="stat-label">Na Rede D'Or</div></div>
+        <div class="stat-card"><div class="stat-num" id="dash-inscritos-local">0</div><div class="stat-label">Inscritos no Local</div></div>
+        <div class="stat-card"><div class="stat-num" id="dash-checkins">0</div><div class="stat-label">Check-ins QR</div></div>
       </div>
     </div>
+    <div class="admin-section">
+      <h3>Perfis</h3>
+      <div class="chart-wrap"><canvas id="chart-perfis"></canvas></div>
+      <div id="dash-perfis-nums" style="margin-top:8px;"></div>
+    </div>
+    <div class="admin-section">
+      <h3>Trabalha na Rede D'Or?</h3>
+      <div class="chart-wrap"><canvas id="chart-redor"></canvas></div>
+      <div id="dash-redor-nums" style="margin-top:8px;"></div>
+    </div>
+    <div id="dash-custom-charts"></div>
     <div class="admin-section">
       <h3>🏷 Cliques nos Banners</h3>
       <div id="dash-banner-clicks"><div class="empty-state" style="font-size:12px;">Nenhum banner ativo.</div></div>
@@ -1810,6 +1825,7 @@ function gatherSettings() {
     speakerBorderGradDir: borderGradDir,
     patrocinios: patrocinios.map(p=>({...p, imgDataUrl:null})),
     patAtivo,
+    locaisDB,
     eventoData: currentSettings.eventoData || null,
     faviconUrl: currentSettings.faviconUrl || null,
     speakerNameColor: document.getElementById('ed-speaker-name-color')?.value||'#ffffff',
@@ -2013,7 +2029,7 @@ async function applySettingsToPage(s) {
   updateSpeakerBorderPreview();
 
   // Restaurar patrocínios
-  if(s.patrocinios){ patrocinios=s.patrocinios; renderPatList(); }
+  if(s.locaisDB){ locaisDB = s.locaisDB; renderLocalSelect(); }
   if(s.patAtivo!==undefined){
     patAtivo=s.patAtivo;
     const tog=document.getElementById('toggle-patrocinio'); if(tog) tog.checked=patAtivo;
@@ -2587,16 +2603,68 @@ async function loadLocaisDB(){
 function renderLocalSelect(){
   const sel = document.getElementById('ev-local-select');
   if(!sel) return;
-  const current = sel.value;
-  sel.innerHTML = '<option value="">Selecione o local…</option>';
+  const current = sel.value || currentSettings?.eventoData?.localId || '';
+  sel.innerHTML = '<option value="">Selecione ou adicione novo…</option>';
   locaisDB.forEach(l=>{
     const opt = document.createElement('option');
     opt.value = l.id;
-    opt.textContent = l.nome + (l.cidade ? ' — ' + l.cidade : '');
+    opt.textContent = l.nome + (l.cidade||l.endereco ? ' — ' + (l.cidade||l.endereco) : '');
     if(String(l.id) === String(current)) opt.selected = true;
     sel.appendChild(opt);
   });
+  // When selection changes, populate the edit form
+  sel.onchange = function(){
+    const loc = locaisDB.find(l=>String(l.id)===this.value);
+    document.getElementById('ev-local-edit-id').value = loc ? loc.id : '';
+    document.getElementById('ev-local-nome').value = loc ? loc.nome||'' : '';
+    document.getElementById('ev-local-endereco').value = loc ? (loc.endereco||'') : '';
+    document.getElementById('ev-local-maps').value = loc ? (loc.mapsUrl||'') : '';
+  };
 }
+
+function saveLocal(){
+  const editId = document.getElementById('ev-local-edit-id').value;
+  const nome = document.getElementById('ev-local-nome').value.trim();
+  const endereco = document.getElementById('ev-local-endereco').value.trim();
+  const mapsUrl = document.getElementById('ev-local-maps').value.trim();
+  if(!nome){ alert('Insira o nome do local.'); return; }
+  if(editId){
+    const loc = locaisDB.find(l=>String(l.id)===editId);
+    if(loc){ loc.nome=nome; loc.endereco=endereco; loc.mapsUrl=mapsUrl; }
+  } else {
+    const newLoc = {id:'local_'+Date.now(), nome, endereco, mapsUrl};
+    locaisDB.push(newLoc);
+    document.getElementById('ev-local-edit-id').value = newLoc.id;
+  }
+  // Persist locais in settings
+  currentSettings.locaisDB = locaisDB;
+  saveSettings(gatherSettings()).then(()=>{
+    showSaveIndicator(true, '✔ Local salvo!');
+    renderLocalSelect();
+    // Select the saved local
+    const sel = document.getElementById('ev-local-select');
+    const loc = locaisDB.find(l=>l.nome===nome);
+    if(sel && loc) sel.value = loc.id;
+  });
+}
+
+function deleteLocalSelected(){
+  const editId = document.getElementById('ev-local-edit-id').value;
+  if(!editId){ alert('Selecione um local para excluir.'); return; }
+  if(!confirm('Excluir este local?')) return;
+  locaisDB = locaisDB.filter(l=>String(l.id)!==editId);
+  document.getElementById('ev-local-edit-id').value = '';
+  document.getElementById('ev-local-nome').value = '';
+  document.getElementById('ev-local-endereco').value = '';
+  document.getElementById('ev-local-maps').value = '';
+  currentSettings.locaisDB = locaisDB;
+  saveSettings(gatherSettings()).then(()=>{
+    showSaveIndicator(true, '✔ Local removido!');
+    renderLocalSelect();
+  });
+}
+
+
 
 
 
