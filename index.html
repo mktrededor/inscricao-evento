@@ -2030,6 +2030,7 @@ async function applySettingsToPage(s) {
 
   // Restaurar patrocínios
   if(s.locaisDB){ locaisDB = s.locaisDB; renderLocalSelect(); }
+  if(s.patrocinios){ patrocinios = s.patrocinios; renderPatList(); }
   if(s.patAtivo!==undefined){
     patAtivo=s.patAtivo;
     const tog=document.getElementById('toggle-patrocinio'); if(tog) tog.checked=patAtivo;
@@ -2504,6 +2505,69 @@ function renderPatList(){
       <button onclick="removePatrocinio('${p.id}')" style="padding:4px 8px;background:#fde8e8;color:#c0392b;border:none;border-radius:5px;font-size:11px;cursor:pointer;">✕</button>
     </div>`).join('');
 }
+
+// ═══════════════════════════════════════
+// PATROCÍNIO / BANNERS
+// ═══════════════════════════════════════
+let patImgTemp = null;
+let patImgUrl  = null;
+
+function updatePatrocinoState(){
+  patAtivo = document.getElementById('toggle-patrocinio')?.checked || false;
+  renderBanners();
+}
+
+function handlePatImg(input){
+  if(!input.files[0]) return;
+  const file = input.files[0];
+  const r = new FileReader();
+  r.onload = async e => {
+    patImgTemp = e.target.result;
+    document.getElementById('pat-img-preview').innerHTML =
+      `<img src="${patImgTemp}" style="width:100%;max-height:120px;object-fit:contain;border-radius:8px;border:1px solid var(--gray2);">`;
+    // Upload to Storage
+    try {
+      const ext = file.name.split('.').pop().toLowerCase();
+      const path = 'banner-' + Date.now() + '.' + ext;
+      const { error } = await sb.storage.from('event-media').upload(path, file, {upsert:true, cacheControl:'3600'});
+      if(error) throw error;
+      const { data } = sb.storage.from('event-media').getPublicUrl(path);
+      patImgUrl = data.publicUrl;
+    } catch(e){
+      patImgUrl = null; // keep dataUrl as fallback
+    }
+  };
+  r.readAsDataURL(file);
+}
+
+function addPatrocinio(){
+  const titulo = document.getElementById('pat-titulo').value.trim();
+  const linkUrl = document.getElementById('pat-url').value.trim();
+  if(!titulo && !patImgTemp){ alert('Adicione um título ou imagem ao banner.'); return; }
+  patrocinios.push({
+    id: 'pat_' + Date.now(),
+    titulo,
+    linkUrl,
+    imgUrl: patImgUrl || null,
+    imgDataUrl: patImgTemp || null,
+    cliques: 0
+  });
+  // Reset form
+  document.getElementById('pat-titulo').value = '';
+  document.getElementById('pat-url').value = '';
+  document.getElementById('pat-img-preview').innerHTML = '';
+  patImgTemp = null; patImgUrl = null;
+  renderPatList();
+  renderBanners();
+}
+
+async function applyPatrocinioAndSave(){
+  patAtivo = document.getElementById('toggle-patrocinio')?.checked || false;
+  renderBanners();
+  const saved = await saveSettings(gatherSettings());
+  showSaveIndicator(saved, saved ? '✔ Patrocínios salvos!' : '⚠ Falha ao salvar');
+}
+
 
 function getBannerIntervalo(){
   const el = document.getElementById('pat-intervalo');
