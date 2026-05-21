@@ -1481,7 +1481,7 @@ a#prog-download-link{text-decoration:none !important;}
       <h3>🏷 Cliques nos Banners</h3>
       <div id="dash-banner-clicks"><div class="empty-state" style="font-size:12px;">Nenhum banner ativo.</div></div>
     </div>
-    <button class="apply-btn" style="background:#1e7e3e;margin-bottom:8px;" onclick="gerarRelatorioPDF()">📄 Gerar Relatório em PDF</button>
+    <button class="apply-btn" style="background:#1e7e3e;margin-bottom:8px;" onclick="gerarRelatorioPDF()">⬇ Download do Relatório</button>
     <button class="apply-btn" style="font-size:12px;padding:10px;margin-top:4px;" onclick="updateDashboard()">🔄 Atualizar agora</button>
   </div>
 
@@ -4505,26 +4505,40 @@ async function updateDashboard(){
 
   // Charts for custom questions (radio, checkbox_single, dropdown, checkbox)
   const chartable = customQuestions.filter(q=>['radio','checkbox_single','dropdown','checkbox'].includes(q.type));
+  const perfisAll = [...new Set(inscricoes.map(r=>r.perfil).filter(Boolean))].sort();
   const ccWrap = document.getElementById('dash-custom-charts');
   if(ccWrap){
     ccWrap.innerHTML = '';
-    chartable.forEach((q,qi)=>{
-      const counts = {};
-      q.options.forEach(o=>counts[o]=0);
+    chartable.forEach((q)=>{
+      const counts={};
+      const byProfile={};
+      q.options.forEach(o=>{ counts[o]=0; byProfile[o]={}; });
       inscricoes.forEach(r=>{
-        const val = r.extras && r.extras[q.text];
+        const val = r.extras&&r.extras[q.text];
         if(!val) return;
-        // Could be comma-separated (checkbox multiple)
-        val.split(', ').forEach(v=>{ if(counts[v]!==undefined) counts[v]++; });
+        val.split(', ').forEach(v=>{
+          if(counts[v]===undefined) return;
+          counts[v]++;
+          if(r.perfil) byProfile[v][r.perfil]=(byProfile[v][r.perfil]||0)+1;
+        });
       });
       const labels=Object.keys(counts); const values=labels.map(l=>counts[l]);
-      if(!values.some(v=>v>0)) return; // skip if no answers yet
+      if(!values.some(v=>v>0)) return;
       const total_q = values.reduce((a,b)=>a+b,0);
-      const numsHtml = labels.sort((a,b)=>counts[b]-counts[a]).map(l=>
-        `<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--gray2);font-size:12px;">
-          <span style="font-weight:600;">${l}</span>
+
+      // Numeric totals with profile breakdown
+      const numsHtml = labels.slice().sort((a,b)=>counts[b]-counts[a]).map(l=>{
+        const profileDetail = perfisAll.filter(p=>byProfile[l][p]).map(p=>
+          `<div style="display:flex;justify-content:space-between;padding:3px 0 3px 20px;font-size:11px;color:var(--text-light);">
+            <span>↳ ${p}</span>
+            <span>${byProfile[l][p]} (${counts[l]?Math.round(byProfile[l][p]/counts[l]*100):0}%)</span>
+          </div>`).join('');
+        return `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--gray2);font-size:12px;">
+          <span style="font-weight:700;">${l}</span>
           <span><strong>${counts[l]}</strong> <span style="color:var(--text-light);font-size:11px;">(${total_q?Math.round(counts[l]/total_q*100):0}%)</span></span>
-        </div>`).join('');
+        </div>${profileDetail}`;
+      }).join('');
+
       const canvasId = 'chart-cq-'+q.id;
       const section = document.createElement('div');
       section.className = 'admin-section';
@@ -4536,10 +4550,134 @@ async function updateDashboard(){
         options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{stepSize:1,font:{family:'Montserrat',size:10}}}}}
       });
     });
-    if(chartable.length && ccWrap.childElementCount===0){
-      ccWrap.innerHTML='<div class="admin-section"><div class="empty-state" style="font-size:12px;">Nenhuma resposta registrada ainda para as perguntas adicionais.</div></div>';
-    }
   }
+}
+
+async function gerarRelatorioPDF(){
+  const btn = document.querySelector('[onclick="gerarRelatorioPDF()"]');
+  if(btn){ btn.textContent='⏳ Gerando…'; btn.disabled=true; }
+  await loadFromSupabase(true);
+
+  const evData = currentSettings.eventoData||{};
+  const localObj = locaisDB.find(l=>l.id===evData.localId)||{};
+  const eventoNome = evData.nome||document.getElementById('event-title')?.textContent||'Evento';
+  const total = inscricoes.length;
+  const sim = inscricoes.filter(r=>r.redor==='Sim').length;
+  const hoje = new Date().toLocaleDateString('pt-BR');
+
+  // Perfis
+  const pc={};
+  inscricoes.forEach(r=>{ if(r.perfil) pc[r.perfil]=(pc[r.perfil]||0)+1; });
+  const perfisRows = Object.entries(pc).sort((a,b)=>b[1]-a[1])
+    .map(([p,n])=>`<tr><td>${p}</td><td style="text-align:center;font-weight:700;">${n}</td><td style="text-align:center;">${total?Math.round(n/total*100):0}%</td></tr>`).join('');
+
+  // Rede D'Or
+  const redorRows = `
+    <tr><td>Sim</td><td style="text-align:center;font-weight:700;">${sim}</td><td style="text-align:center;">${total?Math.round(sim/total*100):0}%</td></tr>
+    <tr><td>Não</td><td style="text-align:center;font-weight:700;">${total-sim}</td><td style="text-align:center;">${total?Math.round((total-sim)/total*100):0}%</td></tr>`;
+
+  // Banners
+  const bannersRows = patrocinios.length
+    ? patrocinios.map(p=>`<tr><td>${p.titulo||'Banner'}</td><td style="text-align:center;font-weight:700;">${p.cliques||0}</td></tr>`).join('')
+    : '<tr><td colspan="2" style="text-align:center;">Nenhum banner ativo</td></tr>';
+
+  // Perguntas adicionais com breakdown por perfil
+  const chartableQ = customQuestions.filter(q=>['radio','checkbox_single','dropdown','checkbox'].includes(q.type));
+  const perfis = [...new Set(inscricoes.map(r=>r.perfil).filter(Boolean))].sort();
+  const customQSections = chartableQ.map(q=>{
+    const counts={};
+    const byProfile={};
+    q.options.forEach(o=>{ counts[o]=0; byProfile[o]={}; });
+    inscricoes.forEach(r=>{
+      const val = r.extras&&r.extras[q.text];
+      if(!val) return;
+      val.split(', ').forEach(v=>{
+        if(counts[v]===undefined) return;
+        counts[v]++;
+        if(r.perfil) byProfile[v][r.perfil]=(byProfile[v][r.perfil]||0)+1;
+      });
+    });
+    const total_q = Object.values(counts).reduce((a,b)=>a+b,0);
+    const rows = Object.entries(counts).sort((a,b)=>b[1]-a[1]).map(([opt,n])=>{
+      const pct = total_q?Math.round(n/total_q*100):0;
+      const profileDetail = perfis.filter(p=>byProfile[opt][p]).map(p=>`
+        <tr style="background:#f8f9ff;">
+          <td style="padding-left:24px;font-size:11px;color:#555;">↳ ${p}</td>
+          <td style="text-align:center;font-size:11px;">${byProfile[opt][p]}</td>
+          <td style="text-align:center;font-size:11px;">${n?Math.round(byProfile[opt][p]/n*100):0}%</td>
+        </tr>`).join('');
+      return `<tr><td style="font-weight:700;">${opt}</td><td style="text-align:center;font-weight:800;">${n}</td><td style="text-align:center;">${pct}%</td></tr>${profileDetail}`;
+    }).join('');
+    return `<div class="section">
+      <h2>${q.text}</h2>
+      <table>
+        <thead><tr><th>Resposta / Perfil</th><th style="text-align:center;">Qtd</th><th style="text-align:center;">%</th></tr></thead>
+        <tbody>${rows||'<tr><td colspan="3" style="text-align:center;">Sem respostas</td></tr>'}</tbody>
+      </table>
+      <p style="font-size:11px;color:#888;margin-top:6px;">Total de respostas: ${total_q} de ${total} inscritos</p>
+    </div>`;
+  }).join('');
+
+  const html = `<!DOCTYPE html><html><head>
+  <meta charset="UTF-8"><title>Relatório — ${eventoNome}</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:'Arial',sans-serif;color:#1a2640;background:#fff;padding:32px;}
+    .report-header{text-align:center;border-bottom:3px solid #005ca9;padding-bottom:20px;margin-bottom:24px;}
+    .report-header h1{font-size:22px;font-weight:900;color:#005ca9;}
+    .report-header p{font-size:13px;color:#555;margin-top:6px;}
+    .section{margin-bottom:28px;page-break-inside:avoid;}
+    .section h2{font-size:15px;font-weight:800;color:#005ca9;margin-bottom:10px;padding-bottom:5px;border-bottom:2px solid #e8f0fb;}
+    table{width:100%;border-collapse:collapse;font-size:13px;}
+    th{background:#005ca9;color:#fff;padding:8px 12px;text-align:left;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.5px;}
+    td{padding:8px 12px;border-bottom:1px solid #e8f0fb;}
+    tr:last-child td{border-bottom:none;}
+    tr:nth-child(even) td{background:#f8faff;}
+    .stat-row{display:flex;gap:16px;margin-bottom:24px;}
+    .stat-box{flex:1;background:#f0f7ff;border:2px solid #005ca9;border-radius:10px;padding:16px;text-align:center;}
+    .stat-box .num{font-size:36px;font-weight:900;color:#005ca9;}
+    .stat-box .lbl{font-size:11px;color:#555;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-top:4px;}
+    .footer{text-align:center;margin-top:32px;font-size:11px;color:#999;border-top:1px solid #eee;padding-top:16px;}
+    @media print{body{padding:16px;}.section{page-break-inside:avoid;}}
+  </style></head><body>
+  <div class="report-header">
+    <h1>${eventoNome}</h1>
+    <p>${evData.data?new Date(evData.data+'T12:00:00').toLocaleDateString('pt-BR',{weekday:'long',year:'numeric',month:'long',day:'numeric'}):''} ${evData.horaIni?'• '+evData.horaIni+' – '+(evData.horaFim||''):''}${localObj.nome?' • '+localObj.nome:''}</p>
+    <p style="margin-top:4px;">Relatório gerado em ${hoje}</p>
+  </div>
+  <div class="stat-row">
+    <div class="stat-box"><div class="num">${total}</div><div class="lbl">Total de Inscritos</div></div>
+    <div class="stat-box"><div class="num">${sim}</div><div class="lbl">Na Rede D'Or</div></div>
+    <div class="stat-box"><div class="num">${total-sim}</div><div class="lbl">Externos</div></div>
+  </div>
+  <div class="section"><h2>Perfil dos Inscritos</h2>
+    <table><thead><tr><th>Perfil</th><th style="text-align:center;">Qtd</th><th style="text-align:center;">%</th></tr></thead>
+    <tbody>${perfisRows||'<tr><td colspan="3" style="text-align:center;">Sem dados</td></tr>'}</tbody></table>
+  </div>
+  <div class="section"><h2>Trabalha na Rede D'Or?</h2>
+    <table><thead><tr><th>Resposta</th><th style="text-align:center;">Qtd</th><th style="text-align:center;">%</th></tr></thead>
+    <tbody>${redorRows}</tbody></table>
+  </div>
+  ${customQSections}
+  <div class="section"><h2>Cliques nos Banners</h2>
+    <table><thead><tr><th>Banner</th><th style="text-align:center;">Cliques</th></tr></thead>
+    <tbody>${bannersRows}</tbody></table>
+  </div>
+  <div class="footer">Rede D'Or — Relatório de Inscrições • ${eventoNome} • ${hoje}</div>
+  </body></html>`;
+
+  // Auto-download as HTML (printable to PDF via browser)
+  const blob = new Blob([html], {type:'text/html;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'Relatorio_' + eventoNome.replace(/[^a-zA-Z0-9]/g,'_') + '_' + hoje.replace(/\//g,'-') + '.html';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+
+  if(btn){ btn.textContent='⬇ Download do Relatório'; btn.disabled=false; }
 }
 
 async function renderInscricoesList(skipFetch){
