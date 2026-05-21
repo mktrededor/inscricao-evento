@@ -1823,7 +1823,10 @@ function gatherSettings() {
     speakerBorderGradC1: document.getElementById('ed-border-grad-c1').value,
     speakerBorderGradC2: document.getElementById('ed-border-grad-c2').value,
     speakerBorderGradDir: borderGradDir,
-    patrocinios: patrocinios.map(p=>({...p, imgDataUrl:null})),
+    patrocinios: patrocinios.map(p=>({...p,
+      // Keep imgUrl (Storage URL), strip raw base64 dataUrl to save space
+      imgDataUrl: (p.imgUrl && p.imgUrl.startsWith('http')) ? null : p.imgDataUrl
+    })),
     patAtivo,
     locaisDB,
     eventoData: currentSettings.eventoData || null,
@@ -1834,7 +1837,6 @@ function gatherSettings() {
     progItems: progItems,
     progInternoAtivo: progInternoAtivo,
     progFileUrl: progFileUrl,
-    progDownloadAtivo: document.getElementById('toggle-prog-download')?.checked !== false,
     progDownloadAtivo: document.getElementById('toggle-prog-download')?.checked !== false,
     progSalas: progSalas,
     progSalasAtivo: progSalasAtivo,
@@ -2030,7 +2032,17 @@ async function applySettingsToPage(s) {
 
   // Restaurar patrocínios
   if(s.locaisDB){ locaisDB = s.locaisDB; renderLocalSelect(); }
-  if(s.patrocinios){ patrocinios = s.patrocinios; renderPatList(); }
+  if(s.patrocinios){
+    // Merge saved cliques back — never lose click data
+    patrocinios = s.patrocinios.map(p=>({
+      ...p,
+      // Restore image: prefer imgUrl (Storage), fall back to imgDataUrl
+      imgUrl: p.imgUrl || null,
+      imgDataUrl: p.imgDataUrl || null,
+      cliques: p.cliques || 0
+    }));
+    renderPatList();
+  }
   if(s.patAtivo!==undefined){
     patAtivo=s.patAtivo;
     const tog=document.getElementById('toggle-patrocinio'); if(tog) tog.checked=patAtivo;
@@ -2511,6 +2523,8 @@ function renderPatList(){
 // ═══════════════════════════════════════
 let patImgTemp = null;
 let patImgUrl  = null;
+let evLogoTemp = null;
+let evLogoPublicUrl = null;
 
 function updatePatrocinoState(){
   patAtivo = document.getElementById('toggle-patrocinio')?.checked || false;
@@ -2603,6 +2617,29 @@ function removePatrocinio(id){
   renderBanners();
 }
 
+async function saveEventoData(){
+  const nome    = document.getElementById('ev-nome').value.trim();
+  const data    = document.getElementById('ev-data').value;
+  const horaIni = document.getElementById('ev-hora-ini').value;
+  const horaFim = document.getElementById('ev-hora-fim').value;
+  const publico = document.getElementById('ev-publico').value;
+  const localId = document.getElementById('ev-local-select').value;
+  const obs     = document.getElementById('ev-obs').value.trim();
+
+  const evData = {nome, data, horaIni, horaFim, publico, localId, obs,
+    logoUrl: evLogoPublicUrl || evLogoTemp || null};
+
+  currentSettings.eventoData = evData;
+  document.getElementById('ed-title').value = nome || document.getElementById('ed-title').value;
+  syncEventoToForm();
+  if(nome) document.title = nome + ' – Inscrição';
+
+  const saved = await saveSettings(gatherSettings());
+  showSaveIndicator(saved, '✔ Dados do evento salvos!');
+}
+
+
+  const evData = currentSettings.eventoData||{};
 function syncEventoToForm(){
   const evData = currentSettings.eventoData||{};
   const titleEl = document.getElementById('event-title');
