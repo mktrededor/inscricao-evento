@@ -5687,20 +5687,50 @@ async function gerarRelatorioPDF(){
   const customQSections = chartableQ.map(q=>{
     const counts = {};
     q.options.forEach(o=>counts[o]=0);
+    // Profile breakdown per option
+    const byProfile = {}; // {option: {perfil: count}}
+    q.options.forEach(o=>byProfile[o]={});
+    const perfis = [...new Set(inscricoes.map(r=>r.perfil).filter(Boolean))].sort();
+
     inscricoes.forEach(r=>{
       const val = r.extras && r.extras[q.text];
       if(!val) return;
-      val.split(', ').forEach(v=>{ if(counts[v]!==undefined) counts[v]++; });
+      val.split(', ').forEach(v=>{
+        if(counts[v]===undefined) return;
+        counts[v]++;
+        if(r.perfil){
+          byProfile[v][r.perfil] = (byProfile[v][r.perfil]||0) + 1;
+        }
+      });
     });
     const total_q = Object.values(counts).reduce((a,b)=>a+b,0);
-    const rows = Object.entries(counts).sort((a,b)=>b[1]-a[1])
-      .map(([opt,n])=>`<tr><td>${opt}</td><td style="text-align:center;font-weight:700;">${n}</td><td style="text-align:center;">${total_q?Math.round(n/total_q*100):0}%</td></tr>`).join('');
+
+    // Build rows with profile breakdown
+    const rows = Object.entries(counts).sort((a,b)=>b[1]-a[1]).map(([opt,n])=>{
+      const pct = total_q ? Math.round(n/total_q*100) : 0;
+      // Profile sub-rows
+      const profileDetail = perfis.length > 0
+        ? perfis.filter(p=>byProfile[opt][p]).map(p=>`
+            <tr style="background:#f8f9ff;">
+              <td style="padding-left:24px;font-size:11px;color:#555;">↳ ${p}</td>
+              <td style="text-align:center;font-size:11px;">${byProfile[opt][p]||0}</td>
+              <td style="text-align:center;font-size:11px;">${n?Math.round((byProfile[opt][p]||0)/n*100):0}%</td>
+            </tr>`).join('')
+        : '';
+      return `<tr>
+        <td style="font-weight:700;">${opt}</td>
+        <td style="text-align:center;font-weight:800;">${n}</td>
+        <td style="text-align:center;">${pct}%</td>
+      </tr>${profileDetail}`;
+    }).join('');
+
     return `<div class="section">
       <h2>${q.text}</h2>
       <table>
-        <thead><tr><th>Resposta</th><th style="text-align:center;">Qtd</th><th style="text-align:center;">%</th></tr></thead>
+        <thead><tr><th>Resposta / Perfil</th><th style="text-align:center;">Qtd</th><th style="text-align:center;">%</th></tr></thead>
         <tbody>${rows||'<tr><td colspan="3" style="text-align:center;">Sem respostas</td></tr>'}</tbody>
       </table>
+      <p style="font-size:11px;color:#888;margin-top:6px;">Total de respostas: ${total_q} de ${inscricoes.length} inscritos</p>
     </div>`;
   }).join('');
 
