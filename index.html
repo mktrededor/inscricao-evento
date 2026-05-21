@@ -2489,6 +2489,47 @@ function renderPatList(){
     </div>`).join('');
 }
 
+function getBannerIntervalo(){
+  const el = document.getElementById('pat-intervalo');
+  return el ? (parseInt(el.value)||4)*1000 : 4000;
+}
+
+function goToBanner(screen, idx){
+  const inner = document.getElementById('banner-inner-'+screen);
+  const el = document.getElementById('banner-'+screen);
+  if(!inner||!el) return;
+  const items = inner.querySelectorAll('.banner-item');
+  items.forEach((item,i)=>{ item.style.display = i===idx?'block':'none'; });
+  const dots = el.querySelectorAll('.banner-dot');
+  dots.forEach((d,i)=>{ d.classList.toggle('active', i===idx); });
+}
+
+function registerBannerClick(patId){
+  const p = patrocinios.find(x=>x.id===patId);
+  if(p){
+    p.cliques=(p.cliques||0)+1;
+    saveSettings(gatherSettings());
+    const bannerWrap = document.getElementById('dash-banner-clicks');
+    if(bannerWrap){
+      bannerWrap.innerHTML=patrocinios.map(p=>`<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--gray2);font-size:12px;"><span style="font-weight:600;">${p.titulo||'Banner'}</span><span style="color:var(--blue);font-weight:800;">${p.cliques||0} cliques</span></div>`).join('');
+    }
+    renderPatList();
+  }
+}
+
+function removePatrocinio(id){
+  patrocinios = patrocinios.filter(p=>p.id!==id);
+  renderPatList();
+  renderBanners();
+}
+
+function syncEventoToForm(){
+  const evData = currentSettings.eventoData||{};
+  const titleEl = document.getElementById('event-title');
+  if(titleEl && evData.nome) titleEl.textContent = evData.nome;
+  if(evData.nome) document.title = evData.nome + ' – Inscrição';
+}
+
 function renderBanners(){
   ['landing','confirm','palestrantes'].forEach(screen=>{
     const el = document.getElementById('banner-'+screen);
@@ -2506,7 +2547,7 @@ function renderBanners(){
           <img src="${src}" alt="${p.titulo||'Patrocinador'}" style="cursor:${p.linkUrl?'pointer':'default'};"></div>`;}).join('');
       const dotsHtml=patrocinios.map((_,i)=>`<div class="banner-dot${i===0?' active':''}" onclick="goToBanner('${screen}',${i})"></div>`).join('');
       el.innerHTML=`<div style="position:relative;"><div class="banner-strip-inner" id="banner-inner-${screen}">${itemsHtml}</div><div class="banner-dots">${dotsHtml}</div></div>`;
-      const intervalo = getBannerIntervalo ? getBannerIntervalo() : 4000;
+      const intervalo = getBannerIntervalo();
       let cur=0;
       bannerIntervals[screen]=setInterval(()=>{ cur=(cur+1)%patrocinios.length; goToBanner(screen,cur); },intervalo);
     }
@@ -3151,7 +3192,8 @@ window.onload = async function(){
   // speakersDB = await loadSpeakersDB(); — moved to showAdminTab('speakers')
   
   // Load locais DB
-  loadLocaisDB().then(data => { locaisDB = data; renderLocalSelect(); });
+  // Load locais DB silently — table may not exist in this project
+  try { loadLocaisDB().then(data => { if(data.length) { locaisDB = data; renderLocalSelect(); } }); } catch(e){}
 
   const settingsPromise=loadSettings();
   const timeoutPromise=new Promise(resolve=>setTimeout(()=>resolve(null),5000));
