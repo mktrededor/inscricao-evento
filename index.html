@@ -1502,6 +1502,7 @@ a#prog-download-link{text-decoration:none !important;}
       
       <button class="danger-btn" style="margin-top:0;margin-bottom:8px;" onclick="deleteInscricoesOnly()">🗑 Apagar apenas inscrições</button>
       <button class="danger-btn" style="margin-top:0;background:#c0392b;color:#fff;border-color:#c0392b;" onclick="deleteAllInscricoes()">🗑 Apagar inscrições + presenças</button>
+      <button class="danger-btn" style="margin-top:8px;background:#7d3caf;color:#fff;border-color:#7d3caf;" onclick="clearEventSpeakers()">🗑 Limpar palestrantes do evento</button>
     </div>
   </div>
 
@@ -2697,9 +2698,40 @@ async function saveEventoData(){
 
 function syncEventoToForm(){
   const evData = currentSettings.eventoData||{};
+
+  // Update title in form and browser tab
   const titleEl = document.getElementById('event-title');
   if(titleEl && evData.nome) titleEl.textContent = evData.nome;
   if(evData.nome) document.title = evData.nome + ' – Inscrição';
+
+  // Update or create event info bar in form card header
+  let infoBar = document.getElementById('event-info-bar');
+  const cardHeader = document.querySelector('.card-header');
+  if(cardHeader && (evData.data || evData.horaIni || evData.localId)){
+    if(!infoBar){
+      infoBar = document.createElement('div');
+      infoBar.id = 'event-info-bar';
+      infoBar.style.cssText = 'display:flex;flex-wrap:wrap;gap:12px;margin-top:10px;font-size:13px;color:var(--text-light);align-items:center;justify-content:center;';
+      cardHeader.appendChild(infoBar);
+    }
+    const parts = [];
+    if(evData.data){
+      try {
+        const d = new Date(evData.data+'T12:00:00');
+        parts.push('📅 '+d.toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long',year:'numeric'}));
+      } catch(e){ parts.push('📅 '+evData.data); }
+    }
+    if(evData.horaIni){
+      parts.push('🕐 '+evData.horaIni+(evData.horaFim?' – '+evData.horaFim:''));
+    }
+    if(evData.localId){
+      const localObj = locaisDB.find(l=>l.id===evData.localId);
+      if(localObj) parts.push('📍 '+localObj.nome+(localObj.endereco?' • '+localObj.endereco:''));
+    }
+    infoBar.innerHTML = parts.map(p=>`<span style="white-space:nowrap;">${p}</span>`).join('');
+  } else if(infoBar){
+    infoBar.innerHTML = '';
+  }
 }
 
 function renderBanners(){
@@ -3538,21 +3570,30 @@ async function checkCpfExists(cpf){
   } catch(e){ return null; }
 }
 
+async function clearEventSpeakers(){
+  if(!confirm('⚠️ Remover todos os palestrantes do evento atual?\n\nEles continuarão no Banco Global de Palestrantes.')) return;
+  speakers = [];
+  renderSpeakersAdminList();
+  renderPalestrantesPage();
+  const saved = await saveSettings(gatherSettings());
+  showSaveIndicator(saved, saved ? '✔ Palestrantes removidos do evento!' : '⚠ Falha ao salvar');
+}
+
 async function deleteAllInscricoes(){
-  if(!confirm('⚠️ Tem certeza? Isso vai deletar TODAS as inscrições permanentemente. Esta ação não pode ser desfeita.')) return;
+  if(!confirm('⚠️ Tem certeza? Isso vai deletar TODAS as inscrições e presenças permanentemente. Esta ação não pode ser desfeita.')) return;
   if(!confirm('Confirme novamente: deletar tudo?')) return;
   try {
-    // Delete in correct FK order
-    const {error:e1} = await sb.from('presencas').delete().neq('id',0);
-    const {error:e3} = await sb.from('disparos').delete().neq('id',0);
-    const {error:e4} = await sb.from('inscricoes').delete().neq('id','00000000-0000-0000-0000-000000000000');
-    if(e4){ alert('Erro ao deletar inscrições: '+e4.message); return; }
-    inscricoes=[];
+    await sb.from('presencas').delete().gte('created_at','1970-01-01').catch(()=>{});
+    const {error} = await sb.from('inscricoes').delete().gte('created_at','1970-01-01');
+    if(error){ alert('Erro ao deletar inscrições: '+error.message); return; }
+    inscricoes = [];
+    invalidateInscricoesCache();
     localStorage.removeItem('redor_inscricoes');
     localStorage.removeItem('val_entradas');
-    
     clearAllUI();
+    renderInscricoesList(true);
     showSaveIndicator(true,'🗑 Tudo deletado com sucesso!');
+    alert('✅ Inscrições e presenças apagadas.');
   } catch(e){ alert('Erro: '+e.message); }
 }
 
@@ -4756,17 +4797,20 @@ function restoreTwilioFields(){
 
 
 async function deleteInscricoesOnly(){
-  if(!confirm('⚠️ Apagar apenas as inscrições?\n')) return;
-  if(!confirm('Confirme: apagar todas as inscrições?')) return;
+  if(!confirm('⚠️ Apagar TODAS as inscrições?\n\nEssa ação é irreversível.')) return;
+  if(!confirm('Confirme novamente: apagar todas as inscrições?')) return;
   try {
-    await sb.from('presencas').delete().neq('id',0);
-    await sb.from('disparos').delete().neq('id',0);
-    const {error}=await sb.from('inscricoes').delete().neq('id','00000000-0000-0000-0000-000000000000');
-    if(error){ alert('Erro: '+error.message); return; }
-    inscricoes=[];
+    const {error} = await sb.from('inscricoes').delete().gte('created_at','1970-01-01');
+    if(error){ alert('Erro ao apagar inscrições: '+error.message); return; }
+    // Also clear presencas
+    await sb.from('presencas').delete().gte('created_at','1970-01-01').catch(()=>{});
+    inscricoes = [];
+    invalidateInscricoesCache();
     localStorage.removeItem('redor_inscricoes');
     clearAllUI();
+    renderInscricoesList(true);
     showSaveIndicator(true,'🗑 Inscrições apagadas!');
+    alert('✅ Todas as inscrições foram apagadas.');
   } catch(e){ alert('Erro: '+e.message); }
 }
 
