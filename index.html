@@ -19,6 +19,7 @@
   --font:'Montserrat','Gotham',Arial,sans-serif;
   --card-bg:rgba(255,255,255,1);
   --header-bg:var(--blue);
+  --header-text-color:#ffffff;
   --form-bg:var(--gray);
   --btn-bg:var(--blue);--btn-color:#fff;
   --privacy-card-bg:rgba(255,255,255,1);
@@ -104,7 +105,7 @@ body.admin-open.admin-collapsed{margin-right:110px;}
 #screen-form{background:var(--form-bg);position:relative;}
 .form-card{max-width:640px;margin:0 auto;padding:24px 16px 56px;position:relative;z-index:2;}
 .card{background:var(--card-bg);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;}
-.card-header{background:var(--header-bg);padding:28px 32px 24px;color:#fff;}
+.card-header{background:var(--header-bg);padding:28px 32px 24px;color:var(--header-text-color,#fff);}
 .card-header .event-tag{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;opacity:.75;margin-bottom:6px;}
 .card-header h1{font-size:clamp(18px,4vw,26px);font-weight:800;line-height:1.25;}
 .card-header p{font-size:13px;opacity:.85;margin-top:8px;line-height:1.55;}
@@ -1307,6 +1308,7 @@ a#prog-download-link{text-decoration:none !important;}
     </div>
     <div class="admin-section">
       <h3>👥 Coordenadores & Palestrantes</h3>
+      <button class="danger-btn" style="margin-bottom:12px;background:#7d3caf;color:#fff;border-color:#7d3caf;width:100%;" onclick="clearEventSpeakers()">🗑 Limpar todos os palestrantes do evento</button>
 
       <!-- DB Search -->
       <div class="sp-db-section">
@@ -1502,7 +1504,6 @@ a#prog-download-link{text-decoration:none !important;}
       
       <button class="danger-btn" style="margin-top:0;margin-bottom:8px;" onclick="deleteInscricoesOnly()">🗑 Apagar apenas inscrições</button>
       <button class="danger-btn" style="margin-top:0;background:#c0392b;color:#fff;border-color:#c0392b;" onclick="deleteAllInscricoes()">🗑 Apagar inscrições + presenças</button>
-      <button class="danger-btn" style="margin-top:8px;background:#7d3caf;color:#fff;border-color:#7d3caf;" onclick="clearEventSpeakers()">🗑 Limpar palestrantes do evento</button>
     </div>
   </div>
 
@@ -1642,6 +1643,7 @@ const colorTargets = [
   { id:'ct-btn',         label:'Botões principais',        cssProp:'--btn-bg',          defaultType:'solid', defaultColor:'#005ca9', defaultColor2:'#085da9', defaultDir:'135deg' },
   { id:'ct-btn-text',    label:'Texto dos botões',         cssProp:'--btn-color',        defaultType:'solid', defaultColor:'#ffffff', defaultColor2:'#ffffff', defaultDir:'to right' },
   { id:'ct-header',      label:'Cabeçalho do formulário',  cssProp:'--header-bg',        defaultType:'solid', defaultColor:'#005ca9', defaultColor2:'#0a7bc4', defaultDir:'135deg' },
+  { id:'ct-header-text', label:'Texto do cabeçalho',       cssProp:'--header-text-color', defaultType:'solid', defaultColor:'#ffffff', defaultColor2:'#ffffff', defaultDir:'0deg' },
   { id:'ct-form-bg',     label:'Fundo da tela',            cssProp:'--form-bg',          defaultType:'solid', defaultColor:'#f4f6f9', defaultColor2:'#e8f0fb', defaultDir:'180deg' },
   { id:'ct-card-bg',     label:'Fundo do card/formulário', cssProp:'--card-bg',          defaultType:'solid', defaultColor:'#ffffff', defaultColor2:'#f8faff', defaultDir:'180deg' },
   { id:'ct-confirm-box', label:'Box de confirmação',       cssProp:'--confirm-box-bg',   defaultType:'solid', defaultColor:'#ffffff', defaultColor2:'#ffffff', defaultDir:'to bottom', defaultOpacity:0.92 },
@@ -2704,16 +2706,9 @@ function syncEventoToForm(){
   if(titleEl && evData.nome) titleEl.textContent = evData.nome;
   if(evData.nome) document.title = evData.nome + ' – Inscrição';
 
-  // Update or create event info bar in form card header
-  let infoBar = document.getElementById('event-info-bar');
-  const cardHeader = document.querySelector('.card-header');
-  if(cardHeader && (evData.data || evData.horaIni || evData.localId)){
-    if(!infoBar){
-      infoBar = document.createElement('div');
-      infoBar.id = 'event-info-bar';
-      infoBar.style.cssText = 'display:flex;flex-wrap:wrap;gap:12px;margin-top:10px;font-size:13px;color:var(--text-light);align-items:center;justify-content:center;';
-      cardHeader.appendChild(infoBar);
-    }
+  // Update event-desc with date/time/local info
+  const descEl = document.getElementById('event-desc');
+  if(descEl){
     const parts = [];
     if(evData.data){
       try {
@@ -2721,16 +2716,14 @@ function syncEventoToForm(){
         parts.push('📅 '+d.toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long',year:'numeric'}));
       } catch(e){ parts.push('📅 '+evData.data); }
     }
-    if(evData.horaIni){
-      parts.push('🕐 '+evData.horaIni+(evData.horaFim?' – '+evData.horaFim:''));
-    }
+    if(evData.horaIni) parts.push('🕐 '+evData.horaIni+(evData.horaFim?' – '+evData.horaFim:''));
     if(evData.localId){
-      const localObj = locaisDB.find(l=>l.id===evData.localId);
-      if(localObj) parts.push('📍 '+localObj.nome+(localObj.endereco?' • '+localObj.endereco:''));
+      const loc = locaisDB.find(l=>l.id===evData.localId);
+      if(loc) parts.push('📍 '+loc.nome);
     }
-    infoBar.innerHTML = parts.map(p=>`<span style="white-space:nowrap;">${p}</span>`).join('');
-  } else if(infoBar){
-    infoBar.innerHTML = '';
+    if(parts.length){
+      descEl.innerHTML = parts.join('<br>');
+    }
   }
 }
 
@@ -3583,7 +3576,7 @@ async function deleteAllInscricoes(){
   if(!confirm('⚠️ Tem certeza? Isso vai deletar TODAS as inscrições e presenças permanentemente. Esta ação não pode ser desfeita.')) return;
   if(!confirm('Confirme novamente: deletar tudo?')) return;
   try {
-    await sb.from('presencas').delete().gte('created_at','1970-01-01').catch(()=>{});
+    try { await sb.from('presencas').delete().gte('created_at','1970-01-01'); } catch(e){}
     const {error} = await sb.from('inscricoes').delete().gte('created_at','1970-01-01');
     if(error){ alert('Erro ao deletar inscrições: '+error.message); return; }
     inscricoes = [];
@@ -4800,10 +4793,9 @@ async function deleteInscricoesOnly(){
   if(!confirm('⚠️ Apagar TODAS as inscrições?\n\nEssa ação é irreversível.')) return;
   if(!confirm('Confirme novamente: apagar todas as inscrições?')) return;
   try {
+    try { await sb.from('presencas').delete().gte('created_at','1970-01-01'); } catch(e){}
     const {error} = await sb.from('inscricoes').delete().gte('created_at','1970-01-01');
     if(error){ alert('Erro ao apagar inscrições: '+error.message); return; }
-    // Also clear presencas
-    await sb.from('presencas').delete().gte('created_at','1970-01-01').catch(()=>{});
     inscricoes = [];
     invalidateInscricoesCache();
     localStorage.removeItem('redor_inscricoes');
