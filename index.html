@@ -2465,12 +2465,16 @@ function checkEventoTime(){
   const now = new Date();
   const eventEnd = new Date(evData.data+'T'+evData.horaFim+':00');
   if(now > eventEnd){
+    // Only auto-disable if the toggle is still active (respect manual override)
+    const toggle = document.getElementById('toggle-inscrever');
+    if(toggle && !toggle.checked) return; // already manually disabled, don't interfere
     const formScreen = document.getElementById('screen-form');
     const privScreen = document.getElementById('screen-privacy');
-    const btnIns = document.getElementById('btn-inscrever');
     if(formScreen) formScreen.style.pointerEvents='none';
     if(privScreen) privScreen.style.pointerEvents='none';
-    if(btnIns){ btnIns.disabled=true; btnIns.textContent='Inscrições encerradas'; }
+    // Disable using the same function so custom text is respected
+    if(toggle) toggle.checked = false;
+    updateBtnInscrever();
   }
 }
 
