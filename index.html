@@ -1979,18 +1979,6 @@ async function applySettingsToPage(s) {
   else if(eventoSrc) document.getElementById('confirm-evento-img').src = eventoSrc;
 
   if(s.btnLabel){ document.getElementById('ed-btn-label').value=s.btnLabel; }
-  if(s.inscreverAtivo !== undefined){
-    const tog = document.getElementById('toggle-inscrever');
-    if(tog) tog.checked = s.inscreverAtivo;
-    const offEl = document.getElementById('ed-inscrever-off-label');
-    if(offEl && s.inscreverOffLabel) offEl.value = s.inscreverOffLabel;
-    updateBtnInscrever();
-  } else {
-    // Default: ativo
-    const btn = document.getElementById('btn-inscrever');
-    const label = s.btnLabel || 'Inscreva-se';
-    if(btn){ btn.disabled=false; btn.onclick=goToPrivacy; btn.innerHTML=label+' →'; }
-  }
   if(s.landingExtra!==undefined){ const el=document.getElementById('landing-extra-text'); el.textContent=s.landingExtra; el.style.display=s.landingExtra?'block':'none'; if(s.extraColor)el.style.color=s.extraColor; document.getElementById('ed-landing-extra').value=s.landingExtra; }
   if(s.extraColor) document.getElementById('ed-extra-color').value=s.extraColor;
   if(s.privacyText){ document.getElementById('privacy-text-el').textContent=s.privacyText; document.getElementById('ed-privacy-text').value=s.privacyText; }
@@ -2089,12 +2077,22 @@ async function applySettingsToPage(s) {
   // Restaurar dados do evento
   if(s.eventoData){
     restoreEventoData(s.eventoData);
-    checkEventoTime();
+    checkEventoTime(); // may auto-disable if event ended
     setTimeout(updateBtnChegar, 500);
-    // Update browser title with event name
-    if(s.eventoData.nome){
-      document.title = s.eventoData.nome + ' – Inscrição';
+    if(s.eventoData.nome) document.title = s.eventoData.nome + ' – Inscrição';
+  }
+
+  // Restore inscreverAtivo AFTER checkEventoTime — admin setting always wins
+  {
+    const tog = document.getElementById('toggle-inscrever');
+    const offEl = document.getElementById('ed-inscrever-off-label');
+    if(s.inscreverAtivo !== undefined){
+      if(tog) tog.checked = s.inscreverAtivo;
+      if(offEl && s.inscreverOffLabel) offEl.value = s.inscreverOffLabel;
+    } else {
+      if(tog) tog.checked = true; // default: open
     }
+    updateBtnInscrever();
   }
   // Restaurar programação
   restoreProgData(s);
@@ -2490,19 +2488,19 @@ function initHourSelects(){
 }
 
 function checkEventoTime(){
+  // If admin explicitly set inscreverAtivo, respect it — don't auto-disable
+  if(currentSettings.inscreverAtivo !== undefined) return;
   const evData = currentSettings.eventoData;
   if(!evData||!evData.data||!evData.horaFim) return;
   const now = new Date();
   const eventEnd = new Date(evData.data+'T'+evData.horaFim+':00');
   if(now > eventEnd){
-    // Only auto-disable if the toggle is still active (respect manual override)
     const toggle = document.getElementById('toggle-inscrever');
-    if(toggle && !toggle.checked) return; // already manually disabled, don't interfere
+    if(toggle && !toggle.checked) return;
     const formScreen = document.getElementById('screen-form');
     const privScreen = document.getElementById('screen-privacy');
     if(formScreen) formScreen.style.pointerEvents='none';
     if(privScreen) privScreen.style.pointerEvents='none';
-    // Disable using the same function so custom text is respected
     if(toggle) toggle.checked = false;
     updateBtnInscrever();
   }
@@ -3782,72 +3780,87 @@ function showAdminTab(tab){
 // APPLY ALL + SAVE
 // ═══════════════════════════════════════
 async function applyAll(){
-  const syncAll=document.getElementById('sync-bg-all').checked;
-  ['landing','privacy','form','confirm'].forEach(sc=>{
-    const type=mediaTypes[sc]||'image';
-    const bk=sc==='landing'?'landing-bg':sc+'-bg';
-    const vk=sc==='landing'?'landing-video':sc+'-video';
-    const fk=type==='image'?bk:vk;
-    if(fileStore[fk]) applyMediaToScreen(sc,type,fileStore[fk]);
-  });
-  if(syncAll){
-    const lt=mediaTypes.landing||'image';
-    const lk=lt==='image'?'landing-bg':'landing-video';
-    if(fileStore[lk]){ ['privacy','form','confirm'].forEach(sc=>{applyMediaToScreen(sc,lt,fileStore[lk]);mediaTypes[sc]=lt;}); }
-  }
-  // Palestrantes — use own bg if set, else sync if checked
-  const palType=mediaTypes.palestrantes||'image';
-  const palKey=palType==='image'?'palestrantes-bg':'palestrantes-video';
-  if(fileStore[palKey]){
-    applyMediaToScreen('palestrantes',palType,fileStore[palKey]);
-  } else if(syncAll){
-    const lt=mediaTypes.landing||'image';
-    const lk=lt==='image'?'landing-bg':'landing-video';
-    if(fileStore[lk]) applyMediaToScreen('palestrantes',lt,fileStore[lk]);
-  }
-  // Speaker name color
-  updateSpeakerNameColor();
-  function fSrc(f){ return f ? (f.url||f.dataUrl||null) : null; }
-  if(fileStore['evento-img']){ const src=fSrc(fileStore['evento-img']); if(src){ document.getElementById('evento-img').src=src; if(!fileStore['confirm-img']) document.getElementById('confirm-evento-img').src=src; } }
-  if(fileStore['confirm-img']){ const src=fSrc(fileStore['confirm-img']); if(src) document.getElementById('confirm-evento-img').src=src; }
+  const btn = document.getElementById('apply-btn');
+  if(btn){ btn.textContent='⏳ Salvando…'; btn.disabled=true; }
 
-  const blEl = document.getElementById('ed-btn-label');
-  if(blEl && blEl.value.trim()) {
-    // Don't set button text directly — let updateBtnInscrever handle it
-    // so disabled state is respected
-  }
-  updateBtnInscrever(); // always call this — it handles both active and disabled states
-  const ex=document.getElementById('ed-landing-extra')?.value.trim()||'';
-  const exEl=document.getElementById('landing-extra-text');
-  if(exEl){ exEl.textContent=ex; exEl.style.display=ex?'block':'none';
-  const exColorEl=document.getElementById('ed-extra-color');
-  if(exColorEl) exEl.style.color=exColorEl.value; }
-  const pt=document.getElementById('ed-privacy-text').value.trim();
-  if(pt) document.getElementById('privacy-text-el').textContent=pt;
-  document.getElementById('event-tag').textContent=document.getElementById('ed-tag').value;
-  document.getElementById('event-title').textContent=document.getElementById('ed-title').value;
-  document.getElementById('event-desc').textContent=document.getElementById('ed-desc').value;
-  document.getElementById('footer-text').textContent=document.getElementById('ed-footer').value;
-  document.getElementById('redor-question-label').innerHTML=document.getElementById('ed-redor-q').value+' <span class="req">*</span>';
-  document.getElementById('confirm-title').textContent=document.getElementById('ed-confirm-title').value;
-  document.getElementById('confirm-text').textContent=document.getElementById('ed-confirm-text').value;
-  const cu=document.getElementById('ed-confirm-url').value.trim();
-  if(cu) document.getElementById('confirm-link').href=cu;
-  programacaoActive=document.getElementById('toggle-programacao').checked;
-  programacaoUrl=document.getElementById('ed-programacao-url').value.trim();
-  palestrantesActive=document.getElementById('toggle-palestrantes').checked;
-  cpfEnabled=document.getElementById('toggle-cpf').checked;
-  updateBtnProgramacao(); updateBtnPalestrantes(); updateCpfField(); updateAuxBtnColors(); updateBtnChegar();
-  renderCustomQuestionsForm();
+  try {
+    // Media sync
+    const syncAllEl = document.getElementById('sync-bg-all');
+    const syncAll = syncAllEl ? syncAllEl.checked : false;
+    ['landing','privacy','form','confirm'].forEach(sc=>{
+      const type=mediaTypes[sc]||'image';
+      const fk=(type==='image')?(sc==='landing'?'landing-bg':sc+'-bg'):(sc==='landing'?'landing-video':sc+'-video');
+      if(fileStore[fk]) applyMediaToScreen(sc,type,fileStore[fk]);
+    });
+    if(syncAll){
+      const lt=mediaTypes.landing||'image';
+      const lk=lt==='image'?'landing-bg':'landing-video';
+      if(fileStore[lk]){ ['privacy','form','confirm'].forEach(sc=>{applyMediaToScreen(sc,lt,fileStore[lk]);mediaTypes[sc]=lt;}); }
+    }
+    const palType=mediaTypes.palestrantes||'image';
+    const palKey=palType==='image'?'palestrantes-bg':'palestrantes-video';
+    if(fileStore[palKey]) applyMediaToScreen('palestrantes',palType,fileStore[palKey]);
+    else if(syncAll){
+      const lt=mediaTypes.landing||'image';
+      const lk=lt==='image'?'landing-bg':'landing-video';
+      if(fileStore[lk]) applyMediaToScreen('palestrantes',lt,fileStore[lk]);
+    }
 
-  const btn=document.getElementById('apply-btn');
-  btn.textContent='⏳ Salvando…'; btn.disabled=true;
-  const saved=await saveSettings(gatherSettings());
-  btn.disabled=false;
-  btn.textContent=saved?'✔ Salvo para todos!':'✔ Aplicado (local)';
-  btn.classList.add('success');
-  if(saved) showSaveIndicator(true);
-  setTimeout(()=>{ btn.textContent='💾 Salvar Edições'; btn.classList.remove('success'); },2500);
+    updateSpeakerNameColor();
+
+    // Safe DOM updates — each guarded
+    const safe = (id) => document.getElementById(id);
+    const val = (id) => safe(id)?.value || '';
+
+    const eventoImg = safe('evento-img');
+    if(eventoImg && fileStore['evento-img']?.url) eventoImg.src = fileStore['evento-img'].url;
+
+    // Text fields
+    const tag = val('ed-tag'); if(tag && safe('event-tag')) safe('event-tag').textContent = tag;
+    const title = val('ed-title'); if(title && safe('event-title')) safe('event-title').textContent = title;
+    const desc = val('ed-desc'); if(desc && safe('event-desc')) safe('event-desc').textContent = desc;
+    const footer = val('ed-footer'); if(safe('footer-text')) safe('footer-text').textContent = footer;
+    const redorQ = val('ed-redor-q'); if(redorQ && safe('redor-question-label')) safe('redor-question-label').innerHTML = redorQ + ' <span class="req">*</span>';
+    const confirmTitle = val('ed-confirm-title'); if(confirmTitle && safe('confirm-title')) safe('confirm-title').textContent = confirmTitle;
+    const confirmText = val('ed-confirm-text'); if(confirmText && safe('confirm-text')) safe('confirm-text').textContent = confirmText;
+    const confirmUrl = val('ed-confirm-url'); if(confirmUrl && safe('confirm-link')) safe('confirm-link').href = confirmUrl;
+
+    // Landing extra
+    const ex = val('ed-landing-extra');
+    const exEl = safe('landing-extra-text');
+    if(exEl){ exEl.textContent=ex; exEl.style.display=ex?'block':'none'; const ec=val('ed-extra-color'); if(ec) exEl.style.color=ec; }
+
+    // Privacy
+    const pt = val('ed-privacy-text'); if(pt && safe('privacy-text-el')) safe('privacy-text-el').textContent = pt;
+
+    // Toggles — read from DOM if available, keep currentSettings value otherwise
+    const togProg = safe('toggle-programacao');
+    if(togProg) programacaoActive = togProg.checked;
+    const togPales = safe('toggle-palestrantes');
+    if(togPales) palestrantesActive = togPales.checked;
+    const togCpf = safe('toggle-cpf');
+    if(togCpf) cpfEnabled = togCpf.checked;
+    const progUrl = val('ed-programacao-url');
+    if(progUrl) programacaoUrl = progUrl;
+
+    updateBtnInscrever();
+    updateBtnProgramacao();
+    updateBtnPalestrantes();
+    updateCpfField();
+    updateAuxBtnColors();
+    updateBtnChegar();
+    renderCustomQuestionsForm();
+
+    // Save
+    const saved = await saveSettings(gatherSettings());
+    if(btn){ btn.disabled=false; btn.textContent=saved?'✔ Salvo!':'⚠ Falha'; btn.classList.toggle('success',saved); }
+    showSaveIndicator(saved, saved?'✔ Edições salvas!':'⚠ Falha ao salvar');
+    setTimeout(()=>{ if(btn){btn.textContent='💾 Salvar Edições';btn.classList.remove('success');} },2500);
+  } catch(e) {
+    console.error('[applyAll] ERROR:', e);
+    if(btn){ btn.disabled=false; btn.textContent='⚠ Erro'; }
+    showSaveIndicator(false, '⚠ Erro: '+e.message);
+  }
 }
 
 function showSavingIndicator(){
