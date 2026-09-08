@@ -1746,13 +1746,28 @@ async function saveSettings(obj) {
         return s;
       });
     }
+    const payload = JSON.stringify(slim);
+    console.log('[saveSettings] payload size:', (payload.length/1024).toFixed(1)+'KB');
+    if(payload.length > 500000){
+      console.warn('[saveSettings] payload too large:', payload.length, 'bytes');
+      showSaveIndicator(false, '⚠ Dados muito grandes para salvar');
+      return false;
+    }
     const { error } = await sb.from('settings').upsert(
-      [{ key: 'global', value: JSON.stringify(slim), updated_at: new Date().toISOString() }],
+      [{ key: 'global', value: payload, updated_at: new Date().toISOString() }],
       { onConflict: 'key' }
     );
-    if (error) { console.warn('Settings save error:', error.message); return false; }
+    if (error) {
+      console.warn('Settings save error:', error.message);
+      showSaveIndicator(false, '⚠ Erro: ' + error.message.slice(0,50));
+      return false;
+    }
     return true;
-  } catch(e) { console.warn('Settings save failed:', e.message); return false; }
+  } catch(e) {
+    console.warn('Settings save failed:', e.message);
+    showSaveIndicator(false, '⚠ Erro: ' + e.message.slice(0,50));
+    return false;
+  }
 }
 
 let _settingsCache = null;
