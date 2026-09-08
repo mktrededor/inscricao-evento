@@ -1793,6 +1793,7 @@ async function loadSettings() {
 }
 
 function gatherSettings() {
+  try {
   // Helper: read DOM element value, fall back to currentSettings if element not in DOM
   const dom = (id, fallback='') => {
     const el = document.getElementById(id);
@@ -1883,6 +1884,10 @@ function gatherSettings() {
   // Merge: currentSettings is the base, fresh values override
   currentSettings = Object.assign({}, currentSettings, fresh);
   return currentSettings;
+  } catch(e) {
+    console.error('[gatherSettings] ERROR:', e);
+    return currentSettings; // return last known good state
+  }
 }
 
 function waitForSettings(maxMs=4000){
@@ -5131,16 +5136,24 @@ function applyPalestrantesBackground(s){
 }
 
 async function saveProgData(){
-  progInternoAtivo = document.getElementById('toggle-prog-interno')?.checked || false;
-  progSalasAtivo   = document.getElementById('toggle-prog-salas')?.checked || false;
-  if(progSalasAtivo) getProgSalasForSave();
-  currentSettings.progItems = progItems;
-  currentSettings.progInternoAtivo = progInternoAtivo;
-  currentSettings.progFileUrl = progFileUrl;
-  currentSettings.progSalas = progSalas;
-  currentSettings.progSalasAtivo = progSalasAtivo;
-  const saved = await saveSettings(gatherSettings());
-  showSaveIndicator(saved, '✔ Programação salva!');
+  try {
+    progInternoAtivo = document.getElementById('toggle-prog-interno')?.checked || false;
+    progSalasAtivo   = document.getElementById('toggle-prog-salas')?.checked || false;
+    if(progSalasAtivo) getProgSalasForSave();
+    currentSettings.progItems = progItems;
+    currentSettings.progInternoAtivo = progInternoAtivo;
+    currentSettings.progFileUrl = progFileUrl;
+    currentSettings.progSalas = progSalas;
+    currentSettings.progSalasAtivo = progSalasAtivo;
+    const settings = gatherSettings();
+    console.log('[saveProgData] progItems count:', progItems.length, 'gathered ok');
+    const saved = await saveSettings(settings);
+    console.log('[saveProgData] saved:', saved);
+    showSaveIndicator(saved, saved ? '✔ Programação salva!' : '⚠ Falha ao salvar');
+  } catch(e) {
+    console.error('[saveProgData] ERROR:', e);
+    showSaveIndicator(false, '⚠ Erro: ' + e.message);
+  }
 }
 
 function updateProgField(el){
