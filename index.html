@@ -1773,7 +1773,7 @@ async function saveSettings(obj) {
 
 let _settingsCache = null;
 let _settingsCacheTime = 0;
-const SETTINGS_CACHE_TTL = 300000; // 5 minutes
+const SETTINGS_CACHE_TTL = 0; // Always fetch fresh — cache disabled
 
 async function loadSettings() {
   if(_settingsCache && (Date.now()-_settingsCacheTime) < SETTINGS_CACHE_TTL){
@@ -4999,13 +4999,15 @@ function renderProgAdmin(){
 }
 
 function restoreProgData(s){
-  if(s.progSalas && s.progSalas.length){
+  if(s.progSalas && s.progSalas.length && s.progSalasAtivo){
+    // Salas mode active — load from salas structure
     progSalas = s.progSalas;
     progSalaAtualId = progSalas[0].id;
-    // progItems comes from the active sala, not the flat array
     progItems = JSON.parse(JSON.stringify(progSalas[0].items || []));
   } else if(s.progItems){
+    // Single list mode — use flat progItems array
     progItems = s.progItems;
+    if(s.progSalas) progSalas = s.progSalas; // keep salas for switching back on
   }
   if(s.progInternoAtivo !== undefined){
     progInternoAtivo = s.progInternoAtivo;
@@ -5139,6 +5141,11 @@ async function saveProgData(){
   try {
     progInternoAtivo = document.getElementById('toggle-prog-interno')?.checked || false;
     progSalasAtivo   = document.getElementById('toggle-prog-salas')?.checked || false;
+    // Always sync current progItems into active sala before saving
+    if(progSalaAtualId){
+      const cur = progSalas.find(s=>s.id===progSalaAtualId);
+      if(cur) cur.items = JSON.parse(JSON.stringify(progItems));
+    }
     if(progSalasAtivo) getProgSalasForSave();
     currentSettings.progItems = progItems;
     currentSettings.progInternoAtivo = progInternoAtivo;
