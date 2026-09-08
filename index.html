@@ -3811,12 +3811,17 @@ async function applyAll(){
   if(fileStore['evento-img']){ const src=fSrc(fileStore['evento-img']); if(src){ document.getElementById('evento-img').src=src; if(!fileStore['confirm-img']) document.getElementById('confirm-evento-img').src=src; } }
   if(fileStore['confirm-img']){ const src=fSrc(fileStore['confirm-img']); if(src) document.getElementById('confirm-evento-img').src=src; }
 
-  const bl=document.getElementById('ed-btn-label').value.trim();
-  if(bl) document.getElementById('btn-inscrever').textContent=bl+' →';
-  const ex=document.getElementById('ed-landing-extra').value.trim();
+  const blEl = document.getElementById('ed-btn-label');
+  if(blEl && blEl.value.trim()) {
+    // Don't set button text directly — let updateBtnInscrever handle it
+    // so disabled state is respected
+  }
+  updateBtnInscrever(); // always call this — it handles both active and disabled states
+  const ex=document.getElementById('ed-landing-extra')?.value.trim()||'';
   const exEl=document.getElementById('landing-extra-text');
-  exEl.textContent=ex; exEl.style.display=ex?'block':'none';
-  exEl.style.color=document.getElementById('ed-extra-color').value;
+  if(exEl){ exEl.textContent=ex; exEl.style.display=ex?'block':'none';
+  const exColorEl=document.getElementById('ed-extra-color');
+  if(exColorEl) exEl.style.color=exColorEl.value; }
   const pt=document.getElementById('ed-privacy-text').value.trim();
   if(pt) document.getElementById('privacy-text-el').textContent=pt;
   document.getElementById('event-tag').textContent=document.getElementById('ed-tag').value;
