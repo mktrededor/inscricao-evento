@@ -1777,26 +1777,34 @@ async function loadSettings() {
 }
 
 function gatherSettings() {
-  // Build only what we can reliably read from DOM right now
+  // Helper: read DOM element value, fall back to currentSettings if element not in DOM
+  const dom = (id, fallback='') => {
+    const el = document.getElementById(id);
+    return el ? el.value : (currentSettings[fallback||id] ?? fallback);
+  };
+  const chk = (id, fallback=false) => {
+    const el = document.getElementById(id);
+    return el ? el.checked : (currentSettings[fallback||id] ?? fallback);
+  };
+
   const fresh = {
-    btnLabel: document.getElementById('ed-btn-label').value,
-    inscreverAtivo: document.getElementById('toggle-inscrever')?.checked !== false,
-    inscreverOffLabel: document.getElementById('ed-inscrever-off-label')?.value || 'Em breve',
-    landingExtra: document.getElementById('ed-landing-extra').value,
-    extraColor: document.getElementById('ed-extra-color').value,
-    privacyText: document.getElementById('ed-privacy-text').value,
-    tag: document.getElementById('ed-tag').value,
-    title: document.getElementById('ed-title').value,
-    desc: document.getElementById('ed-desc').value,
-    redorQ: document.getElementById('ed-redor-q').value,
-    footer: document.getElementById('ed-footer').value,
-    confirmTitle: document.getElementById('ed-confirm-title').value,
-    confirmText: document.getElementById('ed-confirm-text').value,
-    confirmUrl: document.getElementById('ed-confirm-url').value,
-    palesTitle: document.getElementById('ed-pales-title').value,
-    palesSubtitle: document.getElementById('ed-pales-subtitle').value,
+    btnLabel:           dom('ed-btn-label'),
+    inscreverAtivo:     chk('toggle-inscrever', 'inscreverAtivo') !== false,
+    inscreverOffLabel:  dom('ed-inscrever-off-label') || currentSettings.inscreverOffLabel || 'Em breve',
+    landingExtra:       dom('ed-landing-extra'),
+    extraColor:         dom('ed-extra-color'),
+    privacyText:        dom('ed-privacy-text'),
+    tag:                dom('ed-tag'),
+    title:              dom('ed-title'),
+    desc:               dom('ed-desc'),
+    redorQ:             dom('ed-redor-q'),
+    footer:             dom('ed-footer'),
+    confirmTitle:       dom('ed-confirm-title'),
+    confirmText:        dom('ed-confirm-text'),
+    confirmUrl:         dom('ed-confirm-url'),
+    palesTitle:         dom('ed-pales-title'),
+    palesSubtitle:      dom('ed-pales-subtitle'),
     files: (()=>{
-      // Strip dataUrls — only keep public Storage URLs
       const clean = {};
       Object.keys(fileStore).forEach(k => {
         const f = fileStore[k];
@@ -1805,7 +1813,7 @@ function gatherSettings() {
       return clean;
     })(),
     mediaTypes,
-    syncBgAll: document.getElementById('sync-bg-all').checked,
+    syncBgAll:          chk('sync-bg-all', 'syncBgAll'),
     profiles,
     customQuestions,
     customLinkBtns,
@@ -1813,51 +1821,50 @@ function gatherSettings() {
     speakers,
     cpfEnabled,
     programacaoActive,
-    programacaoUrl: document.getElementById('ed-programacao-url').value,
+    programacaoUrl:     dom('ed-programacao-url') || currentSettings.programacaoUrl || '',
     palestrantesActive,
-    auxProgBg:      document.getElementById('ed-prog-bg').value,
-    auxProgBorder:  document.getElementById('ed-prog-border').value,
-    auxProgColor:   document.getElementById('ed-prog-color').value,
-    auxPalesBg:     document.getElementById('ed-pales-btn-bg').value,
-    auxPalesBorder: document.getElementById('ed-pales-btn-border').value,
-    auxPalesColor:  document.getElementById('ed-pales-btn-color').value,
-    auxChegarBg:    document.getElementById('ed-chegar-bg')?.value||'#005ca9',
-    auxChegarBorder:document.getElementById('ed-chegar-border')?.value||'#005ca9',
-    auxChegarColor: document.getElementById('ed-chegar-color')?.value||'#ffffff',
-    chegarAtivo:    document.getElementById('toggle-chegar')?.checked||false,
-    speakerBorderColor: document.getElementById('ed-speaker-border-color').value,
-    speakerBorderWidth: document.getElementById('ed-speaker-border-width').value,
+    auxProgBg:          dom('ed-prog-bg')          || currentSettings.auxProgBg      || '#005ca9',
+    auxProgBorder:      dom('ed-prog-border')      || currentSettings.auxProgBorder  || '#005ca9',
+    auxProgColor:       dom('ed-prog-color')       || currentSettings.auxProgColor   || '#ffffff',
+    auxPalesBg:         dom('ed-pales-btn-bg')     || currentSettings.auxPalesBg     || '#005ca9',
+    auxPalesBorder:     dom('ed-pales-btn-border') || currentSettings.auxPalesBorder || '#005ca9',
+    auxPalesColor:      dom('ed-pales-btn-color')  || currentSettings.auxPalesColor  || '#ffffff',
+    auxChegarBg:        dom('ed-chegar-bg')        || currentSettings.auxChegarBg    || '#005ca9',
+    auxChegarBorder:    dom('ed-chegar-border')    || currentSettings.auxChegarBorder|| '#005ca9',
+    auxChegarColor:     dom('ed-chegar-color')     || currentSettings.auxChegarColor || '#ffffff',
+    chegarAtivo:        chk('toggle-chegar', 'chegarAtivo'),
+    speakerBorderColor: dom('ed-speaker-border-color') || currentSettings.speakerBorderColor || '#005ca9',
+    speakerBorderWidth: dom('ed-speaker-border-width') || currentSettings.speakerBorderWidth || '2',
     speakerBorderStyle: borderStyle,
-    speakerBorderGradC1: document.getElementById('ed-border-grad-c1').value,
-    speakerBorderGradC2: document.getElementById('ed-border-grad-c2').value,
+    speakerBorderGradC1: dom('ed-border-grad-c1') || currentSettings.speakerBorderGradC1 || '#005ca9',
+    speakerBorderGradC2: dom('ed-border-grad-c2') || currentSettings.speakerBorderGradC2 || '#00aaff',
     speakerBorderGradDir: borderGradDir,
     patrocinios: patrocinios.map(p=>({...p,
-      // Keep imgUrl (Storage URL), strip raw base64 dataUrl to save space
       imgDataUrl: (p.imgUrl && p.imgUrl.startsWith('http')) ? null : p.imgDataUrl
     })),
     patAtivo,
     locaisDB,
-    eventoData: currentSettings.eventoData || null,
-    faviconUrl: currentSettings.faviconUrl || null,
-    speakerNameColor: document.getElementById('ed-speaker-name-color')?.value||'#ffffff',
-    speakerRoleColor: document.getElementById('ed-speaker-role-color')?.value||'#ccddee',
-    speakerHintColor: document.getElementById('ed-speaker-hint-color')?.value||'#aabbcc',
-    progItems: progItems,
-    progInternoAtivo: progInternoAtivo,
-    progFileUrl: progFileUrl,
-    progDownloadAtivo: document.getElementById('toggle-prog-download')?.checked !== false,
-    progSalas: progSalas,
-    progSalasAtivo: progSalasAtivo,
-    progOverlayColor:   document.getElementById('ed-prog-overlay-color')?.value||'#005ca9',
-    progOverlayOpacity: document.getElementById('ed-prog-overlay-opacity')?.value||'60',
-    progTextColor:   document.getElementById('ed-prog-text-color')?.value||'#ffffff',
-    progHoraColor:   document.getElementById('ed-prog-hora-color')?.value||'#aaccee',
-    progTipoColor:   document.getElementById('ed-prog-tipo-color')?.value||'#aaccee',
-    progSubColor:    document.getElementById('ed-prog-sub-color')?.value||'#ccddee',
-    progSessaoColor: document.getElementById('ed-prog-sessao-color')?.value||'#ffffff',
-    progSepColor:    document.getElementById('ed-prog-sep-color')?.value||'#ffffff',
+    eventoData:          currentSettings.eventoData  || null,
+    faviconUrl:          currentSettings.faviconUrl  || null,
+    speakerNameColor:    dom('ed-speaker-name-color') || currentSettings.speakerNameColor || '#ffffff',
+    speakerRoleColor:    dom('ed-speaker-role-color') || currentSettings.speakerRoleColor || '#ccddee',
+    speakerHintColor:    dom('ed-speaker-hint-color') || currentSettings.speakerHintColor || '#aabbcc',
+    progItems,
+    progInternoAtivo,
+    progFileUrl,
+    progDownloadAtivo:   chk('toggle-prog-download', 'progDownloadAtivo') !== false,
+    progSalas,
+    progSalasAtivo,
+    progOverlayColor:    dom('ed-prog-overlay-color')   || currentSettings.progOverlayColor   || '#005ca9',
+    progOverlayOpacity:  dom('ed-prog-overlay-opacity') || currentSettings.progOverlayOpacity || '60',
+    progTextColor:       dom('ed-prog-text-color')   || currentSettings.progTextColor   || '#ffffff',
+    progHoraColor:       dom('ed-prog-hora-color')   || currentSettings.progHoraColor   || '#aaccee',
+    progTipoColor:       dom('ed-prog-tipo-color')   || currentSettings.progTipoColor   || '#aaccee',
+    progSubColor:        dom('ed-prog-sub-color')    || currentSettings.progSubColor    || '#ccddee',
+    progSessaoColor:     dom('ed-prog-sessao-color') || currentSettings.progSessaoColor || '#ffffff',
+    progSepColor:        dom('ed-prog-sep-color')    || currentSettings.progSepColor    || '#ffffff',
   };
-  // Merge: currentSettings is the base, fresh values override — prevents empty fields from wiping saved data
+  // Merge: currentSettings is the base, fresh values override
   currentSettings = Object.assign({}, currentSettings, fresh);
   return currentSettings;
 }
@@ -3654,13 +3661,25 @@ function askAdminPassword(){
 }
 
 async function adminSaveAll(){
-  // Collect current tab's fields before saving
-  if(_currentAdminTab==='edit') applyAll();
-  else if(_currentAdminTab==='colors') applyAllColors();
-  else {
-    const saved = await saveSettings(gatherSettings());
-    showSaveIndicator(saved, saved?'✔ Alterações salvas!':'⚠ Falha ao salvar');
+  const btn = document.querySelector('[onclick="adminSaveAll()"]');
+  if(btn){ btn.textContent='⏳ Salvando…'; btn.disabled=true; }
+
+  // Commit current tab's in-memory state from DOM before gathering
+  switch(_currentAdminTab){
+    case 'edit':      await applyAll(); return; // applyAll already saves
+    case 'colors':    await applyAllColors(); return; // same
+    case 'evento':    await saveEventoData(); if(btn){btn.textContent='💾 Salvar alterações';btn.disabled=false;} return;
+    case 'speakers':  await applySpeakersAndSave(); if(btn){btn.textContent='💾 Salvar alterações';btn.disabled=false;} return;
+    case 'patrocinio': await applyPatrocinioAndSave(); if(btn){btn.textContent='💾 Salvar alterações';btn.disabled=false;} return;
+    case 'programacao': await saveProgData(); if(btn){btn.textContent='💾 Salvar alterações';btn.disabled=false;} return;
+    default: {
+      // For other tabs (dash, data, rsvp, validador) — just save current settings snapshot
+      const saved = await saveSettings(gatherSettings());
+      showSaveIndicator(saved, saved ? '✔ Alterações salvas!' : '⚠ Falha ao salvar');
+    }
   }
+
+  if(btn){ btn.textContent='💾 Salvar alterações'; btn.disabled=false; }
 }
 
 function openAdminPanel(){
