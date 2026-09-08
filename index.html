@@ -598,6 +598,7 @@ a#prog-download-link{text-decoration:none !important;}
 <body>
 
 <div id="page-loading"><div class="loading-spinner"></div></div>
+<div id="save-indicator"></div>
 
 <!-- ══ SCREEN: LANDING ══ -->
 <div class="screen active" id="screen-landing">
@@ -2798,13 +2799,8 @@ function tryPlay(videoEl){
 
 // ═══════════════════════════════════════
 async function loadLocaisDB(){
-  try {
-    const { data, error } = await sb.from('locais_db')
-      .select('id,nome,endereco,cidade,cep')
-      .order('nome', {ascending:true});
-    if(error) return []; // silently ignore — table may not exist
-    return data || [];
-  } catch(e){ return []; } // silently ignore DataCloneError and network errors
+  // locais_db table does not exist — locais are stored in settings.locaisDB
+  return [];
 }
 
 function renderLocalSelect(){
