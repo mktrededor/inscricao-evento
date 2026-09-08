@@ -967,7 +967,7 @@ a#prog-download-link{text-decoration:none !important;}
         <h3 style="margin-bottom:10px;">🎫 Botão Inscreva-se</h3>
         <div class="toggle-row">
           <span>Inscrições abertas</span>
-          <label class="toggle-switch"><input type="checkbox" id="toggle-inscrever" checked onchange="updateBtnInscrever()"><span class="toggle-slider"></span></label>
+          <label class="toggle-switch"><input type="checkbox" id="toggle-inscrever" checked onchange="updateBtnInscrever(); applyAll();"><span class="toggle-slider"></span></label>
         </div>
         <div class="admin-field" id="inscrever-off-label-wrap" style="display:none;"><label>Texto quando desativado</label>
           <input type="text" id="ed-inscrever-off-label" value="Em breve" placeholder="Ex: Em breve, Encerradas…" oninput="updateBtnInscrever()">
@@ -1209,7 +1209,7 @@ a#prog-download-link{text-decoration:none !important;}
       <div class="admin-field"><label>URL do botão "Saiba Mais"</label><input type="url" id="ed-confirm-url" value="https://www.rededorsaoluiz.com.br/site/eventos-pernambuco"></div>
     </div>
 
-    <button class="apply-btn" id="apply-btn" onclick="applyAll()">✔ Aplicar e Salvar para Todos</button>
+    <button class="apply-btn" id="apply-btn" onclick="applyAll()">💾 Salvar Edições</button>
 
     <div class="admin-section" style="margin-top:16px;">
       <h3>🔐 Senha da Tela de Validação</h3>
@@ -1226,6 +1226,8 @@ a#prog-download-link{text-decoration:none !important;}
       <p style="font-size:11px;color:#c0392b;line-height:1.6;margin-bottom:12px;">Remove <strong>toda</strong> a identidade visual, textos personalizados, imagens, cores e configurações salvas. O aplicativo volta ao estado padrão, pronto para um novo evento. <strong>Esta ação não pode ser desfeita.</strong></p>
       <button class="danger-btn" style="margin-top:0;" onclick="resetToDefault()">🔄 Resetar tudo para o padrão</button>
     </div>
+
+    <button class="apply-btn" style="margin-top:8px;" onclick="applyAll()">💾 Salvar Edições</button>
   </div>
 
   <!-- hidden fields for backward compat with gatherSettings -->
@@ -3840,7 +3842,7 @@ async function applyAll(){
   btn.textContent=saved?'✔ Salvo para todos!':'✔ Aplicado (local)';
   btn.classList.add('success');
   if(saved) showSaveIndicator(true);
-  setTimeout(()=>{ btn.textContent='✔ Aplicar e Salvar para Todos'; btn.classList.remove('success'); },2500);
+  setTimeout(()=>{ btn.textContent='💾 Salvar Edições'; btn.classList.remove('success'); },2500);
 }
 
 function showSavingIndicator(){
